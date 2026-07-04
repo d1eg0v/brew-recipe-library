@@ -7,6 +7,9 @@
 // - SQLite does not support Prisma enums, so categorical fields (fermentable
 //   type, hop use, mash step type, etc.) are stored as String with the
 //   documented allowed values noted inline.
+// - The library covers beer, mead, wine, cider, and other home ferments. Beer
+//   is the fully-specified path; non-beer recipes simply leave beer-only lists
+//   (hops, mashSteps) empty and use the generic ProcessStep / Addition models.
 
 generator client {
   provider = "prisma-client"
@@ -25,26 +28,32 @@ model Recipe {
   description String?
   notes       String?
 
+  // What kind of ferment this is. Downstream UI, calculations, and seed data
+  // branch on this. Defaults to "beer" so existing beer recipes are unchanged.
+  category String @default("beer") // beer | mead | wine | cider | other
+
   // Style / classification
-  styleName    String? // e.g. "American IPA"
-  bjcpCategory String? // e.g. "21A"
+  styleName    String? // e.g. "American IPA", "Traditional Mead", "Country Wine"
+  bjcpCategory String? // e.g. "21A" (BJCP beer code; also used for mead/cider style codes where they exist)
 
   // Batch parameters (metric)
   batchSizeLiters Float @default(20)
-  boilTimeMinutes Int   @default(60)
-  efficiencyPct   Float @default(75) // brewhouse efficiency
+  boilTimeMinutes Int   @default(60) // beer/boiled recipes; 0 for no-boil mead/wine kits
+  efficiencyPct   Float @default(75) // brewhouse efficiency; grain-based recipes only
 
   // Target measurements
   targetOg  Float? // original gravity, e.g. 1.056
   targetFg  Float? // final gravity, e.g. 1.012
   targetAbv Float? // % alcohol by volume
-  targetIbu Float? // International Bitterness Units
-  targetSrm Float? // colour (Standard Reference Method)
+  targetIbu Float? // International Bitterness Units (beer only; null for mead/wine)
+  targetSrm Float? // colour (Standard Reference Method) (beer only; null for mead/wine)
 
   fermentables Fermentable[]
-  hops         Hop[]
+  hops         Hop[] // beer/cider hopping; empty for mead & most wine
   yeasts       Yeast[]
-  mashSteps    MashStep[]
+  mashSteps    MashStep[] // grain-based recipes only; empty for mead & extract/juice recipes
+  processSteps ProcessStep[] // generic fermentation/racking/backsweetening steps (all categories)
+  additions    Addition[] // nutrients, acid blend, campden, pectic enzyme, tannin, etc.
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -53,19 +62,24 @@ model Recipe {
   @@index([bjcpCategory])
 }
 
-/// A grain-bill / sugar / extract entry contributing gravity and colour.
+/// A fermentable sugar source contributing gravity and (for beer) colour.
+/// Covers grain/extract/sugar (beer), honey (mead), and juice/must/concentrate/
+/// fruit (wine, cider, melomels). Solids use amountKg; liquids (juice/must) may
+/// instead use amountLiters — at least one of the two should be set.
 model Fermentable {
   id       String @id @default(cuid())
   recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   recipeId String
 
   name          String
-  type          String  @default("grain") // grain | extract | sugar | adjunct
-  amountKg      Float
-  colorLovibond Float? // grain colour (°L)
+  // grain | extract | sugar | adjunct | honey | juice | concentrate | fruit | must
+  type          String  @default("grain")
+  amountKg      Float? // mass for solids (grain, honey, sugar, fruit); null if liquid-only
+  amountLiters  Float? // volume for liquid fermentables (grape juice/must/concentrate)
+  colorLovibond Float? // grain colour (°L); beer only
   potentialPpg  Float? // gravity potential, points per pound per gallon
   notes         String?
-  position      Int     @default(0) // display order within the grain bill
+  position      Int     @default(0) // display order within the fermentable list
 
   @@index([recipeId])
 }
@@ -121,6 +135,44 @@ model MashStep {
   infuseAmountLiters Float?
   notes              String?
   position           Int     @default(0) // ordered sequence of steps
+
+  @@index([recipeId])
+}
+
+/// A generic process/fermentation step that applies across all categories
+/// (beer, mead, wine, cider). Covers primary/secondary fermentation, racking,
+/// backsweetening, stabilizing, aging, bottling — anything that is not a mash.
+model ProcessStep {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  name         String // e.g. "Primary fermentation", "Rack to secondary", "Backsweeten"
+  // primary | secondary | racking | backsweetening | stabilizing | aging | bottling | other
+  type         String  @default("other")
+  tempC        Float? // target temperature for the step, if controlled
+  durationDays Float? // typical duration in days (fractional allowed)
+  notes        String?
+  position     Int     @default(0) // ordered sequence of steps
+
+  @@index([recipeId])
+}
+
+/// A non-fermentable, non-hop, non-yeast addition: yeast nutrient, acid blend,
+/// pectic enzyme, campden / potassium metabisulfite, tannin, finings, etc.
+/// Common in mead and wine; occasionally used in beer.
+model Addition {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  name     String // e.g. "Fermaid-O", "Acid blend", "Campden tablet", "Pectic enzyme"
+  amount   Float? // numeric quantity, paired with unit
+  unit     String? // g | ml | tsp | tablet | ppm | etc. (free text; no fixed metric)
+  purpose  String? // e.g. "yeast nutrient", "acidity adjustment", "sanitation/antioxidant"
+  timing   String? // e.g. "at pitch", "at racking", "24h before pitch", "at bottling"
+  notes    String?
+  position Int     @default(0)
 
   @@index([recipeId])
 }
