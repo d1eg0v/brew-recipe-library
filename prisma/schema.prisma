@@ -1,0 +1,126 @@
+// Prisma schema for the Brew Recipe Library.
+// Docs: https://pris.ly/d/prisma-schema
+//
+// Notes on conventions:
+// - All physical quantities are stored in metric SI units (kg, litres, grams,
+//   Celsius). Imperial display/conversion happens in app code, never in the DB.
+// - SQLite does not support Prisma enums, so categorical fields (fermentable
+//   type, hop use, mash step type, etc.) are stored as String with the
+//   documented allowed values noted inline.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// A brewing recipe: metadata, style targets, and its ingredient/process lists.
+model Recipe {
+  id          String  @id @default(cuid())
+  title       String
+  author      String?
+  description String?
+  notes       String?
+
+  // Style / classification
+  styleName    String? // e.g. "American IPA"
+  bjcpCategory String? // e.g. "21A"
+
+  // Batch parameters (metric)
+  batchSizeLiters Float @default(20)
+  boilTimeMinutes Int   @default(60)
+  efficiencyPct   Float @default(75) // brewhouse efficiency
+
+  // Target measurements
+  targetOg  Float? // original gravity, e.g. 1.056
+  targetFg  Float? // final gravity, e.g. 1.012
+  targetAbv Float? // % alcohol by volume
+  targetIbu Float? // International Bitterness Units
+  targetSrm Float? // colour (Standard Reference Method)
+
+  fermentables Fermentable[]
+  hops         Hop[]
+  yeasts       Yeast[]
+  mashSteps    MashStep[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([styleName])
+  @@index([bjcpCategory])
+}
+
+/// A grain-bill / sugar / extract entry contributing gravity and colour.
+model Fermentable {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  name          String
+  type          String  @default("grain") // grain | extract | sugar | adjunct
+  amountKg      Float
+  colorLovibond Float? // grain colour (°L)
+  potentialPpg  Float? // gravity potential, points per pound per gallon
+  notes         String?
+  position      Int     @default(0) // display order within the grain bill
+
+  @@index([recipeId])
+}
+
+/// A hop addition in the boil / whirlpool / dry-hop schedule.
+model Hop {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  name         String
+  amountGrams  Float
+  alphaAcidPct Float? // % alpha acids, used for IBU math
+  timeMinutes  Int     @default(60) // contact time; boil minutes or dry-hop days
+  use          String  @default("boil") // boil | firstWort | whirlpool | dryHop | mash
+  form         String  @default("pellet") // pellet | leaf | plug | extract
+  notes        String?
+  position     Int     @default(0)
+
+  @@index([recipeId])
+}
+
+/// A yeast (or other fermentation microbe) used to attenuate the wort.
+model Yeast {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  name            String
+  laboratory      String? // e.g. "Wyeast", "White Labs", "Fermentis"
+  productId       String? // e.g. "US-05", "1056"
+  type            String  @default("ale") // ale | lager | wheat | wine | champagne | other
+  form            String  @default("dry") // dry | liquid | slant | culture
+  attenuationPct  Float? // apparent attenuation %
+  temperatureCMin Float?
+  temperatureCMax Float?
+  notes           String?
+  position        Int     @default(0)
+
+  @@index([recipeId])
+}
+
+/// A single step in the mash schedule (infusion / rest / decoction).
+model MashStep {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  name               String
+  type               String  @default("infusion") // infusion | temperature | decoction
+  stepTempC          Float
+  stepTimeMinutes    Int     @default(60)
+  infuseAmountLiters Float?
+  notes              String?
+  position           Int     @default(0) // ordered sequence of steps
+
+  @@index([recipeId])
+}
