@@ -154,3 +154,37 @@ export interface RecipeListResponse {
 export interface RecipeDetailResponse {
   data: RecipeDetail;
 }
+
+/** One row of the shopping list as returned by `GET /api/recipes/[id]/shopping-list`. */
+export interface ShoppingListItem {
+  category: "fermentables" | "hops" | "yeast" | "additions";
+  name: string;
+  amount: number;
+  /** Canonical metric unit ("kg", "L", "g", "packets", or a free-text addition unit). */
+  unit: string;
+  /** Sub-bucket — hop use ("boil", "dryHop") or yeast form ("dry", "liquid"); "" otherwise. */
+  detail: string;
+  /** Display-only imperial equivalent when `?units=imperial` was requested. */
+  imperialAmount?: number | null;
+  /** Imperial unit for `imperialAmount`. */
+  imperialUnit?: string | null;
+}
+
+/** Per-category and total counts for the UI summary line. */
+export interface ShoppingListSummary {
+  fermentables: number;
+  hops: number;
+  yeast: number;
+  additions: number;
+  total: number;
+}
+
+export interface ShoppingList {
+  recipeBatchSizeLiters: number;
+  items: ShoppingListItem[];
+  counts: ShoppingListSummary;
+}
+
+export interface ShoppingListResponse {
+  data: ShoppingList;
+}

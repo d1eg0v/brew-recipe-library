@@ -47,3 +47,13 @@ export function buildDetailUrl(
   }
   return url.pathname + (url.search || "");
 }
+
+export function buildShoppingListUrl(
+  base: string,
+  id: string,
+  params: DetailRecipesParams = {},
+): string {
+  // The shopping-list route reuses the same ?batchSize=&units= contract as
+  // the recipe-detail route so the UI can fetch both with one helper.
+  return buildDetailUrl(base, `${id}/shopping-list`, params);
+}

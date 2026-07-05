@@ -5,6 +5,8 @@ import RecipeDetailClient from "./RecipeDetailClient";
 import type {
   RecipeDetail,
   RecipeDetailResponse,
+  ShoppingList,
+  ShoppingListResponse,
   UnitSystem,
 } from "@/lib/ui/types";
 
@@ -38,6 +40,29 @@ async function fetchRecipe(
     return body.data ?? null;
   } catch (err) {
     console.error("detail fetch error", err);
+    return null;
+  }
+}
+
+async function fetchShoppingList(
+  id: string,
+  options: FetchOptions = {},
+): Promise<ShoppingList | null> {
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const url = new URL(`/api/recipes/${id}/shopping-list`, base);
+  if (options.batchSize != null && Number.isFinite(options.batchSize)) {
+    url.searchParams.set("batchSize", String(options.batchSize));
+  }
+  if (options.units) {
+    url.searchParams.set("units", options.units);
+  }
+  try {
+    const res = await fetch(url.toString(), { cache: "no-store" });
+    if (res.status === 404) return null;
+    if (!res.ok) return null;
+    const body = (await res.json()) as ShoppingListResponse;
+    return body.data ?? null;
+  } catch {
     return null;
   }
 }
@@ -76,6 +101,10 @@ export default async function RecipePage({
   if (!recipe) {
     notFound();
   }
+  const initialShoppingList = await fetchShoppingList(id, {
+    batchSize: initialBatchSize,
+    units: initialUnits,
+  });
 
   return (
     <div className="space-y-6">
@@ -91,6 +120,7 @@ export default async function RecipePage({
         initialRecipe={recipe}
         initialBatchSize={initialBatchSize}
         initialUnits={initialUnits}
+        initialShoppingList={initialShoppingList ?? undefined}
       />
     </div>
   );
