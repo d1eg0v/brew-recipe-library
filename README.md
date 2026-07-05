@@ -28,6 +28,16 @@ npm run dev          # http://localhost:3000
 `DATABASE_URL` lives in `.env` and defaults to `file:./dev.db` (local SQLite, no
 secrets — committed so the app and Prisma CLI work out of the box).
 
+### Picking a theme
+
+The header has a **Theme** dropdown with four palettes — Light (warm white +
+amber, the default), Sepia (paper / parchment for long reads), Dark (neutral
+grays + amber), and Midnight (deep blue-black). Your choice is persisted in
+`localStorage` under `brew-theme` and applied via a `data-theme` attribute on
+`<html>` before first paint, so there's no flash of the wrong theme on reload.
+On the very first visit (no stored choice) the app follows your OS
+`prefers-color-scheme` to pick between Light and Dark.
+
 ### Useful scripts
 
 | Script               | What it does                                       |
