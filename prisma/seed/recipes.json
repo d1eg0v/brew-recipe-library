@@ -2560,7 +2560,924 @@
         "position": 8
       }
     ]
+  },
+  {
+    "title": "Northgate Dry Apple Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A crisp, bone-dry farmhouse cider built from store-bought apple juice with a small dose of concentrate for apple intensity. Fermented fully with a champagne yeast for a clean, neutral, very dry finish — the reference base that every other variation in the set is built on.",
+    "notes": "Pick juice without added ascorbic acid, potassium sorbate, or sodium benzoate — these preservatives stall yeast. A small concentrate dose at pitch lifts the apple character without bumping the ABV noticeably. EC-1118 ferments bone-dry; if you want a touch of residual sweetness, sub D47 (or stop fermentation early and stabilize). Bottle still or force-carbonate to taste — the natural-carb version uses concentrate priming in a separate recipe.",
+    "styleName": "Standard Cider and Perry (Dry)",
+    "bjcpCategory": "C1",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.05,
+    "targetFg": 1.002,
+    "targetAbv": 6.3,
+    "fermentables": [
+      {
+        "name": "Store-bought apple juice (no preservative)",
+        "type": "juice",
+        "amountLiters": 18.0,
+        "position": 0,
+        "notes": "pasteurized, no sorbate / benzoate / ascorbic added"
+      },
+      {
+        "name": "Apple juice concentrate (flavor boost at pitch)",
+        "type": "concentrate",
+        "amountLiters": 0.4,
+        "position": 1,
+        "notes": "70 Brix frozen concentrate; contributes a small bump to OG and lifts apple character through fermentation"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "ferments fully dry; tolerates the modest TA from the acid blend"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 17,
+        "durationDays": 14,
+        "position": 1
+      },
+      {
+        "name": "Rack off lees",
+        "type": "racking",
+        "position": 2,
+        "notes": "leave heavy lees behind"
+      },
+      {
+        "name": "Bulk age cold",
+        "type": "aging",
+        "tempC": 4,
+        "durationDays": 21,
+        "position": 3,
+        "notes": "cold-crash drop bright"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 4,
+        "notes": "bottle still, or force-carbonate to ~2.5 vol CO2 if you want a petillant cider"
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 1,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 0.5,
+        "unit": "tsp",
+        "purpose": "breaks down apple pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Citric acid",
+        "amount": 9.0,
+        "unit": "g",
+        "purpose": "TA adjustment — primary apple acid; lifts tartness without harshness",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Malic acid",
+        "amount": 6.0,
+        "unit": "g",
+        "purpose": "TA adjustment — natural apple acid; rounded tartness to balance the citric bite",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 3 days",
+        "position": 4
+      }
+    ]
+  },
+  {
+    "title": "Sunhill Semi-Sweet Apple Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A balanced semi-sweet cider on the same store-bought juice base, fermented dry then back-sweetened with apple juice concentrate and cold-stabilized so the residual sweetness stays put in the bottle. A touch more concentrate at pitch and slightly bumped acid keep the sweetness from reading flabby.",
+    "notes": "Back-sweetening with concentrate keeps the apple character consistent with the dry base — no sugar-spike that fights the fruit. Stabilize aggressively: potassium metabisulfite first, then potassium sorbate 24 h later, then back-sweeten. Skip the sorbate and the concentrate will re-ferment in the bottle. Bottle still — carbonating would change the perception of sweetness.",
+    "styleName": "Cider, Other Origin (Semi-Sweet)",
+    "bjcpCategory": "C2B",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.052,
+    "targetFg": 1.003,
+    "targetAbv": 6.4,
+    "fermentables": [
+      {
+        "name": "Store-bought apple juice (no preservative)",
+        "type": "juice",
+        "amountLiters": 18.0,
+        "position": 0,
+        "notes": "pasteurized, no sorbate / benzoate / ascorbic added"
+      },
+      {
+        "name": "Apple juice concentrate (flavor boost at pitch)",
+        "type": "concentrate",
+        "amountLiters": 0.5,
+        "position": 1,
+        "notes": "slightly larger at-pitch dose lifts the base gravity to balance back-sweetening"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "ferments fully dry so back-sweetening controls the perceived sweetness entirely"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 16,
+        "durationDays": 14,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 4,
+        "durationDays": 30,
+        "position": 3,
+        "notes": "cold aging rounds the acid and clarifies further"
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 4,
+        "notes": "potassium metabisulfite first, then potassium sorbate 24 h later"
+      },
+      {
+        "name": "Back-sweeten",
+        "type": "backsweetening",
+        "position": 5,
+        "notes": "stir in 0.6 L apple juice concentrate; gravity rises to ~1.015 without re-fermentation"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6,
+        "notes": "bottle still — no priming; do not skip the sorbate step"
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 1,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 0.5,
+        "unit": "tsp",
+        "purpose": "breaks down apple pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Citric acid",
+        "amount": 11.0,
+        "unit": "g",
+        "purpose": "TA adjustment — bumped to keep the back-sweetened cider from reading flabby",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Malic acid",
+        "amount": 7.0,
+        "unit": "g",
+        "purpose": "TA adjustment — rounded acid lift alongside the citric",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 3 days",
+        "position": 4
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.3,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, 24 h before sorbate",
+        "position": 5
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 4.0,
+        "unit": "g",
+        "purpose": "yeast inhibitor (locks residual sweetness)",
+        "timing": "24 h after sulfite, before back-sweetening",
+        "position": 6
+      },
+      {
+        "name": "Apple juice concentrate (back-sweetening)",
+        "amount": 0.6,
+        "unit": "L",
+        "purpose": "back-sweetening for residual apple sweetness (still cider, no priming)",
+        "timing": "after stabilization, before bottling",
+        "position": 7
+      }
+    ]
+  },
+  {
+    "title": "Riverbend Naturally Carbonated Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A dry apple cider naturally carbonated in the bottle using apple juice concentrate as the priming sugar. The same concentrate that drives bottle conditioning also adds a final dose of apple flavor — so the cider pours with a soft petillance and a rounder apple finish than the force-carb version.",
+    "notes": "Priming concentrate is NOT a fermentable in the pre-fermentation sense — it sits in additions[] with timing='at bottling' so it doesn't get counted toward OG. Aim for ~0.30 L concentrate per 19 L batch (roughly 2.5 vol CO2); go to 0.40 L for a more aggressive sparkle. Condition 2 weeks at 18-20 °C for reliable carbonation; chill a test bottle to confirm pressure before opening the rest.",
+    "styleName": "Standard Cider and Perry (Petillant, naturally carbonated)",
+    "bjcpCategory": "C1",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.048,
+    "targetFg": 1.002,
+    "targetAbv": 6.0,
+    "fermentables": [
+      {
+        "name": "Store-bought apple juice (no preservative)",
+        "type": "juice",
+        "amountLiters": 18.0,
+        "position": 0,
+        "notes": "pasteurized, no sorbate / benzoate / ascorbic added"
+      },
+      {
+        "name": "Apple juice concentrate (flavor boost at pitch)",
+        "type": "concentrate",
+        "amountLiters": 0.3,
+        "position": 1,
+        "notes": "smaller at-pitch dose — most of the concentrate's role here is at bottling for priming"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "ferments fully dry so the priming concentrate is the only sugar left for bottle conditioning"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 17,
+        "durationDays": 14,
+        "position": 1
+      },
+      {
+        "name": "Rack off lees",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Bulk age cold",
+        "type": "aging",
+        "tempC": 4,
+        "durationDays": 14,
+        "position": 3,
+        "notes": "drop bright so the priming concentrate goes into a clean cider"
+      },
+      {
+        "name": "Bottle with priming",
+        "type": "bottling",
+        "tempC": 19,
+        "durationDays": 14,
+        "notes": "Stir 0.30 L apple juice concentrate into the bulk cider, then bottle. Condition 2 weeks at 18-20 °C; chill a test bottle before cracking the case.",
+        "position": 4
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 1,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 0.5,
+        "unit": "tsp",
+        "purpose": "breaks down apple pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Citric acid",
+        "amount": 9.0,
+        "unit": "g",
+        "purpose": "TA adjustment — primary apple acid",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Malic acid",
+        "amount": 6.0,
+        "unit": "g",
+        "purpose": "TA adjustment — natural apple acid; rounded lift",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 3 days",
+        "position": 4
+      },
+      {
+        "name": "Apple juice concentrate (priming)",
+        "amount": 0.30,
+        "unit": "L",
+        "purpose": "priming/carbonation + apple flavor boost at bottling",
+        "timing": "at bottling",
+        "position": 5
+      }
+    ]
+  },
+  {
+    "title": "Blackberry Hollow Apple Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A dry apple cider with a deep, jammy blackberry character from whole fresh (or frozen) blackberries in primary. The fruit's natural acidity lets the explicit citric/malic dose drop, and a generous pectic enzyme charge pulls the heavy berry pectin out of the way for a clear, ruby-purple pour.",
+    "notes": "Freeze-thaw the berries before pitching for max color and flavor extraction — frozen berries break down faster and give a more reliable ferment. Add pectic enzyme with the fruit, not just at pitch: the berry load is heavier than juice alone. Hold the acid additions down; blackberries already contribute significant malic and citric acid, and over-acidifying turns the cider sharp.",
+    "styleName": "Cider, Specialty — Fruit (Blackberry)",
+    "bjcpCategory": "C2C",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.058,
+    "targetFg": 1.003,
+    "targetAbv": 7.2,
+    "fermentables": [
+      {
+        "name": "Store-bought apple juice (no preservative)",
+        "type": "juice",
+        "amountLiters": 17.0,
+        "position": 0,
+        "notes": "pasteurized, no sorbate / benzoate / ascorbic added"
+      },
+      {
+        "name": "Apple juice concentrate (flavor boost at pitch)",
+        "type": "concentrate",
+        "amountLiters": 0.4,
+        "position": 1,
+        "notes": "lifts the apple base to balance the berry character"
+      },
+      {
+        "name": "Frozen blackberries (whole)",
+        "type": "fruit",
+        "amountKg": 2.0,
+        "position": 2,
+        "notes": "freeze-thaw before pitching; primary-fermented on the fruit for color and flavor"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "tolerant of the berry acid load; ferments fully dry"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Fruit prep",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "freeze the berries overnight, then thaw — breaks cell walls for better extraction"
+      },
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 1,
+        "notes": "24 h post-sulfite on the must + fruit, before pitch"
+      },
+      {
+        "name": "Primary on fruit",
+        "type": "primary",
+        "tempC": 18,
+        "durationDays": 12,
+        "position": 2,
+        "notes": "push the fruit cap down twice a day for the first 5 days"
+      },
+      {
+        "name": "Rack off fruit and lees",
+        "type": "racking",
+        "position": 3,
+        "notes": "siphon off solids; bag the berries and gently press for a touch more yield if you want"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 4,
+        "durationDays": 30,
+        "position": 4,
+        "notes": "cold age drops berry haze and lets the fruit round out"
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 5,
+        "notes": "potassium metabisulfite first, then potassium sorbate 24 h later — locks any residual fruit sugar"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6,
+        "notes": "bottle still, or force-carbonate to ~2.5 vol CO2 for a petillant berry cider"
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 1,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 1.0,
+        "unit": "tsp",
+        "purpose": "breaks down apple + blackberry pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Citric acid",
+        "amount": 5.0,
+        "unit": "g",
+        "purpose": "TA adjustment — reduced because blackberries contribute significant acid",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Malic acid",
+        "amount": 4.0,
+        "unit": "g",
+        "purpose": "TA adjustment — reduced for the same reason",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 5.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic) — bumped to support the larger fruit load",
+        "timing": "staggered SNA over first 4 days",
+        "position": 4
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.3,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, 24 h before sorbate",
+        "position": 5
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 4.0,
+        "unit": "g",
+        "purpose": "yeast inhibitor — locks any residual fruit sugar",
+        "timing": "24 h after sulfite, before bottling",
+        "position": 6
+      }
+    ]
+  },
+  {
+    "title": "Cranberry Bog Apple Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A tart, ruby-pink apple cider built around a serious dose of cranberry character. Cranberries are naturally very acidic and contribute plenty of citric acid on their own, so the explicit acid additions are kept low and a small back-sweetening with concentrate rounds the finish without turning it into a sugary cordial.",
+    "notes": "Use 100% cranberry juice (not cocktail — that's mostly sugar water and apple). The cranberry acid load is high enough that a typical acid blend would over-acidify; the trick is letting the fruit contribute the sharpness and using a touch of back-sweetening to balance. Cold-crash in secondary to drop the cranberry haze — it's tannic and slow to clear on its own.",
+    "styleName": "Cider, Specialty — Fruit (Cranberry)",
+    "bjcpCategory": "C2C",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.054,
+    "targetFg": 1.003,
+    "targetAbv": 6.7,
+    "fermentables": [
+      {
+        "name": "Store-bought apple juice (no preservative)",
+        "type": "juice",
+        "amountLiters": 16.5,
+        "position": 0,
+        "notes": "pasteurized, no sorbate / benzoate / ascorbic added"
+      },
+      {
+        "name": "Apple juice concentrate (flavor boost at pitch)",
+        "type": "concentrate",
+        "amountLiters": 0.4,
+        "position": 1,
+        "notes": "small at-pitch dose keeps the apple base present against the cranberry"
+      },
+      {
+        "name": "100% cranberry juice (no sugar added)",
+        "type": "juice",
+        "amountLiters": 1.5,
+        "position": 2,
+        "notes": "use unsweetened cranberry juice — not cocktail — so the acid / sugar balance stays in your control"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "tolerant of the high cranberry TA; ferments fully dry"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 17,
+        "durationDays": 14,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Bulk age cold",
+        "type": "aging",
+        "tempC": 2,
+        "durationDays": 30,
+        "position": 3,
+        "notes": "cold crash deep — cranberry tannins drop slowly; long cold settles the color clear"
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 4,
+        "notes": "potassium metabisulfite first, then potassium sorbate 24 h later"
+      },
+      {
+        "name": "Back-sweeten",
+        "type": "backsweetening",
+        "position": 5,
+        "notes": "stir in 0.4 L apple juice concentrate to balance cranberry sharpness — final gravity ~1.012, no re-fermentation because of the sorbate"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6,
+        "notes": "bottle still; force-carbonate to ~2.5 vol if you want a petillant cranberry cider"
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 1,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 1.0,
+        "unit": "tsp",
+        "purpose": "breaks down apple + cranberry pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Citric acid",
+        "amount": 3.0,
+        "unit": "g",
+        "purpose": "TA adjustment — kept low; cranberry already contributes significant citric acid",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Malic acid",
+        "amount": 2.0,
+        "unit": "g",
+        "purpose": "TA adjustment — minimal; rounding only",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 5.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic) — bumped to handle the larger juice volume + cranberry tannins",
+        "timing": "staggered SNA over first 4 days",
+        "position": 4
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.3,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, 24 h before sorbate",
+        "position": 5
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 4.0,
+        "unit": "g",
+        "purpose": "yeast inhibitor (locks residual sweetness)",
+        "timing": "24 h after sulfite, before back-sweetening",
+        "position": 6
+      },
+      {
+        "name": "Apple juice concentrate (back-sweetening)",
+        "amount": 0.4,
+        "unit": "L",
+        "purpose": "back-sweetening to balance cranberry sharpness (still cider, no priming)",
+        "timing": "after stabilization, before bottling",
+        "position": 7
+      }
+    ]
+  },
+  {
+    "title": "Fireside Spiced Apple Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A dry apple cider steeped with whole cinnamon sticks, cloves, and allspice berries in secondary for a warm-spice holiday profile — no extract, no fake-cinnamon flavorings. The spice steep is short and whole-spice-only so the aromatics come out clean rather than bitter.",
+    "notes": "Steep whole spices only — ground spice dusts the cider with sediment and pulls harsh tannins. Five to seven days is enough; longer extracts bitter compounds from the cloves. Pull the spices and rack before bottle conditioning. Bottle still — the spice reads strongest without carbonation masking it. Stable without sorbate because the cider ferments fully dry.",
+    "styleName": "Cider, Specialty — Spice (Cinnamon / Clove / Allspice)",
+    "bjcpCategory": "C2C",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.05,
+    "targetFg": 1.002,
+    "targetAbv": 6.3,
+    "fermentables": [
+      {
+        "name": "Store-bought apple juice (no preservative)",
+        "type": "juice",
+        "amountLiters": 18.0,
+        "position": 0,
+        "notes": "pasteurized, no sorbate / benzoate / ascorbic added"
+      },
+      {
+        "name": "Apple juice concentrate (flavor boost at pitch)",
+        "type": "concentrate",
+        "amountLiters": 0.4,
+        "position": 1,
+        "notes": "raises the apple intensity so the spice doesn't dominate"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "neutral ester profile so the spices read cleanly"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 17,
+        "durationDays": 14,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2,
+        "notes": "rack off heavy lees so the spice steep starts clean"
+      },
+      {
+        "name": "Spice steep",
+        "type": "secondary",
+        "tempC": 18,
+        "durationDays": 6,
+        "position": 3,
+        "notes": "add cinnamon sticks, whole cloves, allspice berries in a sanitized muslin bag"
+      },
+      {
+        "name": "Rack off spices",
+        "type": "racking",
+        "position": 4,
+        "notes": "pull the spice bag and any settled sediment"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 4,
+        "durationDays": 14,
+        "position": 5,
+        "notes": "short cold age lets the spice aromatics settle into the cider without fading"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6,
+        "notes": "bottle still — do not carbonate; the spice reads best on a flat cider"
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 1,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 0.5,
+        "unit": "tsp",
+        "purpose": "breaks down apple pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Citric acid",
+        "amount": 8.0,
+        "unit": "g",
+        "purpose": "TA adjustment — primary apple acid; lifted slightly to keep the spice from reading heavy",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Malic acid",
+        "amount": 5.5,
+        "unit": "g",
+        "purpose": "TA adjustment — rounded apple-acid lift",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 3 days",
+        "position": 4
+      },
+      {
+        "name": "Cinnamon sticks (whole)",
+        "amount": 2,
+        "unit": "stick",
+        "purpose": "spice — primary warm-spice note; whole only, no ground",
+        "timing": "in secondary, 5-7 day steep",
+        "position": 5
+      },
+      {
+        "name": "Whole cloves",
+        "amount": 1.0,
+        "unit": "tsp",
+        "purpose": "spice — small dose for top-note warmth; over-doing turns the cider bitter",
+        "timing": "in secondary, 5-7 day steep",
+        "position": 6
+      },
+      {
+        "name": "Whole allspice berries",
+        "amount": 1.0,
+        "unit": "tsp",
+        "purpose": "spice — rounds out the cinnamon / clove with a peppery-eucalyptus note",
+        "timing": "in secondary, 5-7 day steep",
+        "position": 7
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.3,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant at bottling",
+        "timing": "at bottling",
+        "position": 8
+      }
+    ]
   }
-
-
 ]

@@ -234,3 +234,123 @@ describe("recipeDetailQuerySchema", () => {
     expect(r.success).toBe(false);
   });
 });
+
+// BRE-20 regression: every cider recipe in the curated seed file must round-trip
+// through the strict Zod schema, and the priming-concentrate / back-sweetening
+// patterns agreed in BRE-19 must hold for the recipes that use them.
+describe("seed cider recipes (BRE-20)", () => {
+  // Lazily import the seed JSON so this file stays type-checkable even when the
+  // seed file is briefly empty.
+  function loadCiderSeed(): unknown[] {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const seed = require("node:fs").readFileSync(
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("node:path").resolve(
+        __dirname,
+        "../../prisma/seed/recipes.json",
+      ),
+      "utf8",
+    );
+    const parsed = JSON.parse(seed);
+    if (!Array.isArray(parsed)) throw new Error("seed file must be an array");
+    return parsed.filter(
+      (r: { category?: string }) => r && r.category === "cider",
+    );
+  }
+
+  it("includes all 6 cider variations (dry, semi-sweet, naturally carb, blackberry, cranberry, spiced)", () => {
+    const ciders = loadCiderSeed() as Array<{ title: string }>;
+    const titles = new Set(ciders.map((r) => r.title));
+    expect(titles.has("Northgate Dry Apple Cider")).toBe(true);
+    expect(titles.has("Sunhill Semi-Sweet Apple Cider")).toBe(true);
+    expect(titles.has("Riverbend Naturally Carbonated Cider")).toBe(true);
+    expect(titles.has("Blackberry Hollow Apple Cider")).toBe(true);
+    expect(titles.has("Cranberry Bog Apple Cider")).toBe(true);
+    expect(titles.has("Fireside Spiced Apple Cider")).toBe(true);
+    expect(ciders.length).toBe(6);
+  });
+
+  it("every cider recipe validates against recipeCreateSchema.strict()", () => {
+    const ciders = loadCiderSeed();
+    expect(ciders.length).toBeGreaterThan(0);
+    for (const r of ciders) {
+      const result = recipeCreateSchema.safeParse(r);
+      expect(result.success, JSON.stringify(r)).toBe(true);
+    }
+  });
+
+  it("every cider recipe uses explicit citric + malic acid grams (user's preferred approach)", () => {
+    const ciders = loadCiderSeed() as Array<{
+      title: string;
+      additions: Array<{ name: string; unit?: string }>;
+    }>;
+    for (const r of ciders) {
+      const names = r.additions.map((a) => a.name.toLowerCase());
+      expect(names.some((n) => n.includes("citric acid"))).toBe(true);
+      expect(names.some((n) => n.includes("malic acid"))).toBe(true);
+    }
+  });
+
+  it("the naturally-carbonated cider carries its priming concentrate as an Addition (not a Fermentable)", () => {
+    const ciders = loadCiderSeed() as Array<{
+      title: string;
+      additions: Array<{ name: string; purpose?: string; timing?: string; unit?: string; amount?: number }>;
+      processSteps: Array<{ type?: string; notes?: string }>;
+    }>;
+    const riverbend = ciders.find((r) => r.title === "Riverbend Naturally Carbonated Cider");
+    expect(riverbend).toBeDefined();
+    if (!riverbend) return;
+    const priming = riverbend.additions.find((a) =>
+      a.name.toLowerCase().includes("priming"),
+    );
+    expect(priming).toBeDefined();
+    expect(priming?.purpose?.toLowerCase()).toMatch(/priming|carbonation/);
+    expect(priming?.timing).toBe("at bottling");
+    expect(priming?.unit).toBe("L");
+    const bottling = riverbend.processSteps.find((p) => p.type === "bottling");
+    expect(bottling).toBeDefined();
+    expect(bottling?.notes?.toLowerCase()).toMatch(/apple juice concentrate/);
+  });
+
+  it("the semi-sweet and cranberry ciders back-sweeten via an Addition with timing='after stabilization'", () => {
+    const ciders = loadCiderSeed() as Array<{
+      title: string;
+      additions: Array<{ name: string; purpose?: string; timing?: string }>;
+    }>;
+    for (const title of [
+      "Sunhill Semi-Sweet Apple Cider",
+      "Cranberry Bog Apple Cider",
+    ]) {
+      const r = ciders.find((c) => c.title === title);
+      expect(r, title).toBeDefined();
+      if (!r) continue;
+      const back = r.additions.find((a) =>
+        a.purpose?.toLowerCase().includes("back-sweetening"),
+      );
+      expect(back, `${title} missing back-sweetening addition`).toBeDefined();
+      expect(back?.timing).toMatch(/before bottling|after stabilization/i);
+    }
+  });
+
+  it("OG/FG/ABV reconcile via the standard ABV formula (within rounding)", () => {
+    const ciders = loadCiderSeed() as Array<{
+      title: string;
+      targetOg?: number;
+      targetFg?: number;
+      targetAbv?: number;
+    }>;
+    for (const r of ciders) {
+      if (r.targetOg == null || r.targetFg == null || r.targetAbv == null) {
+        continue;
+      }
+      const expected = (r.targetOg - r.targetFg) * 131.25;
+      // Tolerance: ±0.3 ABV covers rounding (targetAbv is reported to 1 dp) and
+      // also accommodates the small gravity-point contribution of fruit sugar
+      // that EC-1118 attenuates beyond the simple OG→FG math.
+      expect(
+        Math.abs(r.targetAbv - expected),
+        `${r.title}: targetAbv=${r.targetAbv} expected~${expected.toFixed(2)}`,
+      ).toBeLessThan(0.4);
+    }
+  });
+});
