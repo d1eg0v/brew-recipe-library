@@ -17,10 +17,32 @@ function readAppliedTheme(): ThemeId {
 
 export default function ThemeSwitcher() {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<ThemeId>(() => readAppliedTheme());
+  // Initial state must match the server-rendered HTML to avoid a hydration
+  // mismatch. The boot script in `src/lib/theme/bootScript.ts` may have set
+  // `data-theme` on <html> to the user's stored preference before React
+  // hydrates; reading from `document` here would diverge from the SSR output
+  // (which has no `document`). Defer that read to an effect so the first
+  // client paint matches what the server sent.
+  const [active, setActive] = useState<ThemeId>(DEFAULT_THEME);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuId = useId();
+
+  // Sync to the theme the boot script applied. The boot script
+  // (`src/lib/theme/bootScript.ts`) runs in `<head>` and may set `data-theme`
+  // on `<html>` to the user's stored preference before React hydrates. We can't
+  // read that during state initialization because doing so would diverge from
+  // the SSR output (the server has no `document`). Deferring to post-mount
+  // keeps the first client render identical to the server render — exactly the
+  // pattern Next.js documents for one-shot boot-script sync
+  // (see `node_modules/next/dist/docs/.../preventing-flash-before-hydration.md`,
+  // "Syncing with React state"). The setState here is one-shot, mount-only,
+  // reading from an external system (the DOM), not a derived value off props —
+  // it triggers a single post-mount re-render, not a cascade.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActive(readAppliedTheme());
+  }, []);
 
   // Close the menu when clicking outside or pressing Escape.
   useEffect(() => {
