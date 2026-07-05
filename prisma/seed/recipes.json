@@ -2046,5 +2046,521 @@
         "position": 7
       }
     ]
+  },
+  {
+    "title": "Soft Cloud New England IPA",
+    "author": "Recipe Content Curator",
+    "description": "A classic New England IPA — hazy, juicy, and pillowy-soft. Built on a pale-ale grist with a heavy dose of flaked oats and flaked wheat for haze stability and mouthfeel, balanced against a soft, chloride-forward water profile that lifts the late-hop character without sharpening the bitterness.",
+    "notes": "Water profile: target ~200 ppm chloride and ~60 ppm sulfate (roughly a 3:1 Cl:SO4 ratio) with calcium around 80 ppm — the chloride is what gives the beer its round, soft mouthfeel; keep sulfate low to avoid harsh bitterness edge. Mash at 65 °C for a slightly dextrinous wort that supports haze and body. Bittering is light (Magnum at 30 min for clean utilization, no flavor), and nearly all hop character comes from a whirlpool stand plus two staged dry-hops: the first charge at high krausen (peak yeast activity, day 2-3) drives biotransformation of hop terpenes into more aromatic compounds, and the second charge late (after gravity has dropped ~50%, day 6-7) polishes the aroma without pulling excessive vegetative character. Cold-crash and package promptly — NEIPAs oxidize fast.",
+    "styleName": "New England IPA (hazy)",
+    "bjcpCategory": "21B",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 75,
+    "targetOg": 1.062,
+    "targetFg": 1.014,
+    "targetAbv": 6.3,
+    "targetIbu": 35,
+    "targetSrm": 4,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 4.4,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Flaked Oats",
+        "type": "adjunct",
+        "amountKg": 1.0,
+        "colorLovibond": 1,
+        "potentialPpg": 33,
+        "position": 1,
+        "notes": "protein + beta-glucan source for haze stability and creamy body"
+      },
+      {
+        "name": "Flaked Wheat",
+        "type": "adjunct",
+        "amountKg": 0.5,
+        "colorLovibond": 2,
+        "potentialPpg": 36,
+        "position": 2,
+        "notes": "boosts head retention and haze"
+      },
+      {
+        "name": "Acidulated Malt",
+        "type": "grain",
+        "amountKg": 0.05,
+        "colorLovibond": 2,
+        "potentialPpg": 27,
+        "position": 3,
+        "notes": "trim grist pH into the 5.3-5.4 mash range without sparge-water adjustment"
+      }
+    ],
+    "hops": [
+      {
+        "name": "Magnum",
+        "amountGrams": 8,
+        "alphaAcidPct": 12,
+        "timeMinutes": 30,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0,
+        "notes": "clean bittering only; flavorless at this dose and timing"
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 30,
+        "alphaAcidPct": 12,
+        "timeMinutes": 20,
+        "use": "whirlpool",
+        "form": "pellet",
+        "position": 1,
+        "notes": "20-min stand at ~80 °C, then cool rapidly"
+      },
+      {
+        "name": "Mosaic",
+        "amountGrams": 30,
+        "alphaAcidPct": 12.5,
+        "timeMinutes": 20,
+        "use": "whirlpool",
+        "form": "pellet",
+        "position": 2,
+        "notes": "20-min stand at ~80 °C, then cool rapidly"
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 60,
+        "alphaAcidPct": 12,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 3,
+        "notes": "dry hop #1 at high krausen (day 2-3); days, drives biotransformation"
+      },
+      {
+        "name": "Mosaic",
+        "amountGrams": 60,
+        "alphaAcidPct": 12.5,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 4,
+        "notes": "dry hop #1 at high krausen (day 2-3); days, drives biotransformation"
+      },
+      {
+        "name": "Galaxy",
+        "amountGrams": 30,
+        "alphaAcidPct": 14,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 5,
+        "notes": "dry hop #1 at high krausen (day 2-3); days, drives biotransformation"
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 50,
+        "alphaAcidPct": 12,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 6,
+        "notes": "dry hop #2 late (day 6-7, gravity ~50% attenuated); days, aroma polish"
+      },
+      {
+        "name": "Mosaic",
+        "amountGrams": 50,
+        "alphaAcidPct": 12.5,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 7,
+        "notes": "dry hop #2 late (day 6-7, gravity ~50% attenuated); days, aroma polish"
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "London Ale III",
+        "laboratory": "Wyeast",
+        "productId": "1313",
+        "type": "ale",
+        "form": "liquid",
+        "attenuationPct": 73,
+        "temperatureCMin": 18,
+        "temperatureCMax": 22,
+        "position": 0,
+        "notes": "biotransformation strain — converts hop terpenes into more aromatic compounds during high-krausen dry-hop"
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 65,
+        "stepTimeMinutes": 60,
+        "position": 0,
+        "notes": "lower mash temp leaves more dextrins for body and haze support"
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Double Soft Cloud Hazy DIPA",
+    "author": "Recipe Content Curator",
+    "description": "A double hazy IPA — same shape as the single NEIPA but pushed into 8%+ ABV territory with a larger grist, more flaked oats, and a more aggressive three-stage dry-hop schedule. Soft, pillowy, intensely aromatic; designed to show how the NEIPA template scales up.",
+    "notes": "Same water philosophy as the single — high chloride (~220 ppm), low sulfate (~50 ppm), calcium ~80 ppm — pushed slightly more chloride-forward to balance the higher malt load. Mash at 65.5 °C to leave enough dextrins for body without making the beer cloying. Three dry-hop charges are intentional: the first at high krausen (day 2) drives biotransformation, the second mid-fermentation (day 5) lifts aroma intensity as fermentation winds down, and the third late (day 9, gravity ~75% attenuated) deposits fresh aroma oils that survive packaging. Pitch a larger yeast starter or fresh pack (London Ale III is a low-attenuation strain — plan for ~75% apparent attenuation). Cold-crash, gelatine-fine if needed, package with minimal O2 pickup.",
+    "styleName": "Double Hazy IPA",
+    "bjcpCategory": "22A",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 75,
+    "targetOg": 1.082,
+    "targetFg": 1.018,
+    "targetAbv": 8.4,
+    "targetIbu": 60,
+    "targetSrm": 5,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 6.4,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Flaked Oats",
+        "type": "adjunct",
+        "amountKg": 1.5,
+        "colorLovibond": 1,
+        "potentialPpg": 33,
+        "position": 1,
+        "notes": "bumped to ~17% of grist for body and haze stability at higher gravity"
+      },
+      {
+        "name": "Flaked Wheat",
+        "type": "adjunct",
+        "amountKg": 0.7,
+        "colorLovibond": 2,
+        "potentialPpg": 36,
+        "position": 2,
+        "notes": "supports head retention alongside the larger oat load"
+      },
+      {
+        "name": "Acidulated Malt",
+        "type": "grain",
+        "amountKg": 0.08,
+        "colorLovibond": 2,
+        "potentialPpg": 27,
+        "position": 3,
+        "notes": "mash pH target 5.3-5.4 at this larger grist"
+      }
+    ],
+    "hops": [
+      {
+        "name": "Magnum",
+        "amountGrams": 12,
+        "alphaAcidPct": 12,
+        "timeMinutes": 30,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0,
+        "notes": "clean bittering only"
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 40,
+        "alphaAcidPct": 12,
+        "timeMinutes": 20,
+        "use": "whirlpool",
+        "form": "pellet",
+        "position": 1,
+        "notes": "20-min stand at ~80 °C, then cool rapidly"
+      },
+      {
+        "name": "Mosaic",
+        "amountGrams": 40,
+        "alphaAcidPct": 12.5,
+        "timeMinutes": 20,
+        "use": "whirlpool",
+        "form": "pellet",
+        "position": 2,
+        "notes": "20-min stand at ~80 °C, then cool rapidly"
+      },
+      {
+        "name": "Galaxy",
+        "amountGrams": 25,
+        "alphaAcidPct": 14,
+        "timeMinutes": 20,
+        "use": "whirlpool",
+        "form": "pellet",
+        "position": 3,
+        "notes": "20-min stand at ~80 °C, then cool rapidly"
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 80,
+        "alphaAcidPct": 12,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 4,
+        "notes": "dry hop #1 at high krausen (day 2); days, drives biotransformation"
+      },
+      {
+        "name": "Mosaic",
+        "amountGrams": 80,
+        "alphaAcidPct": 12.5,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 5,
+        "notes": "dry hop #1 at high krausen (day 2); days, drives biotransformation"
+      },
+      {
+        "name": "Galaxy",
+        "amountGrams": 40,
+        "alphaAcidPct": 14,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 6,
+        "notes": "dry hop #1 at high krausen (day 2); days, drives biotransformation"
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 70,
+        "alphaAcidPct": 12,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 7,
+        "notes": "dry hop #2 mid-fermentation (day 5); days, aroma lift as activity drops"
+      },
+      {
+        "name": "Mosaic",
+        "amountGrams": 70,
+        "alphaAcidPct": 12.5,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 8,
+        "notes": "dry hop #2 mid-fermentation (day 5); days, aroma lift as activity drops"
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 50,
+        "alphaAcidPct": 12,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 9,
+        "notes": "dry hop #3 late (day 9, gravity ~75% attenuated); days, fresh aroma for package"
+      },
+      {
+        "name": "Mosaic",
+        "amountGrams": 50,
+        "alphaAcidPct": 12.5,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "position": 10,
+        "notes": "dry hop #3 late (day 9, gravity ~75% attenuated); days, fresh aroma for package"
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "London Ale III",
+        "laboratory": "Wyeast",
+        "productId": "1313",
+        "type": "ale",
+        "form": "liquid",
+        "attenuationPct": 73,
+        "temperatureCMin": 18,
+        "temperatureCMax": 22,
+        "position": 0,
+        "notes": "biotransformation strain; pitch ~1.5× normal rate for the higher-gravity wort"
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 65.5,
+        "stepTimeMinutes": 60,
+        "position": 0,
+        "notes": "slightly higher than the single NEIPA — still leaves dextrins for body, ferments cleaner at 8%+"
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Viking's Blood Hibiscus Metheglin",
+    "category": "mead",
+    "author": "Recipe Content Curator",
+    "description": "A traditional metheglin in the 'Viking's Blood' style — wildflower honey fermented clean and dry, then aged on dried hibiscus flowers (with a small amount of dried elderberry and orange peel for depth) in secondary to pull a deep, blood-red colour and a tart, cranberry-like fruit character without harsh tannins.",
+    "notes": "Hibiscus flowers (and elderberry) are added in SECONDARY, not primary: hot alcohol extraction during primary over-steeps them and pulls bitter tannins and a medicinal edge. A 5-7 day steep in secondary at ~18 °C gives the full colour and flavour without the harshness. Rack off the botanicals on day 7 so the colour and aroma set without continued tannin extraction. Bulk age 8-10 weeks for the hibiscus acidity and honey to round out. The wildflower honey is intentionally light-coloured so the hibiscus red dominates the glass — orange blossom or buckwheat would either compete with or muddy the colour. Stabilize with sulfite + sorbate and lightly backsweeten (~80 g honey dissolved into a sample) so the residual sugar balances the tart hibiscus without re-fermenting in the bottle.",
+    "styleName": "Metheglin — Hibiscus (Viking's Blood)",
+    "bjcpCategory": "M3A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.095,
+    "targetFg": 1.02,
+    "targetAbv": 9.8,
+    "fermentables": [
+      {
+        "name": "Wildflower honey",
+        "type": "honey",
+        "amountKg": 3.2,
+        "position": 0,
+        "notes": "light wildflower blend — keeps the colour contribution to the hibiscus"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "clean, neutral fermenter — lets hibiscus lead the aromatics without competing esters"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 18,
+        "durationDays": 18,
+        "position": 0,
+        "notes": "drive fully dry before racking onto botanicals"
+      },
+      {
+        "name": "Rack to secondary with hibiscus",
+        "type": "secondary",
+        "tempC": 18,
+        "durationDays": 6,
+        "position": 1,
+        "notes": "add dried hibiscus, elderberry, and orange peel at racking — 5-7 day steep, then rack off"
+      },
+      {
+        "name": "Rack off botanicals",
+        "type": "racking",
+        "position": 2,
+        "notes": "rack off solids once colour and flavour have peaked to halt tannin extraction"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 15,
+        "durationDays": 75,
+        "position": 3,
+        "notes": "rounds out hibiscus acidity and integrates honey character"
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "durationDays": 2,
+        "position": 4,
+        "notes": "sulfite first, sorbate 24 h later — locks residual sugar before backsweetening"
+      },
+      {
+        "name": "Backsweeten",
+        "type": "backsweetening",
+        "position": 5,
+        "notes": "dissolve ~80 g honey into a small portion of mead, blend back; taste for balance against the hibiscus tartness"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6
+      }
+    ],
+    "additions": [
+      {
+        "name": "Go-Ferm",
+        "amount": 3.2,
+        "unit": "g",
+        "purpose": "yeast rehydration nutrient",
+        "timing": "at rehydration",
+        "position": 0
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 5.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 5 days",
+        "position": 1
+      },
+      {
+        "name": "DAP",
+        "amount": 3.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (inorganic)",
+        "timing": "split with Fermaid-O",
+        "position": 2
+      },
+      {
+        "name": "Acid blend",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "TA adjustment — supports hibiscus tartness without becoming sour",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Dried hibiscus flowers",
+        "amount": 110,
+        "unit": "g",
+        "purpose": "colour + tart fruit character (lead botanical)",
+        "timing": "in secondary, 5-7 day steep",
+        "position": 4
+      },
+      {
+        "name": "Dried elderberries",
+        "amount": 60,
+        "unit": "g",
+        "purpose": "spice — adds depth and a touch of dark-fruit note to the hibiscus",
+        "timing": "in secondary, 5-7 day steep",
+        "position": 5
+      },
+      {
+        "name": "Dried orange peel",
+        "amount": 5,
+        "unit": "g",
+        "purpose": "spice — small amount lifts the hibiscus aromatics",
+        "timing": "in secondary, 5-7 day steep",
+        "position": 6
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.4,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, 24 h before sorbate",
+        "position": 7
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "yeast inhibitor (locks residual sweetness)",
+        "timing": "24 h after sulfite, before backsweetening",
+        "position": 8
+      }
+    ]
   }
+
+
 ]
