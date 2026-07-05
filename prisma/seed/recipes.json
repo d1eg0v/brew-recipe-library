@@ -2560,6 +2560,394 @@
         "position": 8
       }
     ]
+  },
+  {
+    "title": "Orchard Common Dry Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A crisp, off-dry New World-style hard cider built from fresh-pressed dessert-and-culinary apple blend. Clean fruit-forward nose, moderate acidity, medium-dry finish — an easy everyday cider that ferments cleanly at ale temperatures.",
+    "notes": "Use fresh-pressed, preservative-free juice. Sorbate or ascorbic acid in store juice will stall or slow fermentation. Campden 24 h before pitch to knock down wild flora; do not boil the juice — heat drives off apple aromatics. Ferment cool for a clean, fruit-forward profile. Backsweeten only after stabilization if you want it off-dry.",
+    "styleName": "New World Cider",
+    "bjcpCategory": "C1A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.052,
+    "targetFg": 1.002,
+    "targetAbv": 6.6,
+    "fermentables": [
+      {
+        "name": "Fresh-pressed apple juice (dessert/culinary blend)",
+        "type": "juice",
+        "amountLiters": 19,
+        "position": 0,
+        "notes": "aim for a mix — sweet eating apples (Gala, Fuji) for sugar, sharper apples (Granny Smith, Braeburn) for acid balance"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin 71B",
+        "laboratory": "Lallemand",
+        "productId": "71B-1122",
+        "type": "wine",
+        "form": "dry",
+        "attenuationPct": 90,
+        "temperatureCMin": 15,
+        "temperatureCMax": 20,
+        "position": 0,
+        "notes": "metabolises malic acid, softens the sharp edge of high-acid juice; leaves apple fruit intact"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 17,
+        "durationDays": 14,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Bulk age / clear",
+        "type": "aging",
+        "tempC": 12,
+        "durationDays": 30,
+        "position": 3
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 4,
+        "notes": "sulfite + sorbate, 24 h apart — required if backsweetening"
+      },
+      {
+        "name": "Backsweeten (optional)",
+        "type": "backsweetening",
+        "position": 5,
+        "notes": "dissolve 100-150 g apple juice concentrate into a small portion of cider, blend back for off-dry"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 3,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant — kills wild yeast in fresh juice",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 1,
+        "unit": "tsp",
+        "purpose": "breaks down apple pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Yeast nutrient (Fermaid-O)",
+        "amount": 4,
+        "unit": "g",
+        "purpose": "apple juice is nitrogen-poor; supports clean fermentation",
+        "timing": "at pitch and again at 1/3 sugar break",
+        "position": 2
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.3,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, 24 h before sorbate",
+        "position": 3
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 3.8,
+        "unit": "g",
+        "purpose": "yeast inhibitor (locks residual sweetness)",
+        "timing": "24 h after sulfite, before backsweetening",
+        "position": 4
+      }
+    ]
+  },
+  {
+    "title": "New England Farmhouse Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A rich, higher-gravity New England-style hard cider — apple juice fortified with brown sugar and a touch of raisins for body and dark fruit depth. Ferments to a warm, port-like finish with residual sweetness and 8-9% ABV. A classic autumn cider style.",
+    "notes": "The brown sugar and raisin additions push OG up and give the finished cider a rounder, almost sherry-like character. Use a champagne yeast if you want it drier; wine yeast keeps a bit more fruit. Age at least 3 months in bottle — this style improves markedly with time.",
+    "styleName": "New England Cider",
+    "bjcpCategory": "C2A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.078,
+    "targetFg": 1.005,
+    "targetAbv": 9.5,
+    "fermentables": [
+      {
+        "name": "Fresh-pressed apple juice",
+        "type": "juice",
+        "amountLiters": 18,
+        "position": 0,
+        "notes": "sweet dessert apple blend — Gala/Fuji/Honeycrisp works well"
+      },
+      {
+        "name": "Dark brown sugar",
+        "type": "sugar",
+        "amountKg": 1.0,
+        "potentialPpg": 46,
+        "position": 1,
+        "notes": "adds molasses depth and boosts gravity"
+      },
+      {
+        "name": "Raisins (chopped)",
+        "type": "fruit",
+        "amountKg": 0.25,
+        "position": 2,
+        "notes": "traditional NE cider addition — dark fruit / sherry notes; also provides trace nutrients"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 22,
+        "position": 0,
+        "notes": "handles the elevated OG cleanly; ferments through cool cellar temps without stalling"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 18,
+        "durationDays": 21,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2,
+        "notes": "off the raisins and lees"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 14,
+        "durationDays": 60,
+        "position": 3
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 4,
+        "notes": "sulfite + sorbate, 24 h apart"
+      },
+      {
+        "name": "Backsweeten",
+        "type": "backsweetening",
+        "position": 5,
+        "notes": "add 200-300 g apple juice concentrate to balance the higher alcohol"
+      },
+      {
+        "name": "Bottle and age",
+        "type": "bottling",
+        "position": 6,
+        "notes": "cellar 3+ months before drinking"
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 3,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 1,
+        "unit": "tsp",
+        "purpose": "clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Yeast nutrient (Fermaid-O)",
+        "amount": 5,
+        "unit": "g",
+        "purpose": "supports high-gravity fermentation",
+        "timing": "at pitch and again at 1/3 sugar break",
+        "position": 2
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.3,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, 24 h before sorbate",
+        "position": 3
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 3.8,
+        "unit": "g",
+        "purpose": "yeast inhibitor",
+        "timing": "24 h after sulfite, before backsweetening",
+        "position": 4
+      }
+    ]
+  },
+  {
+    "title": "West Country Traditional English Cider",
+    "category": "cider",
+    "author": "Recipe Content Curator",
+    "description": "A rustic, tannic English-style hard cider built on true bittersweet cider apples. Earthy, funky, and low in acid — the deep tannin structure and slow, cool fermentation give it a leathery, farmhouse character utterly unlike New World ciders. Traditionally left bone dry and lightly petillant.",
+    "notes": "Authentic English cider needs bittersweet cider apples (Dabinett, Yarlington Mill, Kingston Black) for tannin and low acid — dessert apples alone will not give the right character. If bittersweets aren't available, add strong black tea for tannin. Ferment slow and cool with a wild-tolerant yeast; some brewers spontaneously ferment. Do not backsweeten — this style is dry.",
+    "styleName": "English Cider",
+    "bjcpCategory": "C1B",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.05,
+    "targetFg": 1.0,
+    "targetAbv": 6.6,
+    "fermentables": [
+      {
+        "name": "Bittersweet cider-apple juice (Dabinett/Yarlington Mill blend)",
+        "type": "juice",
+        "amountLiters": 15,
+        "position": 0,
+        "notes": "traditional West Country bittersweets — high tannin, low acid"
+      },
+      {
+        "name": "Sharp cider-apple juice (Kingston Black or Bramley)",
+        "type": "juice",
+        "amountLiters": 4,
+        "position": 1,
+        "notes": "brings acidity to balance the bittersweets"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Wyeast 4766 Cider",
+        "laboratory": "Wyeast",
+        "productId": "4766",
+        "type": "wine",
+        "form": "liquid",
+        "attenuationPct": 92,
+        "temperatureCMin": 10,
+        "temperatureCMax": 20,
+        "position": 0,
+        "notes": "preserves fruit character; tolerates cool English-cellar fermentation. Substitute a neutral English ale strain (Wyeast 1968) for a rounder, less-attenuated finish."
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 2,
+        "position": 0,
+        "notes": "48 h post-sulfite — bittersweets need extra time to knock down wild flora without killing it fully"
+      },
+      {
+        "name": "Primary fermentation (slow, cool)",
+        "type": "primary",
+        "tempC": 12,
+        "durationDays": 45,
+        "position": 1,
+        "notes": "traditional cool cellar ferment — do not warm to force it"
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 10,
+        "durationDays": 90,
+        "position": 3,
+        "notes": "develops the leathery, farmhouse character; malolactic conversion often happens naturally"
+      },
+      {
+        "name": "Bottle (still or lightly petillant)",
+        "type": "bottling",
+        "position": 4,
+        "notes": "prime with 40-60 g corn sugar for a light sparkle, or bottle still"
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 2,
+        "unit": "tablet",
+        "purpose": "gentle knockdown — half the New World rate to preserve some native flora",
+        "timing": "48 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 1,
+        "unit": "tsp",
+        "purpose": "clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Strong black tea (brewed, cooled)",
+        "amount": 250,
+        "unit": "ml",
+        "purpose": "tannin supplement — use only if bittersweet apples are unavailable",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Yeast nutrient (Fermaid-O)",
+        "amount": 2,
+        "unit": "g",
+        "purpose": "light nutrient dose — traditional English cider is under-nutrient by design to slow the ferment",
+        "timing": "at pitch",
+        "position": 3
+      }
+    ]
   }
 
 
