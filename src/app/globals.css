@@ -1,6 +1,21 @@
 @import "tailwindcss";
 
-:root {
+/* ------------------------------------------------------------------ */
+/* Theme tokens                                                        */
+/*                                                                     */
+/* Each theme is selected via `data-theme="<name>"` on <html>.         */
+/* `:root` carries the default (light) palette so SSR HTML is never    */
+/* unstyled; the inline boot script in app/layout.tsx overwrites the   */
+/* attribute before paint to honour the user's stored choice or        */
+/* `prefers-color-scheme` on first load.                               */
+/*                                                                     */
+/* Beyond the core surface tokens we expose per-theme badge colours   */
+/* (one for each recipe category) and an error tint so that no page    */
+/* has to fall back to hard-coded Tailwind palette utilities.          */
+/* ------------------------------------------------------------------ */
+
+:root,
+[data-theme="light"] {
   --background: #fbf7ef;
   --foreground: #1c1208;
   --muted: #f1e9d8;
@@ -11,6 +26,121 @@
   --accent: #8b3a13;
   --accent-foreground: #fbf7ef;
   --link: #8b3a13;
+
+  --badge-beer-bg: #fde68a;
+  --badge-beer-fg: #78350f;
+  --badge-mead-bg: #fef3c7;
+  --badge-mead-fg: #78350f;
+  --badge-wine-bg: #ede9fe;
+  --badge-wine-fg: #5b21b6;
+  --badge-cider-bg: #ffedd5;
+  --badge-cider-fg: #9a3412;
+  --badge-other-bg: #e7e5e4;
+  --badge-other-fg: #44403c;
+
+  --error-bg: #fef2f2;
+  --error-fg: #7f1d1d;
+  --error-border: #fecaca;
+
+  --swatch-bg: #fbf7ef;
+  --swatch-fg: #1c1208;
+  --swatch-accent: #8b3a13;
+}
+
+[data-theme="sepia"] {
+  --background: #f4ecd8;
+  --foreground: #3b2c1a;
+  --muted: #ebe0c4;
+  --muted-foreground: #6b5436;
+  --card: #faf2e0;
+  --card-foreground: #3b2c1a;
+  --border: #d8c9a8;
+  --accent: #a05a2c;
+  --accent-foreground: #faf2e0;
+  --link: #a05a2c;
+
+  --badge-beer-bg: #f0d9a8;
+  --badge-beer-fg: #6b3a14;
+  --badge-mead-bg: #ecd9a0;
+  --badge-mead-fg: #6b3a14;
+  --badge-wine-bg: #d9c4a8;
+  --badge-wine-fg: #5a2c14;
+  --badge-cider-bg: #ecd2a8;
+  --badge-cider-fg: #6b3a14;
+  --badge-other-bg: #d6c8a8;
+  --badge-other-fg: #4a3a22;
+
+  --error-bg: #f4d8c8;
+  --error-fg: #6b1a1a;
+  --error-border: #c89c80;
+
+  --swatch-bg: #f4ecd8;
+  --swatch-fg: #3b2c1a;
+  --swatch-accent: #a05a2c;
+}
+
+[data-theme="dark"] {
+  --background: #14110b;
+  --foreground: #f5ead2;
+  --muted: #1f1a10;
+  --muted-foreground: #b8a785;
+  --card: #1d1810;
+  --card-foreground: #f5ead2;
+  --border: #2f2618;
+  --accent: #d48137;
+  --accent-foreground: #14110b;
+  --link: #d48137;
+
+  --badge-beer-bg: #3a2a14;
+  --badge-beer-fg: #f5d68a;
+  --badge-mead-bg: #3a3014;
+  --badge-mead-fg: #f0d68a;
+  --badge-wine-bg: #2c2238;
+  --badge-wine-fg: #d6c4f5;
+  --badge-cider-bg: #3a2214;
+  --badge-cider-fg: #f5c89a;
+  --badge-other-bg: #2a261e;
+  --badge-other-fg: #d6c8a8;
+
+  --error-bg: #2a1414;
+  --error-fg: #fca5a5;
+  --error-border: #5b2222;
+
+  --swatch-bg: #14110b;
+  --swatch-fg: #f5ead2;
+  --swatch-accent: #d48137;
+}
+
+[data-theme="midnight"] {
+  --background: #0b1322;
+  --foreground: #e8edf4;
+  --muted: #15203a;
+  --muted-foreground: #a3b1cf;
+  --card: #131a2a;
+  --card-foreground: #e8edf4;
+  --border: #1f2940;
+  --accent: #f0b86e;
+  --accent-foreground: #0b1322;
+  --link: #f0b86e;
+
+  --badge-beer-bg: #2c2210;
+  --badge-beer-fg: #f5d28a;
+  --badge-mead-bg: #2c2610;
+  --badge-mead-fg: #f0d68a;
+  --badge-wine-bg: #261c3a;
+  --badge-wine-fg: #cbb8f0;
+  --badge-cider-bg: #2c1e10;
+  --badge-cider-fg: #f5b878;
+  --badge-other-bg: #1c2030;
+  --badge-other-fg: #a3b1cf;
+
+  --error-bg: #2a1414;
+  --error-fg: #f5a3a3;
+  --error-border: #5b2222;
+
+  --swatch-bg: #0b1322;
+  --swatch-fg: #e8edf4;
+  --swatch-accent: #f0b86e;
 }
 
 @theme inline {
@@ -23,32 +153,21 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-error-bg: var(--error-bg);
+  --color-error-fg: var(--error-fg);
+  --color-error-border: var(--error-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #14110b;
-    --foreground: #f5ead2;
-    --muted: #1f1a10;
-    --muted-foreground: #b8a785;
-    --card: #1d1810;
-    --card-foreground: #f5ead2;
-    --border: #2f2618;
-    --accent: #d48137;
-    --accent-foreground: #14110b;
-    --link: #d48137;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
-/* Subtle parchment-y background texture for the brew theme */
+/* Subtle parchment-y background texture for the brew theme — light/sepia only. */
 body::before {
   content: "";
   position: fixed;
@@ -56,7 +175,7 @@ body::before {
   pointer-events: none;
   background-image: radial-gradient(
     circle at 20% 10%,
-    rgba(139, 58, 19, 0.04),
+    color-mix(in srgb, var(--accent) 6%, transparent),
     transparent 50%
   );
   z-index: -1;

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme/bootScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,8 +29,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="light"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <header className="border-b border-[var(--border)] bg-[var(--card)]/80 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between gap-6">
@@ -43,10 +50,11 @@ export default function RootLayout({
                 beer · mead · wine
               </span>
             </Link>
-            <nav className="text-sm text-[var(--muted-foreground)]">
+            <nav className="flex items-center gap-4 text-sm text-[var(--muted-foreground)]">
               <Link href="/" className="hover:text-[var(--foreground)]">
                 Browse
               </Link>
+              <ThemeSwitcher />
             </nav>
           </div>
         </header>

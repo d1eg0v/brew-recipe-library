@@ -2,9 +2,9 @@
 
 import { useCallback, useState } from "react";
 
+import CategoryBadge from "@/components/CategoryBadge";
 import { buildDetailUrl } from "@/lib/ui/api";
 import {
-  categoryLabel,
   fermentableTypeLabel,
   fmtBatchSize,
   fmtGravity,
@@ -102,7 +102,7 @@ export default function RecipeDetailClient({
       <Header recipe={recipe} />
 
       {error && (
-        <div className="p-3 rounded-md border border-red-300 bg-red-50 text-red-900 text-sm">
+        <div className="p-3 rounded-md border border-[var(--error-border)] bg-[var(--error-bg)] text-[var(--error-fg)] text-sm">
           Couldn&apos;t reload recipe: {error}
         </div>
       )}
@@ -150,9 +150,7 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
     <header className="space-y-3">
       <div className="flex flex-wrap items-baseline gap-3">
         <h1 className="text-3xl font-bold tracking-tight">{recipe.title}</h1>
-        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-900">
-          {categoryLabel(recipe.category)}
-        </span>
+        <CategoryBadge category={recipe.category} />
         {recipe.styleName && (
           <span className="text-[var(--muted-foreground)]">
             {recipe.styleName}

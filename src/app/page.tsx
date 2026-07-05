@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import CategoryBadge from "@/components/CategoryBadge";
 import { categoryLabel, fmtNumber, fmtPercent } from "@/lib/ui/format";
 import type {
   RecipeCategory,
@@ -188,24 +189,6 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
         </p>
       )}
     </Link>
-  );
-}
-
-function CategoryBadge({ category }: { category: string }) {
-  const styles: Record<string, string> = {
-    beer: "bg-amber-100 text-amber-900",
-    mead: "bg-yellow-100 text-yellow-900",
-    wine: "bg-purple-100 text-purple-900",
-    cider: "bg-orange-100 text-orange-900",
-    other: "bg-stone-200 text-stone-900",
-  };
-  const cls = styles[category] ?? styles.other;
-  return (
-    <span
-      className={`inline-flex shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}
-    >
-      {categoryLabel(category)}
-    </span>
   );
 }
 
