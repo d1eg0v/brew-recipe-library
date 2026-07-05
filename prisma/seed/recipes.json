@@ -1,0 +1,2050 @@
+[
+  {
+    "title": "West Coast Compass IPA",
+    "author": "Recipe Content Curator",
+    "description": "A classic dank, citrus-forward American IPA with a dry finish and firm bitterness. Built as an original clone-style formulation representative of the West Coast style.",
+    "notes": "Ferment at 18-19 °C for a clean profile. Dry hop for 4 days once fermentation is nearly complete, then cold-crash before packaging. Target a firm, resinous bitterness balanced by a dry, pale malt backbone.",
+    "styleName": "American IPA",
+    "bjcpCategory": "21A",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 75,
+    "targetOg": 1.063,
+    "targetFg": 1.012,
+    "targetAbv": 6.7,
+    "targetIbu": 65,
+    "targetSrm": 7,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 5.2,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Munich Malt",
+        "type": "grain",
+        "amountKg": 0.4,
+        "colorLovibond": 9,
+        "potentialPpg": 35,
+        "position": 1
+      },
+      {
+        "name": "Crystal 40L",
+        "type": "grain",
+        "amountKg": 0.3,
+        "colorLovibond": 40,
+        "potentialPpg": 34,
+        "position": 2
+      }
+    ],
+    "hops": [
+      {
+        "name": "Columbus",
+        "amountGrams": 15,
+        "alphaAcidPct": 15,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      },
+      {
+        "name": "Centennial",
+        "amountGrams": 20,
+        "alphaAcidPct": 10,
+        "timeMinutes": 15,
+        "use": "boil",
+        "form": "pellet",
+        "position": 1
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 25,
+        "alphaAcidPct": 6,
+        "timeMinutes": 5,
+        "use": "boil",
+        "form": "pellet",
+        "position": 2
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 30,
+        "alphaAcidPct": 12,
+        "timeMinutes": 20,
+        "use": "whirlpool",
+        "form": "pellet",
+        "notes": "20 min stand at ~80 °C",
+        "position": 3
+      },
+      {
+        "name": "Citra",
+        "amountGrams": 40,
+        "alphaAcidPct": 12,
+        "timeMinutes": 4,
+        "use": "dryHop",
+        "form": "pellet",
+        "notes": "dry hop, days",
+        "position": 4
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 30,
+        "alphaAcidPct": 6,
+        "timeMinutes": 4,
+        "use": "dryHop",
+        "form": "pellet",
+        "notes": "dry hop, days",
+        "position": 5
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "SafAle US-05",
+        "laboratory": "Fermentis",
+        "productId": "US-05",
+        "type": "ale",
+        "form": "dry",
+        "attenuationPct": 81,
+        "temperatureCMin": 15,
+        "temperatureCMax": 22,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 66,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Cascade Trail Pale Ale",
+    "author": "Recipe Content Curator",
+    "description": "A balanced, sessionable American Pale Ale showcasing Cascade hops over a light caramel malt base. Original clone-style formulation.",
+    "notes": "An easy-drinking everyday pale. Keep fermentation clean at 18-20 °C. A short dry hop lifts the aroma without overwhelming the malt.",
+    "styleName": "American Pale Ale",
+    "bjcpCategory": "18B",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 75,
+    "targetOg": 1.052,
+    "targetFg": 1.011,
+    "targetAbv": 5.4,
+    "targetIbu": 38,
+    "targetSrm": 6,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 4.3,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Munich Malt",
+        "type": "grain",
+        "amountKg": 0.25,
+        "colorLovibond": 9,
+        "potentialPpg": 35,
+        "position": 1
+      },
+      {
+        "name": "Crystal 40L",
+        "type": "grain",
+        "amountKg": 0.35,
+        "colorLovibond": 40,
+        "potentialPpg": 34,
+        "position": 2
+      }
+    ],
+    "hops": [
+      {
+        "name": "Cascade",
+        "amountGrams": 20,
+        "alphaAcidPct": 6,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 15,
+        "alphaAcidPct": 6,
+        "timeMinutes": 15,
+        "use": "boil",
+        "form": "pellet",
+        "position": 1
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 25,
+        "alphaAcidPct": 6,
+        "timeMinutes": 5,
+        "use": "boil",
+        "form": "pellet",
+        "position": 2
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 30,
+        "alphaAcidPct": 6,
+        "timeMinutes": 3,
+        "use": "dryHop",
+        "form": "pellet",
+        "notes": "dry hop, days",
+        "position": 3
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "SafAle US-05",
+        "laboratory": "Fermentis",
+        "productId": "US-05",
+        "type": "ale",
+        "form": "dry",
+        "attenuationPct": 81,
+        "temperatureCMin": 15,
+        "temperatureCMax": 22,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 67,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Ironwood Amber Ale",
+    "author": "Recipe Content Curator",
+    "description": "A malty American Amber Ale with toasty caramel depth and a moderate citrus hop character. Original clone-style formulation.",
+    "notes": "The crystal and Munich malts give a deep copper hue and caramel backbone. Balance bitterness so the malt stays in front.",
+    "styleName": "American Amber Ale",
+    "bjcpCategory": "19A",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 75,
+    "targetOg": 1.054,
+    "targetFg": 1.013,
+    "targetAbv": 5.4,
+    "targetIbu": 30,
+    "targetSrm": 13,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 4.0,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Munich Malt",
+        "type": "grain",
+        "amountKg": 0.6,
+        "colorLovibond": 9,
+        "potentialPpg": 35,
+        "position": 1
+      },
+      {
+        "name": "Crystal 60L",
+        "type": "grain",
+        "amountKg": 0.5,
+        "colorLovibond": 60,
+        "potentialPpg": 34,
+        "position": 2
+      },
+      {
+        "name": "Crystal 120L",
+        "type": "grain",
+        "amountKg": 0.15,
+        "colorLovibond": 120,
+        "potentialPpg": 33,
+        "position": 3
+      },
+      {
+        "name": "Victory Malt",
+        "type": "grain",
+        "amountKg": 0.15,
+        "colorLovibond": 25,
+        "potentialPpg": 34,
+        "position": 4
+      }
+    ],
+    "hops": [
+      {
+        "name": "Centennial",
+        "amountGrams": 18,
+        "alphaAcidPct": 10,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 20,
+        "alphaAcidPct": 6,
+        "timeMinutes": 10,
+        "use": "boil",
+        "form": "pellet",
+        "position": 1
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 20,
+        "alphaAcidPct": 6,
+        "timeMinutes": 0,
+        "use": "whirlpool",
+        "form": "pellet",
+        "position": 2
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "SafAle US-05",
+        "laboratory": "Fermentis",
+        "productId": "US-05",
+        "type": "ale",
+        "form": "dry",
+        "attenuationPct": 81,
+        "temperatureCMin": 15,
+        "temperatureCMax": 22,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 67,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Blackstack Dry Stout",
+    "author": "Recipe Content Curator",
+    "description": "A dry, roasty Irish Stout with a coffee-like bitterness and a light body from flaked barley. Original clone-style formulation.",
+    "notes": "Roasted barley provides the signature dry, espresso finish. Flaked barley adds body and head retention. Serve on nitro if possible.",
+    "styleName": "Irish Stout",
+    "bjcpCategory": "15B",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 72,
+    "targetOg": 1.044,
+    "targetFg": 1.011,
+    "targetAbv": 4.3,
+    "targetIbu": 38,
+    "targetSrm": 38,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 3.4,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Flaked Barley",
+        "type": "adjunct",
+        "amountKg": 0.6,
+        "colorLovibond": 2,
+        "potentialPpg": 32,
+        "position": 1
+      },
+      {
+        "name": "Roasted Barley",
+        "type": "grain",
+        "amountKg": 0.45,
+        "colorLovibond": 500,
+        "potentialPpg": 25,
+        "position": 2
+      }
+    ],
+    "hops": [
+      {
+        "name": "East Kent Goldings",
+        "amountGrams": 30,
+        "alphaAcidPct": 5,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "Irish Ale",
+        "laboratory": "Wyeast",
+        "productId": "1084",
+        "type": "ale",
+        "form": "liquid",
+        "attenuationPct": 73,
+        "temperatureCMin": 16,
+        "temperatureCMax": 22,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 67,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Locktender American Porter",
+    "author": "Recipe Content Curator",
+    "description": "A robust American Porter with layered chocolate and coffee notes, a firm bitterness, and a smooth roasted finish. Original clone-style formulation.",
+    "notes": "Chocolate and black malt provide roast without the ashiness of a stout. Ferment clean and let the malt character lead.",
+    "styleName": "American Porter",
+    "bjcpCategory": "20A",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 74,
+    "targetOg": 1.058,
+    "targetFg": 1.015,
+    "targetAbv": 5.6,
+    "targetIbu": 35,
+    "targetSrm": 30,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 4.3,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Munich Malt",
+        "type": "grain",
+        "amountKg": 0.5,
+        "colorLovibond": 9,
+        "potentialPpg": 35,
+        "position": 1
+      },
+      {
+        "name": "Crystal 60L",
+        "type": "grain",
+        "amountKg": 0.4,
+        "colorLovibond": 60,
+        "potentialPpg": 34,
+        "position": 2
+      },
+      {
+        "name": "Chocolate Malt",
+        "type": "grain",
+        "amountKg": 0.3,
+        "colorLovibond": 350,
+        "potentialPpg": 28,
+        "position": 3
+      },
+      {
+        "name": "Black Malt",
+        "type": "grain",
+        "amountKg": 0.15,
+        "colorLovibond": 500,
+        "potentialPpg": 25,
+        "position": 4
+      }
+    ],
+    "hops": [
+      {
+        "name": "Northern Brewer",
+        "amountGrams": 25,
+        "alphaAcidPct": 8,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      },
+      {
+        "name": "Willamette",
+        "amountGrams": 20,
+        "alphaAcidPct": 5,
+        "timeMinutes": 15,
+        "use": "boil",
+        "form": "pellet",
+        "position": 1
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "SafAle US-05",
+        "laboratory": "Fermentis",
+        "productId": "US-05",
+        "type": "ale",
+        "form": "dry",
+        "attenuationPct": 81,
+        "temperatureCMin": 15,
+        "temperatureCMax": 22,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 68,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Sunfeld Hefeweizen",
+    "author": "Recipe Content Curator",
+    "description": "A cloudy German-style Weissbier with banana and clove esters from the yeast over a soft wheat malt base. Original clone-style formulation.",
+    "notes": "The character comes from the yeast, not the hops — keep bitterness low. Ferment warm (18-20 °C) to accentuate banana; cooler favours clove. A protein rest supports the classic soft mouthfeel.",
+    "styleName": "Weissbier",
+    "bjcpCategory": "10A",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 74,
+    "targetOg": 1.05,
+    "targetFg": 1.01,
+    "targetAbv": 5.3,
+    "targetIbu": 13,
+    "targetSrm": 4,
+    "fermentables": [
+      {
+        "name": "Wheat Malt",
+        "type": "grain",
+        "amountKg": 2.4,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Pilsner Malt",
+        "type": "grain",
+        "amountKg": 2.0,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 1
+      }
+    ],
+    "hops": [
+      {
+        "name": "Hallertau Mittelfrüh",
+        "amountGrams": 15,
+        "alphaAcidPct": 4,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "Weihenstephan Weizen",
+        "laboratory": "Wyeast",
+        "productId": "3068",
+        "type": "wheat",
+        "form": "liquid",
+        "attenuationPct": 76,
+        "temperatureCMin": 18,
+        "temperatureCMax": 24,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Protein Rest",
+        "type": "temperature",
+        "stepTempC": 50,
+        "stepTimeMinutes": 15,
+        "position": 0
+      },
+      {
+        "name": "Saccharification",
+        "type": "temperature",
+        "stepTempC": 66,
+        "stepTimeMinutes": 60,
+        "position": 1
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Abbey Cellar Dubbel",
+    "author": "Recipe Content Curator",
+    "description": "A rich Belgian Dubbel with dark fruit, caramel, and a dry, dangerously drinkable finish from dark candi syrup. Original clone-style formulation.",
+    "notes": "Special B and dark candi syrup drive raisin and plum notes. Ferment warm (20-24 °C) to develop Belgian yeast character. The syrup boosts gravity while keeping the body deceptively light.",
+    "styleName": "Belgian Dubbel",
+    "bjcpCategory": "26B",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 90,
+    "efficiencyPct": 74,
+    "targetOg": 1.068,
+    "targetFg": 1.014,
+    "targetAbv": 7.1,
+    "targetIbu": 20,
+    "targetSrm": 18,
+    "fermentables": [
+      {
+        "name": "Pilsner Malt",
+        "type": "grain",
+        "amountKg": 5.0,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Munich Malt",
+        "type": "grain",
+        "amountKg": 0.5,
+        "colorLovibond": 9,
+        "potentialPpg": 35,
+        "position": 1
+      },
+      {
+        "name": "Special B",
+        "type": "grain",
+        "amountKg": 0.4,
+        "colorLovibond": 180,
+        "potentialPpg": 30,
+        "position": 2
+      },
+      {
+        "name": "Dark Candi Syrup (D-180)",
+        "type": "sugar",
+        "amountKg": 0.5,
+        "colorLovibond": 180,
+        "potentialPpg": 32,
+        "position": 3
+      }
+    ],
+    "hops": [
+      {
+        "name": "Styrian Goldings",
+        "amountGrams": 25,
+        "alphaAcidPct": 5,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "Trappist High Gravity",
+        "laboratory": "Wyeast",
+        "productId": "3787",
+        "type": "ale",
+        "form": "liquid",
+        "attenuationPct": 78,
+        "temperatureCMin": 18,
+        "temperatureCMax": 26,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 67,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Meadowlace Witbier",
+    "author": "Recipe Content Curator",
+    "description": "A refreshing Belgian Witbier, hazy and light-bodied, spiced with coriander and orange peel over unmalted wheat. Original clone-style formulation.",
+    "notes": "Add 15 g crushed coriander and 25 g bitter orange peel in the last 5 minutes of the boil. Flaked wheat and oats give the signature cloudy, silky body. Ferment at 20 °C.",
+    "styleName": "Belgian Witbier",
+    "bjcpCategory": "24A",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 72,
+    "targetOg": 1.048,
+    "targetFg": 1.01,
+    "targetAbv": 5.0,
+    "targetIbu": 15,
+    "targetSrm": 3,
+    "fermentables": [
+      {
+        "name": "Pilsner Malt",
+        "type": "grain",
+        "amountKg": 2.3,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Flaked Wheat",
+        "type": "adjunct",
+        "amountKg": 2.0,
+        "colorLovibond": 2,
+        "potentialPpg": 35,
+        "position": 1
+      },
+      {
+        "name": "Flaked Oats",
+        "type": "adjunct",
+        "amountKg": 0.2,
+        "colorLovibond": 2,
+        "potentialPpg": 33,
+        "position": 2
+      }
+    ],
+    "hops": [
+      {
+        "name": "Hallertau Mittelfrüh",
+        "amountGrams": 20,
+        "alphaAcidPct": 4,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "Belgian Witbier",
+        "laboratory": "Wyeast",
+        "productId": "3944",
+        "type": "ale",
+        "form": "liquid",
+        "attenuationPct": 74,
+        "temperatureCMin": 18,
+        "temperatureCMax": 24,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Protein Rest",
+        "type": "temperature",
+        "stepTempC": 50,
+        "stepTimeMinutes": 10,
+        "position": 0
+      },
+      {
+        "name": "Saccharification",
+        "type": "temperature",
+        "stepTempC": 66,
+        "stepTimeMinutes": 60,
+        "position": 1
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Silberquell Pilsner",
+    "author": "Recipe Content Curator",
+    "description": "A crisp, dry German Pilsner with a floral-spicy noble hop character and a clean lager finish. Original clone-style formulation.",
+    "notes": "Use soft water and a healthy lager yeast pitch. Ferment cold (10-12 °C) and lager for 3-4 weeks near 0 °C. A single Pilsner malt base keeps it pale and delicate.",
+    "styleName": "German Pilsner",
+    "bjcpCategory": "5D",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 90,
+    "efficiencyPct": 75,
+    "targetOg": 1.046,
+    "targetFg": 1.009,
+    "targetAbv": 4.8,
+    "targetIbu": 38,
+    "targetSrm": 3,
+    "fermentables": [
+      {
+        "name": "Pilsner Malt",
+        "type": "grain",
+        "amountKg": 4.5,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      }
+    ],
+    "hops": [
+      {
+        "name": "Hallertau Mittelfrüh",
+        "amountGrams": 30,
+        "alphaAcidPct": 4,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      },
+      {
+        "name": "Hallertau Mittelfrüh",
+        "amountGrams": 20,
+        "alphaAcidPct": 4,
+        "timeMinutes": 20,
+        "use": "boil",
+        "form": "pellet",
+        "position": 1
+      },
+      {
+        "name": "Hallertau Mittelfrüh",
+        "amountGrams": 15,
+        "alphaAcidPct": 4,
+        "timeMinutes": 5,
+        "use": "boil",
+        "form": "pellet",
+        "position": 2
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "Saflager W-34/70",
+        "laboratory": "Fermentis",
+        "productId": "W-34/70",
+        "type": "lager",
+        "form": "dry",
+        "attenuationPct": 82,
+        "temperatureCMin": 9,
+        "temperatureCMax": 15,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Maltose Rest",
+        "type": "temperature",
+        "stepTempC": 63,
+        "stepTimeMinutes": 30,
+        "position": 0
+      },
+      {
+        "name": "Saccharification",
+        "type": "temperature",
+        "stepTempC": 72,
+        "stepTimeMinutes": 30,
+        "position": 1
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Hollowfield Brown Ale",
+    "author": "Recipe Content Curator",
+    "description": "An American Brown Ale balancing nutty, chocolate malt depth with a moderate American hop presence. Original clone-style formulation.",
+    "notes": "Toasty, nutty malt with just enough Cascade to keep it lively. A great all-season brown. Ferment clean at 18-20 °C.",
+    "styleName": "American Brown Ale",
+    "bjcpCategory": "19C",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 74,
+    "targetOg": 1.055,
+    "targetFg": 1.014,
+    "targetAbv": 5.4,
+    "targetIbu": 30,
+    "targetSrm": 19,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 4.2,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Munich Malt",
+        "type": "grain",
+        "amountKg": 0.5,
+        "colorLovibond": 9,
+        "potentialPpg": 35,
+        "position": 1
+      },
+      {
+        "name": "Crystal 60L",
+        "type": "grain",
+        "amountKg": 0.4,
+        "colorLovibond": 60,
+        "potentialPpg": 34,
+        "position": 2
+      },
+      {
+        "name": "Chocolate Malt",
+        "type": "grain",
+        "amountKg": 0.2,
+        "colorLovibond": 350,
+        "potentialPpg": 28,
+        "position": 3
+      },
+      {
+        "name": "Victory Malt",
+        "type": "grain",
+        "amountKg": 0.2,
+        "colorLovibond": 25,
+        "potentialPpg": 34,
+        "position": 4
+      }
+    ],
+    "hops": [
+      {
+        "name": "Northern Brewer",
+        "amountGrams": 20,
+        "alphaAcidPct": 8,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 15,
+        "alphaAcidPct": 6,
+        "timeMinutes": 15,
+        "use": "boil",
+        "form": "pellet",
+        "position": 1
+      },
+      {
+        "name": "Cascade",
+        "amountGrams": 20,
+        "alphaAcidPct": 6,
+        "timeMinutes": 5,
+        "use": "boil",
+        "form": "pellet",
+        "position": 2
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "SafAle US-05",
+        "laboratory": "Fermentis",
+        "productId": "US-05",
+        "type": "ale",
+        "form": "dry",
+        "attenuationPct": 81,
+        "temperatureCMin": 15,
+        "temperatureCMax": 22,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 67,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Fieldhand Saison",
+    "author": "Recipe Content Curator",
+    "description": "A dry, peppery Belgian Saison with a spicy yeast character and a highly attenuated, refreshing finish. Original clone-style formulation.",
+    "notes": "Saison yeast attenuates very far — expect a bone-dry finish. Start fermentation at 20 °C and let it free-rise into the high 20s °C to fully attenuate. Sugar addition lightens the body.",
+    "styleName": "Saison",
+    "bjcpCategory": "25B",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 74,
+    "targetOg": 1.052,
+    "targetFg": 1.006,
+    "targetAbv": 6.0,
+    "targetIbu": 28,
+    "targetSrm": 5,
+    "fermentables": [
+      {
+        "name": "Pilsner Malt",
+        "type": "grain",
+        "amountKg": 4.0,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Wheat Malt",
+        "type": "grain",
+        "amountKg": 0.5,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 1
+      },
+      {
+        "name": "Munich Malt",
+        "type": "grain",
+        "amountKg": 0.3,
+        "colorLovibond": 9,
+        "potentialPpg": 35,
+        "position": 2
+      },
+      {
+        "name": "Table Sugar",
+        "type": "sugar",
+        "amountKg": 0.3,
+        "colorLovibond": 1,
+        "potentialPpg": 46,
+        "position": 3
+      }
+    ],
+    "hops": [
+      {
+        "name": "East Kent Goldings",
+        "amountGrams": 20,
+        "alphaAcidPct": 5,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      },
+      {
+        "name": "Saaz",
+        "amountGrams": 20,
+        "alphaAcidPct": 3.5,
+        "timeMinutes": 10,
+        "use": "boil",
+        "form": "pellet",
+        "position": 1
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "French Saison",
+        "laboratory": "Wyeast",
+        "productId": "3711",
+        "type": "ale",
+        "form": "liquid",
+        "attenuationPct": 85,
+        "temperatureCMin": 18,
+        "temperatureCMax": 30,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 65,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Nightmill Oatmeal Stout",
+    "author": "Recipe Content Curator",
+    "description": "A smooth, full-bodied Oatmeal Stout with silky mouthfeel, mild roast, and notes of chocolate and coffee. Original clone-style formulation.",
+    "notes": "Flaked oats deliver the signature silky texture and head retention. Keep the roast restrained and the body full. Ferment at 18-20 °C.",
+    "styleName": "Oatmeal Stout",
+    "bjcpCategory": "16B",
+    "batchSizeLiters": 20,
+    "boilTimeMinutes": 60,
+    "efficiencyPct": 72,
+    "targetOg": 1.052,
+    "targetFg": 1.014,
+    "targetAbv": 5.0,
+    "targetIbu": 32,
+    "targetSrm": 33,
+    "fermentables": [
+      {
+        "name": "Pale 2-Row",
+        "type": "grain",
+        "amountKg": 3.6,
+        "colorLovibond": 2,
+        "potentialPpg": 37,
+        "position": 0
+      },
+      {
+        "name": "Flaked Oats",
+        "type": "adjunct",
+        "amountKg": 0.5,
+        "colorLovibond": 2,
+        "potentialPpg": 33,
+        "position": 1
+      },
+      {
+        "name": "Crystal 60L",
+        "type": "grain",
+        "amountKg": 0.35,
+        "colorLovibond": 60,
+        "potentialPpg": 34,
+        "position": 2
+      },
+      {
+        "name": "Chocolate Malt",
+        "type": "grain",
+        "amountKg": 0.3,
+        "colorLovibond": 350,
+        "potentialPpg": 28,
+        "position": 3
+      },
+      {
+        "name": "Roasted Barley",
+        "type": "grain",
+        "amountKg": 0.2,
+        "colorLovibond": 500,
+        "potentialPpg": 25,
+        "position": 4
+      }
+    ],
+    "hops": [
+      {
+        "name": "East Kent Goldings",
+        "amountGrams": 28,
+        "alphaAcidPct": 5,
+        "timeMinutes": 60,
+        "use": "boil",
+        "form": "pellet",
+        "position": 0
+      }
+    ],
+    "yeasts": [
+      {
+        "name": "SafAle S-04",
+        "laboratory": "Fermentis",
+        "productId": "S-04",
+        "type": "ale",
+        "form": "dry",
+        "attenuationPct": 75,
+        "temperatureCMin": 15,
+        "temperatureCMax": 20,
+        "position": 0
+      }
+    ],
+    "mashSteps": [
+      {
+        "name": "Saccharification",
+        "type": "infusion",
+        "stepTempC": 68,
+        "stepTimeMinutes": 60,
+        "position": 0
+      }
+    ],
+    "category": "beer"
+  },
+  {
+    "title": "Wildflower Sky traditional dry mead",
+    "category": "mead",
+    "author": "Recipe Content Curator",
+    "description": "A bone-dry traditional mead made from a blend of light wildflower honeys, fermented cool with a clean wine yeast. Ferments fully to dryness for a crisp, neutral honey-wine character — the kind of mead that disappears from the glass.",
+    "notes": "Dilute honey in warm non-chlorinated water to reach the target OG before pitching; pitching into undiluted honey stalls most wine yeasts. Use a staggered nutrient regimen (SNA: DAP + Fermaid-O across three additions over the first ~7 days) to keep the yeast healthy up to ~14% potential ABV. Ferment at 16-18 °C, then bulk age 3-6 months before bottling.",
+    "styleName": "Traditional Mead (dry)",
+    "bjcpCategory": "M1A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.11,
+    "targetFg": 0.998,
+    "targetAbv": 14.5,
+    "fermentables": [
+      {
+        "name": "Wildflower honey",
+        "type": "honey",
+        "amountKg": 4.4,
+        "position": 0,
+        "notes": "blend of clover and orange blossom for a neutral floral base"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 17,
+        "durationDays": 21,
+        "position": 0
+      },
+      {
+        "name": "Rack off lees",
+        "type": "racking",
+        "durationDays": 14,
+        "position": 1,
+        "notes": "move to secondary, top up if needed"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 16,
+        "durationDays": 120,
+        "position": 2
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 3
+      }
+    ],
+    "additions": [
+      {
+        "name": "Go-Ferm",
+        "amount": 4.4,
+        "unit": "g",
+        "purpose": "yeast rehydration nutrient",
+        "timing": "at rehydration",
+        "position": 0
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 9.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA, 24h/48h/72h after pitch",
+        "position": 1
+      },
+      {
+        "name": "DAP",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (inorganic)",
+        "timing": "split with Fermaid-O additions",
+        "position": 2
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.4,
+        "unit": "g",
+        "purpose": "antimicrobial/antioxidant",
+        "timing": "at bottling",
+        "position": 3
+      }
+    ]
+  },
+  {
+    "title": "Orchard Stand semi-sweet mead",
+    "category": "mead",
+    "author": "Recipe Content Curator",
+    "description": "A balanced semi-sweet traditional mead — same honey base as the dry version but stopped before fully attenuating, then cold-stabilized for residual honey sweetness without re-fermentation in the bottle.",
+    "notes": "Cold-crash in primary once gravity is close to target, then rack and stabilize with potassium sorbate + metabisulfite to lock in residual sweetness. A cooler ferment (14-16 °C) keeps the yeast strain from over-attenuating. Bulk age 2-3 months for the honey and acidity to round out.",
+    "styleName": "Traditional Mead (semi-sweet)",
+    "bjcpCategory": "M1A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.09,
+    "targetFg": 1.02,
+    "targetAbv": 9.2,
+    "fermentables": [
+      {
+        "name": "Orange blossom honey",
+        "type": "honey",
+        "amountKg": 3.6,
+        "position": 0,
+        "notes": "single-source for a clean citrus-honey character"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin 71B",
+        "laboratory": "Lallemand",
+        "productId": "71B",
+        "type": "wine",
+        "form": "dry",
+        "attenuationPct": 90,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "polysaccharide producer; helps round mouthfeel"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 15,
+        "durationDays": 14,
+        "position": 0
+      },
+      {
+        "name": "Cold crash",
+        "type": "stabilizing",
+        "tempC": 2,
+        "durationDays": 7,
+        "position": 1,
+        "notes": "drop yeast out of suspension"
+      },
+      {
+        "name": "Rack off lees",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "durationDays": 2,
+        "position": 3,
+        "notes": "sorbate + sulfite to lock sweetness"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 14,
+        "durationDays": 75,
+        "position": 4
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 5
+      }
+    ],
+    "additions": [
+      {
+        "name": "Go-Ferm",
+        "amount": 3.6,
+        "unit": "g",
+        "purpose": "yeast rehydration nutrient",
+        "timing": "at rehydration",
+        "position": 0
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 5.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 5 days",
+        "position": 1
+      },
+      {
+        "name": "DAP",
+        "amount": 3.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (inorganic)",
+        "timing": "split with Fermaid-O additions",
+        "position": 2
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.4,
+        "unit": "g",
+        "purpose": "antimicrobial/antioxidant",
+        "timing": "at stabilization, before sorbate",
+        "position": 3
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 4.5,
+        "unit": "g",
+        "purpose": "yeast inhibitor (locks residual sweetness)",
+        "timing": "24h after sulfite",
+        "position": 4
+      }
+    ]
+  },
+  {
+    "title": "Hedgerow blackberry melomel",
+    "category": "mead",
+    "author": "Recipe Content Curator",
+    "description": "A medium-sweet fruit mead built on late-summer blackberries — fruit-forward, deeply coloured, with enough acidity to keep it from feeling heavy. The fruit goes in primary so the yeast scrubs some of the harsh tannins.",
+    "notes": "Freeze-thaw the fruit before pitching to break down cell walls and improve juice yield. Pectic enzyme at pitch clears pectin haze. Rack off the fruit after ~7 days to avoid extracting bitter seed tannins. Bulk age 3 months minimum for the fruit and honey to marry.",
+    "styleName": "Berry Melomel",
+    "bjcpCategory": "M2A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.095,
+    "targetFg": 1.015,
+    "targetAbv": 10.5,
+    "fermentables": [
+      {
+        "name": "Wildflower honey",
+        "type": "honey",
+        "amountKg": 3.0,
+        "position": 0
+      },
+      {
+        "name": "Blackberries (frozen)",
+        "type": "fruit",
+        "amountKg": 4.0,
+        "position": 1,
+        "notes": "freeze-thawed, lightly crushed; add in primary"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin 71B",
+        "laboratory": "Lallemand",
+        "productId": "71B",
+        "type": "wine",
+        "form": "dry",
+        "attenuationPct": 90,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "71B metabolizes malic acid slightly, softens berry acidity"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Primary on fruit",
+        "type": "primary",
+        "tempC": 18,
+        "durationDays": 7,
+        "position": 0,
+        "notes": "press/push fruit down daily; rack off fruit on day 7"
+      },
+      {
+        "name": "Continue primary (clear)",
+        "type": "primary",
+        "tempC": 18,
+        "durationDays": 10,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 15,
+        "durationDays": 90,
+        "position": 3
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 4
+      }
+    ],
+    "additions": [
+      {
+        "name": "Pectic enzyme",
+        "amount": 2.5,
+        "unit": "tsp",
+        "purpose": "breaks down pectin for clarity",
+        "timing": "at pitch, into fruit slurry",
+        "position": 0
+      },
+      {
+        "name": "Go-Ferm",
+        "amount": 3.0,
+        "unit": "g",
+        "purpose": "yeast rehydration nutrient",
+        "timing": "at rehydration",
+        "position": 1
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 6.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 5 days",
+        "position": 2
+      },
+      {
+        "name": "DAP",
+        "amount": 3.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (inorganic)",
+        "timing": "split with Fermaid-O",
+        "position": 3
+      },
+      {
+        "name": "Acid blend",
+        "amount": 6.0,
+        "unit": "g",
+        "purpose": "raises TA; balances fruit sweetness",
+        "timing": "at pitch, into must",
+        "position": 4
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.4,
+        "unit": "g",
+        "purpose": "antimicrobial/antioxidant",
+        "timing": "at bottling",
+        "position": 5
+      }
+    ]
+  },
+  {
+    "title": "Fireside metheglin",
+    "category": "mead",
+    "author": "Recipe Content Curator",
+    "description": "A warm-spiced mead built around cinnamon, clove, and dried orange peel — a holiday-style metheglin that's bigger than a beer but lighter than a fortified wine. Spice additions are kept conservative so they read as background rather than potpourri.",
+    "notes": "Add whole spices to secondary, not primary: hot alcohol extraction during primary over-steeps them and turns the mead medicinal. A 3-day spice steep in secondary followed by a rack gives a clean aromatic lift. Bulk age 4-6 months for the spice to integrate.",
+    "styleName": "Metheglin (spiced mead)",
+    "bjcpCategory": "M3A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.085,
+    "targetFg": 1.012,
+    "targetAbv": 9.6,
+    "fermentables": [
+      {
+        "name": "Clover honey",
+        "type": "honey",
+        "amountKg": 3.4,
+        "position": 0,
+        "notes": "neutral clover; lets the spices lead"
+      },
+      {
+        "name": "Brown sugar",
+        "type": "sugar",
+        "amountKg": 0.2,
+        "position": 1,
+        "notes": "a touch of dark sweetness for depth"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin D47",
+        "laboratory": "Lallemand",
+        "productId": "D47",
+        "type": "wine",
+        "form": "dry",
+        "attenuationPct": 88,
+        "temperatureCMin": 15,
+        "temperatureCMax": 24,
+        "position": 0,
+        "notes": "holds spice and honey well; flocculates cleanly"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 19,
+        "durationDays": 14,
+        "position": 0
+      },
+      {
+        "name": "Spice steep in secondary",
+        "type": "secondary",
+        "tempC": 18,
+        "durationDays": 3,
+        "position": 1,
+        "notes": "cinnamon stick, whole clove, dried orange peel — then rack off"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 16,
+        "durationDays": 120,
+        "position": 2
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 3
+      }
+    ],
+    "additions": [
+      {
+        "name": "Go-Ferm",
+        "amount": 3.6,
+        "unit": "g",
+        "purpose": "yeast rehydration nutrient",
+        "timing": "at rehydration",
+        "position": 0
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 5.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 5 days",
+        "position": 1
+      },
+      {
+        "name": "DAP",
+        "amount": 2.5,
+        "unit": "g",
+        "purpose": "yeast nutrient (inorganic)",
+        "timing": "split with Fermaid-O",
+        "position": 2
+      },
+      {
+        "name": "Cinnamon stick",
+        "amount": 1,
+        "unit": "stick",
+        "purpose": "spice",
+        "timing": "in secondary, 3 days",
+        "position": 3
+      },
+      {
+        "name": "Whole cloves",
+        "amount": 3,
+        "unit": "g",
+        "purpose": "spice — use sparingly",
+        "timing": "in secondary, 3 days",
+        "position": 4
+      },
+      {
+        "name": "Dried orange peel",
+        "amount": 8,
+        "unit": "g",
+        "purpose": "spice",
+        "timing": "in secondary, 3 days",
+        "position": 5
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.4,
+        "unit": "g",
+        "purpose": "antimicrobial/antioxidant",
+        "timing": "at bottling",
+        "position": 6
+      }
+    ]
+  },
+  {
+    "title": "Concord Pantry kit wine",
+    "category": "wine",
+    "author": "Recipe Content Curator",
+    "description": "An easy 4 L (1 gal) country wine made from a single jug of store-bought Concord grape juice — the textbook beginner kit. Ferments dry, then backsweetened to a jammy, off-dry table-wine style.",
+    "notes": "Campden 24 h before pitch to knock down wild microbes. Pectic enzyme at pitch clears the heavy pectin load from grape juice. Ferment cool (16-18 °C) for a cleaner fruit profile. Stabilize with sulfite + sorbate before backsweetening so residual sugar doesn't re-ferment in the bottle.",
+    "styleName": "Country Wine (Concord grape)",
+    "bjcpCategory": null,
+    "batchSizeLiters": 4,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.09,
+    "targetFg": 0.996,
+    "targetAbv": 12.2,
+    "fermentables": [
+      {
+        "name": "Concord grape juice",
+        "type": "juice",
+        "amountLiters": 3.8,
+        "position": 0,
+        "notes": "pasteurized store-bought juice, no preservatives added"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "tolerant of high-acid grape musts; ferments fully dry"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h post-sulfite, before pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 17,
+        "durationDays": 12,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Clear / bulk age",
+        "type": "aging",
+        "tempC": 15,
+        "durationDays": 30,
+        "position": 3
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 4,
+        "notes": "sulfite + sorbate, 24 h apart"
+      },
+      {
+        "name": "Backsweeten",
+        "type": "backsweetening",
+        "position": 5,
+        "notes": "dissolve ~150 g sugar into a small portion of wine, blend back"
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 1,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 0.5,
+        "unit": "tsp",
+        "purpose": "breaks down pectin for clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Acid blend",
+        "amount": 1.5,
+        "unit": "tsp",
+        "purpose": "raises TA; lifts fruit on the palate",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Wine tannin",
+        "amount": 0.25,
+        "unit": "tsp",
+        "purpose": "structure / mouthfeel — grape juice is light on tannin",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.1,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, 24 h before sorbate",
+        "position": 4
+      },
+      {
+        "name": "Potassium sorbate",
+        "amount": 1.0,
+        "unit": "g",
+        "purpose": "yeast inhibitor (locks residual sweetness)",
+        "timing": "24 h after sulfite, before backsweetening",
+        "position": 5
+      }
+    ]
+  },
+  {
+    "title": "Applefield fresh-fruit country wine",
+    "category": "wine",
+    "author": "Recipe Content Curator",
+    "description": "A dry, crisp country wine made from fresh-pressed cider apples — closer to a rough French cidre style than a sweet apple wine. Fermented cool with a low-attenuation yeast to leave a touch of natural sweetness and a clean fruit finish.",
+    "notes": "Use freshly pressed, untreated cider — no sorbate, no campden, no ascorbic. Campden at crush is essential; pitch 24 h later. The yeast choice keeps the wine dry-but-not-bone-dry, with apple character intact. Cold-settle in primary to drop pectin before racking.",
+    "styleName": "Country Wine (fresh apple)",
+    "bjcpCategory": null,
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.055,
+    "targetFg": 0.998,
+    "targetAbv": 7.4,
+    "fermentables": [
+      {
+        "name": "Fresh-pressed cider apple juice",
+        "type": "juice",
+        "amountLiters": 18,
+        "position": 0,
+        "notes": "untreated, freshly pressed from mixed cider varieties"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin D47",
+        "laboratory": "Lallemand",
+        "productId": "D47",
+        "type": "wine",
+        "form": "dry",
+        "attenuationPct": 88,
+        "temperatureCMin": 15,
+        "temperatureCMax": 24,
+        "position": 0,
+        "notes": "leaves a touch of residual sugar; enhances fruity esters"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h sulfite, then pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 16,
+        "durationDays": 14,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2,
+        "notes": "leave heavy lees behind"
+      },
+      {
+        "name": "Bulk age",
+        "type": "aging",
+        "tempC": 14,
+        "durationDays": 60,
+        "position": 3
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 4
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 5
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 4,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "at crush, 24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 1.5,
+        "unit": "tsp",
+        "purpose": "breaks down apple pectin",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Acid blend",
+        "amount": 4.0,
+        "unit": "tsp",
+        "purpose": "raises TA; balance sweet apple base",
+        "timing": "at pitch",
+        "position": 2
+      },
+      {
+        "name": "Wine tannin",
+        "amount": 0.5,
+        "unit": "tsp",
+        "purpose": "structure — apples are tannin-light",
+        "timing": "at pitch",
+        "position": 3
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 4.0,
+        "unit": "g",
+        "purpose": "yeast nutrient",
+        "timing": "staggered over first 3 days",
+        "position": 4
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.4,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization",
+        "position": 5
+      }
+    ]
+  },
+  {
+    "title": "Hollowgate pyment",
+    "category": "wine",
+    "author": "Recipe Content Curator",
+    "description": "A pyment — mead-meets-grape-wine — built on a base of red grape concentrate cut with clover honey. Ferments dry, then aged on light oak for a fortified-leaning, structured table wine that drinks somewhere between a dry red and a traditional mead.",
+    "notes": "Rehydrate yeast with Go-Ferm before pitching into the high-sugar must. Use a strong-fermenting wine yeast (EC-1118) to drive the mead component fully dry. Oak cubes in secondary add gentle vanilla / tannin structure without overwhelming the grape-honey balance. Bulk age 4-6 months.",
+    "styleName": "Pyment (honey + grape)",
+    "bjcpCategory": "M4A",
+    "batchSizeLiters": 19,
+    "boilTimeMinutes": 0,
+    "efficiencyPct": 100,
+    "targetOg": 1.105,
+    "targetFg": 0.998,
+    "targetAbv": 14.0,
+    "fermentables": [
+      {
+        "name": "Red grape concentrate",
+        "type": "concentrate",
+        "amountKg": 5.0,
+        "position": 0,
+        "notes": "reconstituted in must to ~18 L water"
+      },
+      {
+        "name": "Clover honey",
+        "type": "honey",
+        "amountKg": 1.6,
+        "position": 1,
+        "notes": "secondary fermentable; rounds mouthfeel"
+      }
+    ],
+    "hops": [],
+    "yeasts": [
+      {
+        "name": "Lalvin EC-1118",
+        "laboratory": "Lallemand",
+        "productId": "EC-1118",
+        "type": "champagne",
+        "form": "dry",
+        "attenuationPct": 95,
+        "temperatureCMin": 15,
+        "temperatureCMax": 25,
+        "position": 0,
+        "notes": "high-ABV tolerance to ferment pyment fully dry"
+      }
+    ],
+    "mashSteps": [],
+    "processSteps": [
+      {
+        "name": "Campden rest",
+        "type": "other",
+        "durationDays": 1,
+        "position": 0,
+        "notes": "24 h sulfite, then pitch"
+      },
+      {
+        "name": "Primary fermentation",
+        "type": "primary",
+        "tempC": 18,
+        "durationDays": 18,
+        "position": 1
+      },
+      {
+        "name": "Rack to secondary",
+        "type": "racking",
+        "position": 2
+      },
+      {
+        "name": "Oak aging",
+        "type": "aging",
+        "tempC": 15,
+        "durationDays": 90,
+        "position": 3,
+        "notes": "light-toast oak cubes, ~25 g"
+      },
+      {
+        "name": "Bulk age (off oak)",
+        "type": "aging",
+        "tempC": 14,
+        "durationDays": 60,
+        "position": 4
+      },
+      {
+        "name": "Stabilize",
+        "type": "stabilizing",
+        "position": 5
+      },
+      {
+        "name": "Bottle",
+        "type": "bottling",
+        "position": 6
+      }
+    ],
+    "additions": [
+      {
+        "name": "Campden tablet",
+        "amount": 4,
+        "unit": "tablet",
+        "purpose": "sanitation / antioxidant",
+        "timing": "24 h before pitch",
+        "position": 0
+      },
+      {
+        "name": "Pectic enzyme",
+        "amount": 1.0,
+        "unit": "tsp",
+        "purpose": "clarity",
+        "timing": "at pitch",
+        "position": 1
+      },
+      {
+        "name": "Go-Ferm",
+        "amount": 1.6,
+        "unit": "g",
+        "purpose": "yeast rehydration nutrient",
+        "timing": "at rehydration",
+        "position": 2
+      },
+      {
+        "name": "Fermaid-O",
+        "amount": 7.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (organic)",
+        "timing": "staggered SNA over first 7 days",
+        "position": 3
+      },
+      {
+        "name": "DAP",
+        "amount": 4.0,
+        "unit": "g",
+        "purpose": "yeast nutrient (inorganic)",
+        "timing": "split with Fermaid-O",
+        "position": 4
+      },
+      {
+        "name": "Acid blend",
+        "amount": 5.0,
+        "unit": "g",
+        "purpose": "TA adjustment",
+        "timing": "at pitch",
+        "position": 5
+      },
+      {
+        "name": "Wine tannin",
+        "amount": 0.5,
+        "unit": "tsp",
+        "purpose": "structure",
+        "timing": "at pitch",
+        "position": 6
+      },
+      {
+        "name": "Potassium metabisulfite",
+        "amount": 0.4,
+        "unit": "g",
+        "purpose": "antimicrobial / antioxidant",
+        "timing": "at stabilization, before bottling",
+        "position": 7
+      }
+    ]
+  }
+]
