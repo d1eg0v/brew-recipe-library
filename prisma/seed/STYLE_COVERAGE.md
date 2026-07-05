@@ -99,4 +99,117 @@ Not yet covered (candidates for a later expansion):
 - **Beer:** English bitters (11A/11B), Märzen/Oktoberfest (6A), Belgian Tripel (26C), Doppelbock (9A), Kölsch (5B), sour/wild styles (23-series), NEIPA-adjacent variants (e.g. fruited hazy IPA, milkshake IPA)
 - **Mead:** braggot (M5A), cyser (apple-honey), pyment variants beyond red-grape, bochet (caramelized-honey mead)
 - **Wine:** strawberry / elderberry / dandelion country wines, fruit-kit wines, ice wine / late-harvest
-- **Cider:** not yet represented (schema supports `category: "cider"` but the seed set doesn't include any)
+- **Cider:** recipe set planned but not yet authored — see the **Cider recipe shape** section below for the agreed field conventions. The seed JSON validator (`recipeCreateSchema` in `src/lib/api/schemas.ts`) and Prisma migration already accept `category: "cider"`.
+
+---
+
+## Cider recipe shape (BRE-19)
+
+The schema already covers hard cider end-to-end. **No new migration, no new field.** This section is the contract the **Recipe Content Curator** should follow when authoring cider recipes (BRE-20). Every cider need maps cleanly onto existing fields:
+
+### Field-by-field mapping
+
+| Cider need | Where it goes | Field shape | Notes |
+| --- | --- | --- | --- |
+| Base apple juice (store-bought) | `fermentables[]` | `{ name, type: "juice", amountLiters }` | Required for liquid-only fermentables. |
+| Apple juice concentrate (flavor boost) | `fermentables[]` | `{ name, type: "concentrate", amountLiters OR amountKg }` | Contributes to OG — add it here only when it's pitched with the must. |
+| Fresh fruit (apples, berries, cherries…) | `fermentables[]` | `{ name, type: "fruit", amountKg }` | Same as mead fruit additions. |
+| Acid blend / citric / malic acid | `additions[]` | `{ name: "Acid blend" \| "Citric acid" \| "Malic acid", amount, unit: "g", purpose: "TA adjustment", timing: "at pitch" }` | Use grams; the `Addition` unit is free-text but the seed validator accepts it. |
+| Campden / potassium metabisulfite | `additions[]` | `{ name: "Campden tablet" \| "Potassium metabisulfite", amount, unit: "tablet" \| "g", purpose: "antimicrobial/antioxidant", timing: "24 h before pitch" }` | Mirrors existing mead/wine pattern. |
+| Pectic enzyme | `additions[]` | `{ name: "Pectic enzyme", amount, unit: "tsp", purpose: "breaks down pectin for clarity", timing: "at pitch" }` | Mirrors existing mead/wine pattern. |
+| Yeast nutrient (Fermaid-O, DAP, Go-Ferm) | `additions[]` | `{ name, amount, unit: "g", purpose: "yeast nutrient (organic/inorganic)", timing: "staggered SNA over first N days" }` | Same as mead. |
+| Tannin | `additions[]` | `{ name: "Wine tannin", amount, unit: "tsp", purpose: "structure", timing: "at pitch" }` | Same as wine. |
+| Stabilizer (potassium sorbate) | `additions[]` | `{ name: "Potassium sorbate", amount, unit: "g", purpose: "yeast inhibitor (locks residual sweetness)", timing: "24 h after sulfite" }` | Same as mead semi-sweet / pyment. |
+| **Juice concentrate for priming/carbonation at bottling** | `additions[]` | `{ name: "Apple juice concentrate (priming)", amount, unit: "L" \| "g", purpose: "priming/carbonation + apple flavor", timing: "at bottling" }` | **Not a `fermentable`** — see decision below. |
+| Spice / flavor in secondary | `additions[]` | `{ name, amount, unit: "g" \| "stick", purpose: "spice", timing: "in secondary" }` | Same as metheglin pattern. |
+| Process steps (primary, racking, aging, stabilizing, backsweetening, bottling) | `processSteps[]` | `{ name, type, tempC?, durationDays?, notes? }` | Use `type: "bottling"` for the priming step; reference the priming `Addition` in its `notes`. |
+
+### Yeast + category basics
+
+- `category`: must be the literal string `"cider"`.
+- `styleName`: free text (e.g. "English-style Dry Cider", "New England Style Cider", "Hopped Cider", "Fruit Cider (Blackberry)").
+- `bjcpCategory`: optional. Use the cider-side codes where they exist (e.g. **C1** for "Standard Cider and Perry"); otherwise leave `null`.
+- `yeasts[]`: pick `type: "wine"` or `type: "champagne"` for cider strains (e.g. EC-1118, D47, DV10). Attenuation in the 75–95 % range is normal.
+- `targetIbu`: only set for hopped ciders; otherwise `null` (mirrors mead/wine).
+- `targetSrm`: only set if colour matters; otherwise `null`. Cider typically reads as pale gold (≈ SRM 4–7).
+- `batchSizeLiters`: 19 L (5 gal) for a standard batch; 3.8 L (1 gal) is fine for the small-kit variants.
+
+### Priming / carbonation — the decision (BRE-19 deliverable)
+
+The user primes with **apple juice concentrate at bottling** for both carbonation and residual apple flavor. The two natural representations were considered:
+
+1. **A distinct top-level `priming` field** — rejected. Heavy schema change for a one-off, and isolates a value that semantically is a fermentable at a non-standard time.
+2. **A `Fermentable` at a later process step** — rejected. If we put it in `fermentables[]` with no timing, `estimateOg` would falsely count it toward pre-fermentation gravity. Adding a `timing` column to `Fermentable` just to support post-primary additions is heavy.
+3. **An `Addition` row** — **chosen**. The `Addition` model already has `amount`, `unit`, `purpose`, and `timing` fields, designed for non-fermentable additions (campden, sorbate, nutrients). A bottling-time concentrate fits this pattern exactly: it's not part of the pre-fermentation gravity bill, but it has a real structured identity in the recipe.
+
+Concrete shape:
+
+```json
+{
+  "name": "Apple juice concentrate (priming)",
+  "amount": 0.30,
+  "unit": "L",
+  "purpose": "priming/carbonation + apple flavor boost at bottling",
+  "timing": "at bottling",
+  "position": 6
+}
+```
+
+And reference it from a `processSteps[]` entry:
+
+```json
+{
+  "name": "Bottle with priming",
+  "type": "bottling",
+  "tempC": 18,
+  "durationDays": 14,
+  "notes": "Stir in 0.30 L apple juice concentrate per 19 L batch for natural carbonation. Condition 2 weeks at 18 °C.",
+  "position": 5
+}
+```
+
+If the same recipe also uses concentrate **at pitch** for flavor boost (a separate fermentable), put that in `fermentables[]` as a normal `type: "concentrate"` entry — only the bottling-time dose goes in `additions[]`.
+
+### Worked example — semi-sweet apple cider (skeleton)
+
+```json
+{
+  "title": "Orchard Dry-Hopped Cider",
+  "category": "cider",
+  "styleName": "Modern Dry-Hopped Cider",
+  "bjcpCategory": "C2A",
+  "batchSizeLiters": 19,
+  "boilTimeMinutes": 0,
+  "efficiencyPct": 75,
+  "targetOg": 1.052,
+  "targetFg": 1.004,
+  "targetAbv": 6.3,
+  "fermentables": [
+    { "name": "Store-bought apple juice (no preservative)", "type": "juice", "amountLiters": 18.0, "position": 0 },
+    { "name": "Apple juice concentrate (flavor boost)", "type": "concentrate", "amountLiters": 0.4, "position": 1 }
+  ],
+  "hops": [
+    { "name": "Citra", "amountGrams": 30, "alphaAcidPct": 12, "timeMinutes": 0, "use": "dryHop", "form": "pellet", "position": 0 }
+  ],
+  "yeasts": [
+    { "name": "EC-1118", "type": "champagne", "form": "dry", "attenuationPct": 95, "position": 0 }
+  ],
+  "additions": [
+    { "name": "Acid blend", "amount": 4.0, "unit": "g", "purpose": "TA adjustment — adds tartness to balance sweetness", "timing": "at pitch", "position": 0 },
+    { "name": "Pectic enzyme", "amount": 1.0, "unit": "tsp", "purpose": "breaks down apple pectin for clarity", "timing": "at pitch", "position": 1 },
+    { "name": "Campden tablet", "amount": 2, "unit": "tablet", "purpose": "sanitation / antioxidant", "timing": "24 h before pitch", "position": 2 },
+    { "name": "Fermaid-O", "amount": 4.0, "unit": "g", "purpose": "yeast nutrient", "timing": "staggered over first 3 days", "position": 3 },
+    { "name": "Apple juice concentrate (priming)", "amount": 0.30, "unit": "L", "purpose": "priming/carbonation + apple flavor boost", "timing": "at bottling", "position": 4 }
+  ],
+  "processSteps": [
+    { "name": "Campden rest", "type": "other", "durationDays": 1, "position": 0 },
+    { "name": "Pitch yeast + nutrients", "type": "primary", "tempC": 17, "durationDays": 14, "position": 1 },
+    { "name": "Dry hop", "type": "secondary", "durationDays": 3, "position": 2 },
+    { "name": "Rack off lees + hops", "type": "racking", "position": 3 },
+    { "name": "Bulk age", "type": "aging", "tempC": 4, "durationDays": 14, "position": 4 },
+    { "name": "Bottle with priming", "type": "bottling", "tempC": 18, "durationDays": 14, "notes": "Stir in 0.30 L apple juice concentrate per 19 L batch.", "position": 5 }
+  ]
+}
+```
+
+This passes `recipeCreateSchema.strict()` as-is. The Curator can paste it into `prisma/seed/recipes.json` after adjusting the values for the actual recipe.

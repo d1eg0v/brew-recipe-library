@@ -15,6 +15,27 @@ export const RECIPE_CATEGORIES = [
 ] as const;
 export type RecipeCategory = (typeof RECIPE_CATEGORIES)[number];
 
+/**
+ * Field-mapping conventions for non-beer categories. The Curator's seed JSON
+ * is validated against this schema; this comment captures the agreed shape
+ * for cider (and notes the analogous shape for mead/wine).
+ *
+ *  - **`cider`** — See `prisma/seed/STYLE_COVERAGE.md` → "Cider recipe shape".
+ *    Base fermentables go in `fermentables[]` (juice / concentrate / fruit).
+ *    Acid blend / campden / pectic enzyme / yeast nutrient / tannin /
+ *    potassium sorbate go in `additions[]` (free-text `name`, numeric
+ *    `amount`, `unit`, `purpose`, `timing`). The crucial cider-specific
+ *    decision: juice concentrate added at bottling for priming/carbonation
+ *    is **not** a fermentable — it would falsely inflate OG. Put it in
+ *    `additions[]` with `purpose: "priming/carbonation"` and
+ *    `timing: "at bottling"`, and reference it from a `processSteps[]`
+ *    entry of `type: "bottling"`.
+ *  - **`mead` / `wine`** — Same pattern. Hops and mashSteps stay empty;
+ *    fermentables are juice/concentrate/honey/fruit/must; everything else
+ *    (acid blend, campden, sorbate, pectic enzyme, tannin, spices) goes
+ *    in `additions[]`.
+ */
+
 /** Allowed fermentable types — see Prisma `Fermentable.type`. */
 export const FERMENTABLE_TYPES = [
   "grain",

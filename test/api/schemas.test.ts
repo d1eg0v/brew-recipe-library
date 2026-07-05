@@ -168,6 +168,150 @@ describe("recipeCreateSchema", () => {
   });
 });
 
+// Reference example for the cider field shape agreed in BRE-19. Locks in the
+// documented contract (see prisma/seed/STYLE_COVERAGE.md → "Cider recipe
+// shape") so future refactors of the Zod schema can't silently break it.
+describe("cider shape (BRE-19 contract)", () => {
+  const ciderExample = {
+    title: "Orchard Dry-Hopped Cider",
+    category: "cider",
+    styleName: "Modern Dry-Hopped Cider",
+    bjcpCategory: "C2A",
+    batchSizeLiters: 19,
+    boilTimeMinutes: 0,
+    efficiencyPct: 75,
+    targetOg: 1.052,
+    targetFg: 1.004,
+    targetAbv: 6.3,
+    fermentables: [
+      {
+        name: "Store-bought apple juice (no preservative)",
+        type: "juice",
+        amountLiters: 18.0,
+        position: 0,
+      },
+      {
+        name: "Apple juice concentrate (flavor boost)",
+        type: "concentrate",
+        amountLiters: 0.4,
+        position: 1,
+      },
+    ],
+    hops: [
+      {
+        name: "Citra",
+        amountGrams: 30,
+        alphaAcidPct: 12,
+        timeMinutes: 0,
+        use: "dryHop",
+        form: "pellet",
+        position: 0,
+      },
+    ],
+    yeasts: [
+      {
+        name: "EC-1118",
+        type: "champagne",
+        form: "dry",
+        attenuationPct: 95,
+        position: 0,
+      },
+    ],
+    additions: [
+      {
+        name: "Acid blend",
+        amount: 4.0,
+        unit: "g",
+        purpose: "TA adjustment — adds tartness to balance sweetness",
+        timing: "at pitch",
+        position: 0,
+      },
+      {
+        name: "Pectic enzyme",
+        amount: 1.0,
+        unit: "tsp",
+        purpose: "breaks down apple pectin for clarity",
+        timing: "at pitch",
+        position: 1,
+      },
+      {
+        name: "Campden tablet",
+        amount: 2,
+        unit: "tablet",
+        purpose: "sanitation / antioxidant",
+        timing: "24 h before pitch",
+        position: 2,
+      },
+      {
+        name: "Fermaid-O",
+        amount: 4.0,
+        unit: "g",
+        purpose: "yeast nutrient",
+        timing: "staggered over first 3 days",
+        position: 3,
+      },
+      {
+        name: "Apple juice concentrate (priming)",
+        amount: 0.3,
+        unit: "L",
+        purpose: "priming/carbonation + apple flavor boost",
+        timing: "at bottling",
+        position: 4,
+      },
+    ],
+    processSteps: [
+      { name: "Campden rest", type: "other", durationDays: 1, position: 0 },
+      {
+        name: "Pitch yeast + nutrients",
+        type: "primary",
+        tempC: 17,
+        durationDays: 14,
+        position: 1,
+      },
+      { name: "Dry hop", type: "secondary", durationDays: 3, position: 2 },
+      { name: "Rack off lees + hops", type: "racking", position: 3 },
+      {
+        name: "Bulk age",
+        type: "aging",
+        tempC: 4,
+        durationDays: 14,
+        position: 4,
+      },
+      {
+        name: "Bottle with priming",
+        type: "bottling",
+        tempC: 18,
+        durationDays: 14,
+        notes: "Stir in 0.30 L apple juice concentrate per 19 L batch.",
+        position: 5,
+      },
+    ],
+  };
+
+  it("accepts a complete cider recipe (worked example from STYLE_COVERAGE)", () => {
+    const r = recipeCreateSchema.safeParse(ciderExample);
+    expect(r.success).toBe(true);
+  });
+
+  it("preserves the priming concentrate as an Addition (not a Fermentable)", () => {
+    const r = recipeCreateSchema.safeParse(ciderExample);
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    const priming = r.data.additions.find((a) =>
+      a.purpose?.toLowerCase().includes("priming"),
+    );
+    expect(priming).toBeDefined();
+    expect(priming?.name).toBe("Apple juice concentrate (priming)");
+    expect(priming?.timing).toBe("at bottling");
+    expect(priming?.amount).toBeCloseTo(0.3);
+    expect(priming?.unit).toBe("L");
+    // And the bottling processStep references the priming in its notes.
+    const bottling = r.data.processSteps.find((p) => p.type === "bottling");
+    expect(bottling).toBeDefined();
+    expect(bottling?.notes).toMatch(/apple juice concentrate/i);
+  });
+});
+
 describe("recipePatchSchema", () => {
   it("accepts an empty patch object", () => {
     const r = recipePatchSchema.safeParse({});
