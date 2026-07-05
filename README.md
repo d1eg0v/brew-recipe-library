@@ -11,6 +11,11 @@ and target OG/FG/IBU/SRM/ABV, plus mead, wine, and cider for the same author.
 - **Tailwind CSS** for styling
 - **Zod** for input validation, **Vitest** for unit/integration tests
 
+## Prerequisites
+
+- Node.js **20.9+** (Next.js 16 requires it)
+- npm 10+
+
 ## Getting started
 
 ```bash
@@ -36,6 +41,23 @@ secrets — committed so the app and Prisma CLI work out of the box).
 | `npm run db:push`    | `prisma db push` (sync schema without a migration) |
 | `npm run db:seed`    | Wipe and reload from `prisma/seed/recipes.json`    |
 | `npm run db:studio`  | Open Prisma Studio                                 |
+
+### Clean-checkout reset
+
+If you want to wipe and rebuild the local DB from scratch:
+
+```bash
+npx prisma migrate reset --force   # drops dev.db, re-runs migrations
+npm run db:seed                    # reload prisma/seed/recipes.json (19 recipes)
+npm run dev
+```
+
+### Seed dataset
+
+The seed JSON ([`prisma/seed/recipes.json`](prisma/seed/recipes.json)) covers
+**19 recipes** across beer, mead, and wine (12 beer, 4 mead, 3 wine). See
+[`prisma/seed/STYLE_COVERAGE.md`](prisma/seed/STYLE_COVERAGE.md) for the full
+list with OG/FG/ABV and BJCP / mead-style codes.
 
 ## Data model
 
@@ -141,6 +163,27 @@ All write paths (`POST`, `PUT`, `PATCH`) are validated with Zod schemas in
 fields (fermentable type, hop use, hop form, etc.) are exported from the same
 file so the UI in stage 4 can reuse the same source of truth.
 
+## Web UI
+
+Two pages, both SSR-rendered against the local SQLite DB:
+
+| Route             | What it does                                                              |
+| ----------------- | ------------------------------------------------------------------------- |
+| `/`               | Browse page: lists every recipe with title, category badge, style/BJCP, batch size, target ABV and OG. Filter form for `category` and `style` substring. |
+| `/recipes/[id]`   | Detail page: full recipe (fermentables, hops, yeast, mash steps, process steps, additions, brewer notes), with a batch-size scaling control and metric/imperial unit toggle. |
+
+Both pages fetch via the same `/api/...` endpoints the API uses; no separate
+backend process.
+
+### Sharing a scaled view
+
+The detail page honours `?batchSize=<litres>` and `?units=imperial` on the URL
+so you can share a scaled or imperial link:
+
+```text
+/recipes/<id>?batchSize=40&units=imperial
+```
+
 ## Tests
 
 ```bash
@@ -153,5 +196,8 @@ npm test
 - `test/api/search.test.ts` — filter-clause builder
 - `test/api/present.test.ts` — scaling + unit conversion for responses
 - `test/api/routes.test.ts` — full route handler integration against an
-  isolated SQLite DB (per-test schema migration + reset)
+  isolated SQLite DB (per-test schema migration + reset), covers create/read/
+  update/delete/search/scale/units happy paths
 - `test/seed/load.test.ts` + `test/seed/seedFile.test.ts` — seed JSON ingestion
+- `test/ui/browse.test.tsx` — server-renders the browse page against the
+  seeded DB and checks the recipes, filter form, and category narrowing
