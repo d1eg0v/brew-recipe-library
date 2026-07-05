@@ -1,0 +1,156 @@
+// Shared UI types for the recipe library.
+//
+// Mirrors the API response shapes so client components can stay strict without
+// having to import generated Prisma types. All `id`/`recipeId`/timestamp
+// fields from the DB are kept; consumers that don't need them can ignore.
+
+export type RecipeCategory = "beer" | "mead" | "wine" | "cider" | "other";
+
+export type UnitSystem = "metric" | "imperial";
+
+/** Minimal recipe row used by the browse list view. */
+export interface RecipeListItem {
+  id: string;
+  title: string;
+  author: string | null;
+  category: string;
+  styleName: string | null;
+  bjcpCategory: string | null;
+  batchSizeLiters: number;
+  targetAbv: number | null;
+  targetIbu: number | null;
+  targetSrm: number | null;
+  targetOg: number | null;
+  targetFg: number | null;
+  description: string | null;
+  updatedAt: string;
+}
+
+/** Fermentable row as returned by the API. Imperial fields are present
+ * alongside the metric ones when `?units=imperial` is requested. */
+export interface FermentableRow {
+  id: string;
+  name: string;
+  type: string | null;
+  amountKg: number | null;
+  amountLiters: number | null;
+  amountLbs?: number | null;
+  amountGallons?: number | null;
+  colorLovibond: number | null;
+  potentialPpg: number | null;
+  notes: string | null;
+  position: number;
+}
+
+export interface HopRow {
+  id: string;
+  name: string;
+  amountGrams: number;
+  amountOz?: number | null;
+  alphaAcidPct: number | null;
+  timeMinutes: number;
+  use: string | null;
+  form: string | null;
+  notes: string | null;
+  position: number;
+}
+
+export interface YeastRow {
+  id: string;
+  name: string;
+  laboratory: string | null;
+  productId: string | null;
+  type: string | null;
+  form: string | null;
+  attenuationPct: number | null;
+  temperatureCMin: number | null;
+  temperatureCMax: number | null;
+  temperatureFMin?: number | null;
+  temperatureFMax?: number | null;
+  notes: string | null;
+  position: number;
+}
+
+export interface MashStepRow {
+  id: string;
+  name: string;
+  type: string | null;
+  stepTempC: number;
+  stepTempF?: number | null;
+  stepTimeMinutes: number | null;
+  infuseAmountLiters: number | null;
+  infuseAmountGallons?: number | null;
+  notes: string | null;
+  position: number;
+}
+
+export interface ProcessStepRow {
+  id: string;
+  name: string;
+  type: string | null;
+  tempC: number | null;
+  tempF?: number | null;
+  durationDays: number | null;
+  notes: string | null;
+  position: number;
+}
+
+export interface AdditionRow {
+  id: string;
+  name: string;
+  amount: number | null;
+  unit: string | null;
+  purpose: string | null;
+  timing: string | null;
+  notes: string | null;
+  position: number;
+}
+
+/** Full recipe payload returned by `GET /api/recipes/[id]`. */
+export interface RecipeDetail {
+  id: string;
+  title: string;
+  author: string | null;
+  description: string | null;
+  notes: string | null;
+  category: string;
+  styleName: string | null;
+  bjcpCategory: string | null;
+  batchSizeLiters: number;
+  batchSizeGallons?: number | null;
+  boilTimeMinutes: number;
+  efficiencyPct: number;
+  targetOg: number | null;
+  targetFg: number | null;
+  targetAbv: number | null;
+  targetIbu: number | null;
+  targetSrm: number | null;
+  fermentables: FermentableRow[];
+  hops: HopRow[];
+  yeasts: YeastRow[];
+  mashSteps: MashStepRow[];
+  processSteps: ProcessStepRow[];
+  additions: AdditionRow[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Calculated targets derived from a recipe on the server. */
+export interface ComputedTargets {
+  og: number | null;
+  fg: number | null;
+  abv: number | null;
+  ibu: number | null;
+  srm: number | null;
+}
+
+export interface RecipeListResponse {
+  data: RecipeListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface RecipeDetailResponse {
+  data: RecipeDetail;
+}
