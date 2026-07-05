@@ -226,3 +226,53 @@ export function fermentableTypeLabel(type: string | null | undefined): string {
       return titleCase(type);
   }
 }
+
+/** Human-friendly label for a shopping-list category. */
+export function shoppingCategoryLabel(
+  category: string | null | undefined,
+): string {
+  switch (category) {
+    case "fermentables":
+      return "Fermentables";
+    case "hops":
+      return "Hops";
+    case "yeast":
+      return "Yeast";
+    case "additions":
+      return "Additions";
+    default:
+      return titleCase(category);
+  }
+}
+
+/**
+ * Format one shopping-list amount with the right unit suffix. When the row
+ * already has a non-empty `unit` string (e.g. "tsp", "tablet", "packets"),
+ * use it as-is. For metric-imperial symmetry, `imperialAmount`/`imperialUnit`
+ * are surfaced when the API provided them.
+ */
+export function fmtShoppingAmount(
+  amount: number | null | undefined,
+  unit: string | null | undefined,
+  units: UnitSystem,
+  imperialAmount?: number | null,
+  imperialUnit?: string | null,
+): string {
+  if (amount == null || !Number.isFinite(amount)) return "—";
+  // Known metric-imperial pairs handled by the recipe detail formatters.
+  if (unit === "kg") return fmtKg(amount, units);
+  if (unit === "g") return fmtGrams(amount, units);
+  if (unit === "L") return fmtLiters(amount, units);
+  // Unknown / free-text unit ("tsp", "tablet", "ppm", "packets", etc.)
+  // Render the value with its own unit suffix.
+  const trimmed = (unit ?? "").trim();
+  if (units === "imperial") {
+    if (imperialAmount != null && Number.isFinite(imperialAmount)) {
+      const imp = trimmed ? `${fmtNumber(imperialAmount, 2)} ${imperialUnit ?? ""}` : `${fmtNumber(imperialAmount, 2)}`;
+      return imp.replace(/\s+$/, "").trim() || "—";
+    }
+    // No imperial equivalent available — fall back to the metric figure.
+  }
+  if (!trimmed) return `${fmtNumber(amount, 2)}`;
+  return `${fmtNumber(amount, 2)} ${trimmed}`;
+}
