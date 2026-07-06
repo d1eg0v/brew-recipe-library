@@ -147,6 +147,123 @@ describe("GET /api/recipes", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  describe("full-text search (BRE-25)", () => {
+    async function seedCorpus() {
+      // Three recipes each matched by a different one of the four text fields.
+      // `author` and `notes` need explicit values since the default fixture
+      // leaves them unset.
+      const byTitle = await recipesRoute.POST(
+        buildRequest("/api/recipes", {
+          method: "POST",
+          body: fixtureRecipe({ title: "Sunburst Pale Ale" }),
+        }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+      );
+      const byAuthor = await recipesRoute.POST(
+        buildRequest("/api/recipes", {
+          method: "POST",
+          body: fixtureRecipe({ title: "Common Lager", author: "Nikolai Brewer" }),
+        }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+      );
+      const byDescription = await recipesRoute.POST(
+        buildRequest("/api/recipes", {
+          method: "POST",
+          body: fixtureRecipe({
+            title: "House Bitter",
+            description: "A sessionable bitter brewed for the autumn table.",
+          }),
+        }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+      );
+      const byNotes = await recipesRoute.POST(
+        buildRequest("/api/recipes", {
+          method: "POST",
+          body: fixtureRecipe({
+            title: "Quaint Stout",
+            notes: "Watch the mash temp — Imperial stout tendencies.",
+          }),
+        }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+      );
+      const unrelated = await recipesRoute.POST(
+        buildRequest("/api/recipes", {
+          method: "POST",
+          body: fixtureRecipe({ title: "Mead", category: "mead" }),
+        }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+      );
+      return { byTitle, byAuthor, byDescription, byNotes, unrelated };
+    }
+
+    it("matches by title (case-insensitive)", async () => {
+      await seedCorpus();
+      const res = await recipesRoute.GET(
+        buildRequest("/api/recipes?q=sunburst") as unknown as Parameters<typeof recipesRoute.GET>[0],
+      );
+      const body = await readJson<ListResponse>(res);
+      expect(body.total).toBe(1);
+      expect(body.data[0].title).toBe("Sunburst Pale Ale");
+    });
+
+    it("matches by author", async () => {
+      await seedCorpus();
+      const res = await recipesRoute.GET(
+        buildRequest("/api/recipes?q=nikolai") as unknown as Parameters<typeof recipesRoute.GET>[0],
+      );
+      const body = await readJson<ListResponse>(res);
+      expect(body.total).toBe(1);
+      expect(body.data[0].title).toBe("Common Lager");
+    });
+
+    it("matches by description", async () => {
+      await seedCorpus();
+      const res = await recipesRoute.GET(
+        buildRequest("/api/recipes?q=sessionable") as unknown as Parameters<typeof recipesRoute.GET>[0],
+      );
+      const body = await readJson<ListResponse>(res);
+      expect(body.total).toBe(1);
+      expect(body.data[0].title).toBe("House Bitter");
+    });
+
+    it("matches by notes", async () => {
+      await seedCorpus();
+      const res = await recipesRoute.GET(
+        buildRequest("/api/recipes?q=imperial") as unknown as Parameters<typeof recipesRoute.GET>[0],
+      );
+      const body = await readJson<ListResponse>(res);
+      expect(body.total).toBe(1);
+      expect(body.data[0].title).toBe("Quaint Stout");
+    });
+
+    it("stacks with category filter", async () => {
+      await seedCorpus();
+      // `imperial` matches the stout's notes; narrowing by category=beer
+      // shouldn't drop it but should drop any future mead match.
+      const res = await recipesRoute.GET(
+        buildRequest(
+          "/api/recipes?q=imperial&category=beer",
+        ) as unknown as Parameters<typeof recipesRoute.GET>[0],
+      );
+      const body = await readJson<ListResponse>(res);
+      expect(body.total).toBe(1);
+      expect(body.data[0].title).toBe("Quaint Stout");
+    });
+
+    it("treats q as case-insensitive", async () => {
+      await seedCorpus();
+      const res = await recipesRoute.GET(
+        buildRequest("/api/recipes?q=SUNBURST") as unknown as Parameters<typeof recipesRoute.GET>[0],
+      );
+      const body = await readJson<ListResponse>(res);
+      expect(body.total).toBe(1);
+    });
+
+    it("returns the full list when q is blank", async () => {
+      await seedCorpus();
+      const res = await recipesRoute.GET(
+        buildRequest("/api/recipes?q=%20%20") as unknown as Parameters<typeof recipesRoute.GET>[0],
+      );
+      const body = await readJson<ListResponse>(res);
+      expect(body.total).toBe(5);
+    });
+  });
 });
 
 describe("POST /api/recipes", () => {
