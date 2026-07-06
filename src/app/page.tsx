@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const CATEGORIES = RECIPE_CATEGORIES;
 
 interface BrowseSearchParams {
+  q?: string;
   category?: string;
   style?: string;
 }
@@ -23,6 +24,7 @@ async function fetchRecipes(
   params: BrowseSearchParams,
 ): Promise<RecipeListResponse> {
   const url = new URL("/api/recipes", base);
+  if (params.q) url.searchParams.set("q", params.q);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.style) url.searchParams.set("style", params.style);
   url.searchParams.set("limit", "100");
@@ -59,7 +61,7 @@ export default async function HomePage({
   // since both pages and API are in the same Next.js deployment.
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const response = await fetchRecipes(base, params);
-  const filtered = params.category || params.style;
+  const filtered = params.q || params.category || params.style;
 
   return (
     <div className="space-y-8">
@@ -93,8 +95,25 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
     <form
       method="get"
       action="/"
-      className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-3 items-end p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]"
+      className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_2fr_auto] gap-3 items-end p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]"
     >
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="q"
+          className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]"
+        >
+          Search
+        </label>
+        <input
+          id="q"
+          name="q"
+          type="search"
+          defaultValue={params.q ?? ""}
+          placeholder="Search title, author, description, notes"
+          className="border border-[var(--border)] rounded-md px-3 py-2 bg-[var(--background)] text-[var(--foreground)]"
+        />
+      </div>
+
       <div className="flex flex-col gap-1">
         <label
           htmlFor="category"
@@ -139,9 +158,9 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
           type="submit"
           className="px-4 py-2 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] font-medium hover:opacity-90"
         >
-          Filter
+          Search
         </button>
-        {(params.category || params.style) && (
+        {(params.q || params.category || params.style) && (
           <Link
             href="/"
             className="px-4 py-2 rounded-md border border-[var(--border)] text-[var(--foreground)] no-underline hover:bg-[var(--muted)]"
@@ -206,8 +225,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 function EmptyState() {
   return (
     <div className="p-8 text-center text-[var(--muted-foreground)] border border-dashed border-[var(--border)] rounded-lg">
-      No recipes match those filters. Try clearing the style search or
-      selecting a different category.
+      No recipes match those filters. Try clearing the search box, the style
+      filter, or selecting a different category.
     </div>
   );
 }
