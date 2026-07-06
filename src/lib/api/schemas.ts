@@ -328,6 +328,41 @@ export const recipeDetailQuerySchema = z.object({
     .optional(),
 });
 
+// -----------------------------------------------------------------------------
+// Batch (brew log) schemas — mirror the Prisma `Batch` model. All metric.
+// -----------------------------------------------------------------------------
+
+const gravityField = z.number().finite().gte(1.0).lte(1.2);
+const batchVolumeField = z.number().finite().positive();
+
+const brewDateField = z
+  .string()
+  .datetime({ offset: true, message: "brewDate must be an ISO date string" })
+  .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "brewDate must be an ISO date string"));
+
+export const batchCreateSchema = z
+  .object({
+    brewDate: brewDateField,
+    measuredOg: gravityField.optional(),
+    measuredFg: gravityField.optional(),
+    volumeLiters: batchVolumeField.optional(),
+    notes: z.string().trim().max(10_000).optional(),
+  })
+  .strict();
+
+export const batchPatchSchema = z
+  .object({
+    brewDate: brewDateField.optional(),
+    measuredOg: gravityField.optional().nullable(),
+    measuredFg: gravityField.optional().nullable(),
+    volumeLiters: batchVolumeField.optional().nullable(),
+    notes: z.string().trim().max(10_000).optional().nullable(),
+  })
+  .strict();
+
+export type BatchCreateBody = z.infer<typeof batchCreateSchema>;
+export type BatchPatchBody = z.infer<typeof batchPatchSchema>;
+
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;

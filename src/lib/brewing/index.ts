@@ -20,6 +20,7 @@ export * from "./ibu";
 export * from "./color";
 export * from "./scaling";
 export * from "./shoppingList";
+export * from "./batch";
 
 /**
  * Compute the full target set (OG/FG/ABV/IBU/SRM) for a recipe in one call.
