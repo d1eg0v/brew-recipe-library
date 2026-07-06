@@ -28,6 +28,7 @@ import type {
   UnitSystem,
 } from "@/lib/ui/types";
 
+import RecipeActions from "./RecipeActions";
 import ShoppingListSection from "./ShoppingListSection";
 
 interface RecipeDetailClientProps {
@@ -145,6 +146,8 @@ export default function RecipeDetailClient({
           Couldn&apos;t reload recipe: {error}
         </div>
       )}
+
+      <RecipeActions recipeId={recipe.id} recipeTitle={recipe.title} />
 
       <Controls
         batchSize={batchSize}
