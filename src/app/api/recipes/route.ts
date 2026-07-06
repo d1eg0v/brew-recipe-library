@@ -1,4 +1,4 @@
-// `GET  /api/recipes` — paginated list with filters (category, style, ABV/IBU/SRM/OG ranges, ingredient, full-text)
+// `GET  /api/recipes` — paginated list with filters (category, style, ABV/IBU/SRM/OG ranges, ingredient, full-text) and sort
 // `POST /api/recipes` — create a new recipe
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -13,8 +13,8 @@ import {
 import { presentRecipe } from "@/lib/api/present";
 import { recipeToCreateInput } from "@/lib/api/recipeMapper";
 import {
+  buildRecipeOrderBy,
   buildRecipeWhere,
-  RECIPE_DEFAULT_ORDER,
 } from "@/lib/api/search";
 import {
   recipeCreateSchema,
@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
     srmMax: url.searchParams.get("srmMax") ?? undefined,
     ogMin: url.searchParams.get("ogMin") ?? undefined,
     ogMax: url.searchParams.get("ogMax") ?? undefined,
+    sort: url.searchParams.get("sort") ?? undefined,
+    dir: url.searchParams.get("dir") ?? undefined,
     limit: url.searchParams.get("limit") ?? undefined,
     offset: url.searchParams.get("offset") ?? undefined,
   });
@@ -49,13 +51,14 @@ export async function GET(request: NextRequest) {
   }
   const q = parsed.data;
   const where = buildRecipeWhere(q);
+  const orderBy = buildRecipeOrderBy(q.sort, q.dir);
 
   try {
     const [total, recipes] = await Promise.all([
       prisma.recipe.count({ where }),
       prisma.recipe.findMany({
         where,
-        orderBy: RECIPE_DEFAULT_ORDER,
+        orderBy,
         skip: q.offset,
         take: q.limit,
       }),
