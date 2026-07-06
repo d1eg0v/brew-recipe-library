@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 
 import CategoryBadge from "@/components/CategoryBadge";
 import { buildDetailUrl, buildShoppingListUrl } from "@/lib/ui/api";
@@ -385,7 +386,9 @@ function Fermentables({
         <Table headers={["Name", "Type", "Amount", "Notes"]}>
           {recipe.fermentables.map((f) => (
             <tr key={f.id} className="border-t border-[var(--border)] align-top">
-              <td className="py-2 pr-4">{f.name}</td>
+              <td className="py-2 pr-4">
+                <IngredientLink name={f.name} />
+              </td>
               <td className="py-2 pr-4">
                 <span className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
                   {fermentableTypeLabel(f.type)}
@@ -426,7 +429,9 @@ function Hops({
         <Table headers={["Name", "Amount", "Time", "Use", "Form", "α-acid", "Notes"]}>
           {recipe.hops.map((h) => (
             <tr key={h.id} className="border-t border-[var(--border)] align-top">
-              <td className="py-2 pr-4">{h.name}</td>
+              <td className="py-2 pr-4">
+                <IngredientLink name={h.name} />
+              </td>
               <td className="py-2 pr-4 font-mono">{fmtGrams(h.amountGrams, units)}</td>
               <td className="py-2 pr-4 font-mono">
                 {h.timeMinutes} {h.use === "dryHop" ? "d" : "min"}
@@ -462,7 +467,9 @@ function Yeasts({
         <Table headers={["Name", "Lab / code", "Type", "Form", "Attenuation", "Temperature", "Notes"]}>
           {recipe.yeasts.map((y) => (
             <tr key={y.id} className="border-t border-[var(--border)] align-top">
-              <td className="py-2 pr-4">{y.name}</td>
+              <td className="py-2 pr-4">
+                <IngredientLink name={y.name} />
+              </td>
               <td className="py-2 pr-4">
                 {[y.laboratory, y.productId].filter(Boolean).join(" · ") || "—"}
               </td>
@@ -581,6 +588,34 @@ function Additions({ recipe }: { recipe: RecipeDetail }) {
 }
 
 // ---------- helpers ----------
+
+/** Build the URL for the browse page filtered by a specific ingredient name. */
+export function ingredientBrowseHref(name: string): string {
+  const params = new URLSearchParams();
+  params.set("ingredient", name);
+  return `/?${params.toString()}`;
+}
+
+/**
+ * Renders an ingredient name as a link to the browse page filtered by that
+ * ingredient. Empty / whitespace-only names render as plain text so we don't
+ * link to a `?ingredient=` blank.
+ */
+function IngredientLink({ name }: { name: string }) {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return <span className="text-[var(--muted-foreground)]">—</span>;
+  }
+  return (
+    <Link
+      href={ingredientBrowseHref(trimmed)}
+      className="text-[var(--foreground)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent)]"
+      title={`Show all recipes using "${trimmed}"`}
+    >
+      {name}
+    </Link>
+  );
+}
 
 function formatFermentableAmount(
   kg: number | null,
