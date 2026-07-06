@@ -141,6 +141,125 @@ describe("GET /api/recipes", () => {
     expect(body.data[0].title).toBe("High");
   });
 
+  it("filters by ingredient name across fermentables", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Has Munich",
+          fermentables: [{ name: "Munich Malt", type: "grain", amountKg: 1 }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Plain Pale",
+          fermentables: [{ name: "Pale 2-Row", type: "grain", amountKg: 4 }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=Munich") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Has Munich");
+  });
+
+  it("filters by ingredient name across hops", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra IPA",
+          hops: [{ name: "Citra", amountGrams: 50, timeMinutes: 10, use: "whirlpool" }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Cascade Pale",
+          hops: [{ name: "Cascade", amountGrams: 30, timeMinutes: 60, use: "boil" }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=Citra") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Citra IPA");
+  });
+
+  it("filters by ingredient name across yeasts", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "US-05 Saison",
+          yeasts: [{ name: "US-05", form: "dry", attenuationPct: 81 }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "WLP001 Cream Ale",
+          yeasts: [{ name: "WLP001", form: "liquid", attenuationPct: 73 }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=US-05") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("US-05 Saison");
+  });
+
+  it("returns no matches when no recipe contains the ingredient", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe(),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=Galaxy") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(0);
+    expect(body.data).toEqual([]);
+  });
+
+  it("ignores empty / whitespace ingredient params", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe(),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const blank = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect((await readJson<ListResponse>(blank)).total).toBe(1);
+
+    const spaces = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=%20%20%20") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect((await readJson<ListResponse>(spaces)).total).toBe(1);
+  });
+
   it("rejects invalid query params", async () => {
     const res = await recipesRoute.GET(
       buildRequest("/api/recipes?category=gin") as unknown as Parameters<typeof recipesRoute.GET>[0],

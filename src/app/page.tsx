@@ -16,6 +16,7 @@ const CATEGORIES = RECIPE_CATEGORIES;
 interface BrowseSearchParams {
   category?: string;
   style?: string;
+  ingredient?: string;
 }
 
 async function fetchRecipes(
@@ -25,6 +26,7 @@ async function fetchRecipes(
   const url = new URL("/api/recipes", base);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.style) url.searchParams.set("style", params.style);
+  if (params.ingredient) url.searchParams.set("ingredient", params.ingredient);
   url.searchParams.set("limit", "100");
 
   try {
@@ -59,7 +61,7 @@ export default async function HomePage({
   // since both pages and API are in the same Next.js deployment.
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const response = await fetchRecipes(base, params);
-  const filtered = params.category || params.style;
+  const filtered = params.category || params.style || params.ingredient;
 
   return (
     <div className="space-y-8">
@@ -93,7 +95,7 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
     <form
       method="get"
       action="/"
-      className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-3 items-end p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]"
+      className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_2fr_auto] gap-3 items-end p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]"
     >
       <div className="flex flex-col gap-1">
         <label
@@ -134,6 +136,23 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
         />
       </div>
 
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="ingredient"
+          className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]"
+        >
+          Ingredient
+        </label>
+        <input
+          id="ingredient"
+          name="ingredient"
+          type="text"
+          defaultValue={params.ingredient ?? ""}
+          placeholder="e.g. Citra, US-05, 2-Row"
+          className="border border-[var(--border)] rounded-md px-3 py-2 bg-[var(--background)] text-[var(--foreground)]"
+        />
+      </div>
+
       <div className="flex gap-2">
         <button
           type="submit"
@@ -141,7 +160,7 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
         >
           Filter
         </button>
-        {(params.category || params.style) && (
+        {(params.category || params.style || params.ingredient) && (
           <Link
             href="/"
             className="px-4 py-2 rounded-md border border-[var(--border)] text-[var(--foreground)] no-underline hover:bg-[var(--muted)]"

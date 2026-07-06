@@ -77,6 +77,15 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
   if (category) where.category = category;
   const style = query.get("style");
   if (style) where.styleName = { contains: style };
+  const ingredient = query.get("ingredient");
+  if (ingredient && ingredient.trim().length > 0) {
+    const needle = ingredient.trim();
+    where.OR = [
+      { fermentables: { some: { name: { contains: needle } } } },
+      { hops: { some: { name: { contains: needle } } } },
+      { yeasts: { some: { name: { contains: needle } } } },
+    ];
+  }
 
   // Synchronous-ish Prisma call (Prisma 7 returns a thenable).
   return db.prisma.recipe
@@ -162,6 +171,38 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       // Filter form is present.
       expect(html).toContain("name=\"category\"");
       expect(html).toContain("name=\"style\"");
+      expect(html).toContain("name=\"ingredient\"");
+    } finally {
+      restore();
+    }
+  });
+
+  it("honours an ingredient filter URL and narrows the list", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      // Find a hop or yeast name that's only in a subset of recipes so we
+      // can assert the filter narrows the list.
+      const citraRecipes = await db.prisma.recipe.count({
+        where: {
+          hops: { some: { name: { contains: "Citra" } } },
+        },
+      });
+      expect(citraRecipes).toBeGreaterThan(0);
+
+      const total = await db.prisma.recipe.count();
+
+      const element = await HomePage({
+        searchParams: Promise.resolve({ ingredient: "Citra" }),
+      });
+      const html = renderToStaticMarkup(element);
+
+      // Count line shows the filtered total, not the unfiltered total.
+      expect(html).toContain(`${citraRecipes} recipe`);
+      expect(html).not.toContain(`${total} recipe`);
+      // The ingredient input echoes the supplied value back.
+      expect(html).toContain("name=\"ingredient\"");
+      expect(html).toContain("value=\"Citra\"");
     } finally {
       restore();
     }
