@@ -51,6 +51,7 @@ export async function setupTestDatabase(): Promise<TestDatabase> {
     async reset() {
       // Order matches the cascade — children first so FK constraints stay happy
       // even when running against a DB built without cascades.
+      await prisma.batch.deleteMany();
       await prisma.addition.deleteMany();
       await prisma.processStep.deleteMany();
       await prisma.mashStep.deleteMany();
