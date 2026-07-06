@@ -54,6 +54,7 @@ model Recipe {
   mashSteps    MashStep[] // grain-based recipes only; empty for mead & extract/juice recipes
   processSteps ProcessStep[] // generic fermentation/racking/backsweetening steps (all categories)
   additions    Addition[] // nutrients, acid blend, campden, pectic enzyme, tannin, etc.
+  batches      Batch[] // logged actual brews of this recipe (brew-day history)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -173,6 +174,28 @@ model Addition {
   timing   String? // e.g. "at pitch", "at racking", "24h before pitch", "at bottling"
   notes    String?
   position Int     @default(0)
+
+  @@index([recipeId])
+}
+
+/// A logged actual brew of a recipe: the brew-day record with measured values,
+/// as opposed to the recipe's planned targets. One recipe can have many batches
+/// (each time it's brewed). Achieved ABV / efficiency / attenuation are derived
+/// from these measurements in app code (see src/lib/brewing/batch.ts), never
+/// stored redundantly. All physical quantities stay in metric SI units.
+model Batch {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  brewDate     DateTime // when the batch was brewed
+  measuredOg   Float? // original gravity read on brew day (e.g. 1.054)
+  measuredFg   Float? // final gravity read at the end of fermentation
+  volumeLiters Float? // volume into the fermenter (used for achieved-efficiency math)
+  notes        String? // brew-day notes and any deviations from the recipe
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([recipeId])
 }
