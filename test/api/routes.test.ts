@@ -141,6 +141,163 @@ describe("GET /api/recipes", () => {
     expect(body.data[0].title).toBe("High");
   });
 
+  it("filters by ibu range", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Mild", targetIbu: 20 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bitter", targetIbu: 70 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ibuMin=50&ibuMax=100") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Bitter");
+  });
+
+  it("filters by srm range", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Pale", targetSrm: 3 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Dark", targetSrm: 35 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?srmMin=20&srmMax=80") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Dark");
+  });
+
+  it("filters by og range", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Session", targetOg: 1.04 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Imperial", targetOg: 1.09 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ogMin=1.07&ogMax=1.12") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Imperial");
+  });
+
+  it("excludes recipes with null targets when a range is active", async () => {
+    // Recipe with a recorded IBU.
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "WithIbu", targetIbu: 40 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    // Recipe with no IBU recorded (explicitly null on a cider).
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: {
+          ...fixtureRecipe({ title: "NoIbu" }),
+          category: "cider",
+          targetIbu: null,
+          targetSrm: null,
+        },
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ibuMin=20") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("WithIbu");
+  });
+
+  it("stacks a range filter with category and full-text search", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra IPA",
+          category: "beer",
+          description: "citrusy",
+          targetAbv: 6.5,
+          targetIbu: 55,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra Session",
+          category: "beer",
+          description: "easy",
+          targetAbv: 4.0,
+          targetIbu: 30,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra Mead",
+          category: "mead",
+          description: "honey + citrus",
+          targetAbv: 12.0,
+          targetIbu: null,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest(
+        "/api/recipes?q=citra&category=beer&abvMin=5&ibuMin=40",
+      ) as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Citra IPA");
+  });
+
+  it("rejects invalid range bounds (ibuMin > ibuMax)", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ibuMin=80&ibuMax=20") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects range values outside the documented domain", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?srmMin=200") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("rejects invalid query params", async () => {
     const res = await recipesRoute.GET(
       buildRequest("/api/recipes?category=gin") as unknown as Parameters<typeof recipesRoute.GET>[0],
