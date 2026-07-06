@@ -322,4 +322,109 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       restore();
     }
   });
+
+  it("renders sort + dir selects with the documented options (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      expect(html).toContain('name="sort"');
+      expect(html).toContain('id="sort"');
+      expect(html).toContain('name="dir"');
+      expect(html).toContain('id="dir"');
+      for (const field of ["name", "abv", "ibu", "gravity", "date"]) {
+        expect(html).toContain(`value="${field}"`);
+      }
+      for (const d of ["asc", "desc"]) {
+        expect(html).toContain(`value="${d}"`);
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("pre-selects the sort + dir from the URL (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({
+        searchParams: Promise.resolve({ sort: "abv", dir: "asc" }),
+      });
+      const html = renderToStaticMarkup(element);
+
+      // The select is rendered with defaultValue. renderToStaticMarkup emits
+      // the <option selected> attribute on the matching option.
+      expect(html).toMatch(/<option[^>]*value="abv"[^>]*selected/);
+      expect(html).toMatch(/<option[^>]*value="asc"[^>]*selected/);
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards sort + dir to /api/recipes and falls back to defaults (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+
+      const seen: string[] = [];
+      const original = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        if (url.pathname === "/api/recipes") {
+          const body = await buildListFromDb(url.searchParams);
+          return new Response(JSON.stringify(body), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        return new Response("not found", { status: 404 });
+      }) as unknown as typeof fetch;
+
+      try {
+        await HomePage({
+          searchParams: Promise.resolve({ sort: "name", dir: "asc" }),
+        });
+        await HomePage({ searchParams: Promise.resolve({}) });
+      } finally {
+        global.fetch = original;
+      }
+
+      // The two HomePage calls above each issue one /api/recipes fetch.
+      const firstCall = seen.find((s) => s.includes("sort=name"));
+      expect(firstCall).toBeDefined();
+      expect(firstCall).toContain("dir=asc");
+
+      // No sort params in the URL => the page still forwards defaults so the
+      // backend sees an explicit, well-formed request.
+      const defaultCall = seen.find(
+        (s) => s.includes("sort=date") && s.includes("dir=desc"),
+      );
+      expect(defaultCall).toBeDefined();
+    } finally {
+      restore();
+    }
+  });
+
+  it("mentions the active sort in the page summary when non-default (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({
+        searchParams: Promise.resolve({ sort: "abv", dir: "asc" }),
+      });
+      const html = renderToStaticMarkup(element);
+      expect(html.toLowerCase()).toContain("sorted by abv");
+      expect(html.toLowerCase()).toContain("asc");
+    } finally {
+      restore();
+    }
+  });
 });
