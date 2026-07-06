@@ -304,6 +304,242 @@ describe("GET /api/recipes", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it("sorts by name (asc)", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Charlie" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Alpha" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bravo" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=name&dir=asc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual([
+      "Alpha",
+      "Bravo",
+      "Charlie",
+    ]);
+  });
+
+  it("sorts by ABV (desc) — nulls last via id tiebreak", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Mild", targetAbv: 4 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Big", targetAbv: 9 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    // Insert directly so we can leave targetAbv null; the POST schema disallows
+    // null but the Prisma column allows it.
+    await db.prisma.recipe.create({
+      data: {
+        title: "Unknown",
+        category: "beer",
+        batchSizeLiters: 20,
+        targetAbv: null,
+      },
+    });
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=abv&dir=desc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data[0].title).toBe("Big");
+    expect(body.data[1].title).toBe("Mild");
+    expect(body.data[2].title).toBe("Unknown");
+  });
+
+  it("sorts by IBU (asc)", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bitter", targetIbu: 70 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Mild", targetIbu: 20 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=ibu&dir=asc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual(["Mild", "Bitter"]);
+  });
+
+  it("sorts by gravity (desc) — nulls last", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Imperial", targetOg: 1.09 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Session", targetOg: 1.04 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await db.prisma.recipe.create({
+      data: {
+        title: "Mystery",
+        category: "beer",
+        batchSizeLiters: 20,
+        targetOg: null,
+      },
+    });
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=gravity&dir=desc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data[0].title).toBe("Imperial");
+    expect(body.data[1].title).toBe("Session");
+    expect(body.data[2].title).toBe("Mystery");
+  });
+
+  it("sorts by date (asc) — oldest first", async () => {
+    const a = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Alpha" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const aBody = await readJson<{ data: { id: string } }>(a);
+
+    // Force a later createdAt by manually updating the row.
+    await db.prisma.recipe.update({
+      where: { id: aBody.data.id },
+      data: { createdAt: new Date("2024-01-01T00:00:00Z") },
+    });
+
+    const b = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bravo" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const bBody = await readJson<{ data: { id: string } }>(b);
+    await db.prisma.recipe.update({
+      where: { id: bBody.data.id },
+      data: { createdAt: new Date("2024-06-01T00:00:00Z") },
+    });
+
+    const c = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Charlie" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const cBody = await readJson<{ data: { id: string } }>(c);
+    await db.prisma.recipe.update({
+      where: { id: cBody.data.id },
+      data: { createdAt: new Date("2025-01-01T00:00:00Z") },
+    });
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=date&dir=asc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual([
+      "Alpha",
+      "Bravo",
+      "Charlie",
+    ]);
+  });
+
+  it("defaults to date desc when no sort params are given", async () => {
+    const a = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Alpha" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const aBody = await readJson<{ data: { id: string } }>(a);
+    await db.prisma.recipe.update({
+      where: { id: aBody.data.id },
+      data: { createdAt: new Date("2024-01-01T00:00:00Z") },
+    });
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bravo" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data[0].title).toBe("Bravo");
+    expect(body.data[1].title).toBe("Alpha");
+  });
+
+  it("combines sort with a range filter", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bitter", targetIbu: 80, targetAbv: 6 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Session", targetIbu: 20, targetAbv: 4 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Big", targetIbu: 100, targetAbv: 8 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest(
+        "/api/recipes?abvMin=5&abvMax=9&sort=abv&dir=asc",
+      ) as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual(["Bitter", "Big"]);
+  });
+
+  it("rejects an unknown sort field", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=banana") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an unknown sort direction", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?dir=sideways") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("POST /api/recipes", () => {

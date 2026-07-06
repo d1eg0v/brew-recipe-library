@@ -2,11 +2,24 @@
 
 import { describe, it, expect } from "vitest";
 
-import { buildRecipeWhere } from "@/lib/api/search";
-import type { RecipeListQuery } from "@/lib/api/schemas";
+import {
+  buildRecipeOrderBy,
+  buildRecipeWhere,
+} from "@/lib/api/search";
+import type {
+  RecipeListQuery,
+  RecipeSortDir,
+  RecipeSortField,
+} from "@/lib/api/schemas";
 
-function where(q: Partial<RecipeListQuery>): Record<string, unknown> {
-  return buildRecipeWhere({ limit: 50, offset: 0, ...q });
+function where(q: Partial<RecipeListQuery> = {}): Record<string, unknown> {
+  return buildRecipeWhere({
+    limit: 50,
+    offset: 0,
+    sort: "date",
+    dir: "desc",
+    ...q,
+  });
 }
 
 describe("buildRecipeWhere", () => {
@@ -117,4 +130,32 @@ describe("buildRecipeWhere", () => {
       styleName: { contains: "Pale" },
     });
   });
+});
+
+describe("buildRecipeOrderBy", () => {
+  const cases: Array<{
+    sort: RecipeSortField;
+    dir: RecipeSortDir;
+    primary: Record<string, RecipeSortDir>;
+  }> = [
+    { sort: "name", dir: "asc", primary: { title: "asc" } },
+    { sort: "name", dir: "desc", primary: { title: "desc" } },
+    { sort: "abv", dir: "asc", primary: { targetAbv: "asc" } },
+    { sort: "abv", dir: "desc", primary: { targetAbv: "desc" } },
+    { sort: "ibu", dir: "asc", primary: { targetIbu: "asc" } },
+    { sort: "ibu", dir: "desc", primary: { targetIbu: "desc" } },
+    { sort: "gravity", dir: "asc", primary: { targetOg: "asc" } },
+    { sort: "gravity", dir: "desc", primary: { targetOg: "desc" } },
+    { sort: "date", dir: "asc", primary: { createdAt: "asc" } },
+    { sort: "date", dir: "desc", primary: { createdAt: "desc" } },
+  ];
+
+  for (const c of cases) {
+    it(`maps ${c.sort}/${c.dir} to ${JSON.stringify(c.primary)} + id tiebreak`, () => {
+      const out = buildRecipeOrderBy(c.sort, c.dir);
+      expect(out).toHaveLength(2);
+      expect(out[0]).toEqual(c.primary);
+      expect(out[1]).toEqual({ id: "asc" });
+    });
+  }
 });
