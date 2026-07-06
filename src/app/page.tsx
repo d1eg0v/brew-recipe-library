@@ -63,12 +63,20 @@ export default async function HomePage({
 
   return (
     <div className="space-y-8">
-      <section>
-        <h1 className="text-3xl font-bold tracking-tight">Recipes</h1>
-        <p className="mt-1 text-[var(--muted-foreground)]">
-          {response.total} recipe{response.total === 1 ? "" : "s"}
-          {filtered ? " matching your filters" : " in the library"}
-        </p>
+      <section className="flex items-baseline justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Recipes</h1>
+          <p className="mt-1 text-[var(--muted-foreground)]">
+            {response.total} recipe{response.total === 1 ? "" : "s"}
+            {filtered ? " matching your filters" : " in the library"}
+          </p>
+        </div>
+        <Link
+          href="/recipes/new"
+          className="px-4 py-2 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] font-medium hover:opacity-90 no-underline"
+        >
+          + New recipe
+        </Link>
       </section>
 
       <FilterControls params={params} />
