@@ -7,11 +7,33 @@ import type {
   RecipeListItem,
   RecipeListResponse,
 } from "@/lib/ui/types";
-import { RECIPE_CATEGORIES } from "@/lib/api/schemas";
+import {
+  RECIPE_CATEGORIES,
+  RECIPE_SORT_DIRS,
+  RECIPE_SORT_FIELDS,
+  type RecipeSortDir,
+  type RecipeSortField,
+} from "@/lib/api/schemas";
 
 export const dynamic = "force-dynamic";
 
 const CATEGORIES = RECIPE_CATEGORIES;
+
+const SORT_FIELD_LABELS: Record<RecipeSortField, string> = {
+  name: "Name",
+  abv: "ABV",
+  ibu: "IBU",
+  gravity: "Gravity (OG)",
+  date: "Date added",
+};
+
+const SORT_DIR_LABELS: Record<RecipeSortDir, string> = {
+  asc: "Ascending",
+  desc: "Descending",
+};
+
+const DEFAULT_SORT: RecipeSortField = "date";
+const DEFAULT_DIR: RecipeSortDir = "desc";
 
 interface BrowseSearchParams {
   q?: string;
@@ -25,6 +47,20 @@ interface BrowseSearchParams {
   srmMax?: string;
   ogMin?: string;
   ogMax?: string;
+  sort?: string;
+  dir?: string;
+}
+
+function parseSort(p: BrowseSearchParams): RecipeSortField {
+  return (RECIPE_SORT_FIELDS as readonly string[]).includes(p.sort ?? "")
+    ? (p.sort as RecipeSortField)
+    : DEFAULT_SORT;
+}
+
+function parseDir(p: BrowseSearchParams): RecipeSortDir {
+  return (RECIPE_SORT_DIRS as readonly string[]).includes(p.dir ?? "")
+    ? (p.dir as RecipeSortDir)
+    : DEFAULT_DIR;
 }
 
 async function fetchRecipes(
@@ -43,6 +79,11 @@ async function fetchRecipes(
   if (params.srmMax) url.searchParams.set("srmMax", params.srmMax);
   if (params.ogMin) url.searchParams.set("ogMin", params.ogMin);
   if (params.ogMax) url.searchParams.set("ogMax", params.ogMax);
+  // Sort is always passed; an unknown value falls back to defaults via the
+  // schema, but we still forward the user-typed value so the page can echo
+  // it back without an error round-trip.
+  url.searchParams.set("sort", parseSort(params));
+  url.searchParams.set("dir", parseDir(params));
   url.searchParams.set("limit", "100");
 
   try {
@@ -84,6 +125,10 @@ function hasAnyFilter(p: BrowseSearchParams): boolean {
   );
 }
 
+function hasAnySort(p: BrowseSearchParams): boolean {
+  return parseSort(p) !== DEFAULT_SORT || parseDir(p) !== DEFAULT_DIR;
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -107,6 +152,9 @@ export default async function HomePage({
         <p className="mt-1 text-[var(--muted-foreground)]">
           {response.total} recipe{response.total === 1 ? "" : "s"}
           {hasAnyFilter(params) ? " matching your filters" : " in the library"}
+          {hasAnySort(params)
+            ? `, sorted by ${SORT_FIELD_LABELS[parseSort(params)].toLowerCase()} (${SORT_DIR_LABELS[parseDir(params)].toLowerCase().replace("ending", "")})`
+            : ""}
         </p>
       </section>
 
@@ -198,7 +246,7 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
           >
             Search
           </button>
-          {hasAnyFilter(params) && (
+          {(hasAnyFilter(params) || hasAnySort(params)) && (
             <Link
               href="/"
               className="px-4 py-2 rounded-md border border-[var(--border)] text-[var(--foreground)] no-underline hover:bg-[var(--muted)]"
@@ -262,6 +310,54 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
             placeholder="min"
             placeholderMax="max"
           />
+        </div>
+      </div>
+
+      <div className="border-t border-[var(--border)] pt-3">
+        <p className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] mb-2">
+          Sort
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end max-w-md">
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="sort"
+              className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]"
+            >
+              Sort by
+            </label>
+            <select
+              id="sort"
+              name="sort"
+              defaultValue={parseSort(params)}
+              className="border border-[var(--border)] rounded-md px-3 py-2 bg-[var(--background)] text-[var(--foreground)]"
+            >
+              {RECIPE_SORT_FIELDS.map((f) => (
+                <option key={f} value={f}>
+                  {SORT_FIELD_LABELS[f]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="dir"
+              className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]"
+            >
+              Order
+            </label>
+            <select
+              id="dir"
+              name="dir"
+              defaultValue={parseDir(params)}
+              className="border border-[var(--border)] rounded-md px-3 py-2 bg-[var(--background)] text-[var(--foreground)]"
+            >
+              {RECIPE_SORT_DIRS.map((d) => (
+                <option key={d} value={d}>
+                  {SORT_DIR_LABELS[d]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
     </form>
@@ -381,7 +477,7 @@ function EmptyState() {
   return (
     <div className="p-8 text-center text-[var(--muted-foreground)] border border-dashed border-[var(--border)] rounded-lg">
       No recipes match those filters. Try clearing the search box, the style
-      filter, the category, or any active target ranges.
+      filter, the category, any active target ranges, or your current sort.
     </div>
   );
 }
