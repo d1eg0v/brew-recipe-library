@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
@@ -203,6 +204,12 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
             {recipe.bjcpCategory ? ` · ${recipe.bjcpCategory}` : ""}
           </span>
         )}
+        <Link
+          href={`/recipes/${recipe.id}/edit`}
+          className="ml-auto px-3 py-1.5 rounded-md border border-[var(--border)] text-sm hover:bg-[var(--muted)] no-underline"
+        >
+          Edit
+        </Link>
       </div>
       {recipe.author && (
         <p className="text-sm text-[var(--muted-foreground)]">
