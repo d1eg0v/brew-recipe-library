@@ -188,3 +188,19 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+/* Print rules: the recipe detail page exposes a "Print brew sheet" link that
+ * opens /recipes/[id]/print. When that page is sent to a printer, hide the
+ * global header/footer/main padding so only the brew sheet itself is on the
+ * page. The page-level print module owns the rest of the print styling. */
+@media print {
+  body > header,
+  body > footer {
+    display: none !important;
+  }
+  body > main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
