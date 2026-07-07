@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import SrmSwatch from "@/components/SrmSwatch";
 import { buildDetailUrl, buildShoppingListUrl } from "@/lib/ui/api";
 import {
   fermentableTypeLabel,
@@ -330,7 +331,7 @@ function Controls({
 }
 
 function Targets({ recipe }: { recipe: RecipeDetail }) {
-  const cells: Array<{ label: string; value: string }> = [];
+  const cells: Array<{ label: string; value: React.ReactNode }> = [];
   cells.push({
     label: "OG",
     value: recipe.targetOg != null ? fmtGravity(recipe.targetOg) : "—",
@@ -350,7 +351,12 @@ function Targets({ recipe }: { recipe: RecipeDetail }) {
     });
     cells.push({
       label: "SRM",
-      value: recipe.targetSrm != null ? fmtNumber(recipe.targetSrm, 1) : "—",
+      value: (
+        <span className="flex items-center gap-2">
+          <SrmSwatch srm={recipe.targetSrm} size="md" />
+          <span>{recipe.targetSrm != null ? fmtNumber(recipe.targetSrm, 1) : "—"}</span>
+        </span>
+      ),
     });
   }
   return (
