@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import BatchSizeStat from "@/components/BatchSizeStat";
 import CategoryBadge from "@/components/CategoryBadge";
 import {
   ArrowGlyph,
@@ -10,7 +11,6 @@ import {
 import {
   categoryAccent,
   categoryLabel,
-  fmtNumber,
   fmtPercent,
 } from "@/lib/ui/format";
 import type {
@@ -297,7 +297,6 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
           ) : null}
         </p>
       )}
-
       {recipe.description && (
         <p className="mt-2.5 text-sm leading-relaxed text-[var(--muted-foreground)] line-clamp-2">
           {recipe.description}
@@ -306,10 +305,9 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
 
       <div className="mt-auto pt-4">
         <dl className="grid grid-cols-3 gap-2 border-t border-[var(--border)] pt-3">
-          <CardStat
-            label="Batch"
-            value={`${fmtNumber(recipe.batchSizeLiters, 1)}L`}
-          />
+          <CardStat label="Batch">
+            <BatchSizeStat liters={recipe.batchSizeLiters} />
+          </CardStat>
           <CardStat
             label="ABV"
             value={
@@ -337,12 +335,20 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
   );
 }
 
-function CardStat({ label, value }: { label: string; value: string }) {
+function CardStat({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div>
       <dt className="label-eyebrow">{label}</dt>
       <dd className="font-mono text-base font-medium text-[var(--foreground)]">
-        {value}
+        {children ?? value}
       </dd>
     </div>
   );

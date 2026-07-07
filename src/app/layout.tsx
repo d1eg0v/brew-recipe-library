@@ -3,7 +3,9 @@ import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import UnitToggle from "@/components/UnitToggle";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme/bootScript";
+import { UNIT_BOOT_SCRIPT } from "@/lib/units/bootScript";
 import { HopMark } from "@/components/icons";
 
 const geistSans = Geist({
@@ -37,11 +39,13 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="light"
+      data-units="metric"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: UNIT_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
         <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_82%,transparent)] backdrop-blur-md">
@@ -87,6 +91,7 @@ export default function RootLayout({
                   <span aria-hidden className="text-[var(--accent)]">+</span>
                   New
                 </Link>
+                <UnitToggle />
                 <ThemeSwitcher />
               </nav>
             </div>
@@ -111,7 +116,8 @@ export default function RootLayout({
                 </div>
                 <p className="mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
                   A field notebook for home fermentations. Quantities are stored
-                  in metric — toggle imperial on any recipe page.
+                  in metric — use the header toggle to switch between metric and
+                  imperial.
                 </p>
               </div>
               <p className="text-xs text-[var(--muted-foreground)]">
