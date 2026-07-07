@@ -75,6 +75,12 @@ export default function RootLayout({
                   Browse
                 </Link>
                 <Link
+                  href="/priming-sugar"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  Priming sugar
+                </Link>
+                <Link
                   href="/recipes/new"
                   className="btn btn-outline btn-sm no-underline"
                 >
