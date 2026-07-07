@@ -191,6 +191,7 @@ describe("<BatchHistorySection>", () => {
   it("renders a row per batch with all measured and derived columns", () => {
     const html = renderToStaticMarkup(
       <BatchHistorySection
+        recipeId="recipe1"
         batches={[makeBatch()]}
         units="metric"
         error={null}
@@ -221,6 +222,7 @@ describe("<BatchHistorySection>", () => {
     });
     const html = renderToStaticMarkup(
       <BatchHistorySection
+        recipeId="recipe1"
         batches={[newer, older]}
         units="metric"
         error={null}
@@ -236,6 +238,7 @@ describe("<BatchHistorySection>", () => {
   it("shows blanks (—) for null fields instead of zeros", () => {
     const html = renderToStaticMarkup(
       <BatchHistorySection
+        recipeId="recipe1"
         batches={[
           makeBatch({
             id: "partial",
@@ -263,6 +266,7 @@ describe("<BatchHistorySection>", () => {
   it("converts the logged volume to gallons in imperial mode", () => {
     const html = renderToStaticMarkup(
       <BatchHistorySection
+        recipeId="recipe1"
         batches={[makeBatch({ volumeLiters: 19 })]}
         units="imperial"
         error={null}
@@ -277,6 +281,7 @@ describe("<BatchHistorySection>", () => {
     const longNotes = "x".repeat(200);
     const html = renderToStaticMarkup(
       <BatchHistorySection
+        recipeId="recipe1"
         batches={[makeBatch({ notes: longNotes })]}
         units="metric"
         error={null}
@@ -290,6 +295,7 @@ describe("<BatchHistorySection>", () => {
   it("renders the empty state when there are no batches", () => {
     const html = renderToStaticMarkup(
       <BatchHistorySection
+        recipeId="recipe1"
         batches={[]}
         units="metric"
         error={null}
@@ -302,6 +308,7 @@ describe("<BatchHistorySection>", () => {
   it("renders an error state when error is set", () => {
     const html = renderToStaticMarkup(
       <BatchHistorySection
+        recipeId="recipe1"
         batches={[]}
         units="metric"
         error="boom"
