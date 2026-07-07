@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import SrmSwatch from "@/components/SrmSwatch";
 import { categoryLabel, fmtNumber, fmtPercent } from "@/lib/ui/format";
 import type {
   RecipeCategory,
@@ -162,7 +163,12 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-lg font-semibold leading-snug">{recipe.title}</h3>
-        <CategoryBadge category={recipe.category} />
+        <div className="flex items-center gap-2 shrink-0">
+          {recipe.category === "beer" && (
+            <SrmSwatch srm={recipe.targetSrm} size="md" />
+          )}
+          <CategoryBadge category={recipe.category} />
+        </div>
       </div>
       {recipe.styleName && (
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
