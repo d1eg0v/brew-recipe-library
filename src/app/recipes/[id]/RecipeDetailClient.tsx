@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
-import { buildDetailUrl, buildShoppingListUrl } from "@/lib/ui/api";
+import {
+  buildDetailUrl,
+  buildRecipeBatchesUrl,
+  buildShoppingListUrl,
+} from "@/lib/ui/api";
 import {
   fermentableTypeLabel,
   fmtBatchSize,
@@ -22,6 +26,8 @@ import {
   titleCase,
 } from "@/lib/ui/format";
 import type {
+  BatchListResponse,
+  BatchSummary,
   RecipeDetail,
   RecipeDetailResponse,
   ShoppingList,
@@ -29,6 +35,7 @@ import type {
   UnitSystem,
 } from "@/lib/ui/types";
 
+import BatchHistorySection from "./BatchHistorySection";
 import ShoppingListSection from "./ShoppingListSection";
 
 interface RecipeDetailClientProps {
@@ -36,6 +43,8 @@ interface RecipeDetailClientProps {
   initialUnits?: UnitSystem;
   initialBatchSize?: number;
   initialShoppingList?: ShoppingList;
+  initialBatches?: BatchSummary[];
+  initialBatchesError?: string | null;
 }
 
 export default function RecipeDetailClient({
@@ -43,6 +52,8 @@ export default function RecipeDetailClient({
   initialUnits,
   initialBatchSize,
   initialShoppingList,
+  initialBatches,
+  initialBatchesError,
 }: RecipeDetailClientProps) {
   const [recipe, setRecipe] = useState<RecipeDetail>(initialRecipe);
   const [units, setUnits] = useState<UnitSystem>(initialUnits ?? "metric");
@@ -52,9 +63,15 @@ export default function RecipeDetailClient({
   const [shoppingList, setShoppingList] = useState<ShoppingList | null>(
     initialShoppingList ?? null,
   );
+  const [batches, setBatches] = useState<BatchSummary[]>(
+    initialBatches ?? [],
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shoppingListError, setShoppingListError] = useState<string | null>(null);
+  const [batchesError, setBatchesError] = useState<string | null>(
+    initialBatchesError ?? null,
+  );
 
   const fetchShoppingList = useCallback(
     async (newBatchSize: number, newUnits: UnitSystem): Promise<void> => {
@@ -80,6 +97,24 @@ export default function RecipeDetailClient({
     [recipe.id],
   );
 
+  const fetchBatches = useCallback(async (): Promise<void> => {
+    try {
+      const url = buildRecipeBatchesUrl("", recipe.id);
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`batches request failed: ${res.status}`);
+      }
+      const body = (await res.json()) as BatchListResponse;
+      setBatches(body.data ?? []);
+      setBatchesError(null);
+    } catch (err) {
+      console.error("batches refetch error", err);
+      setBatchesError(
+        err instanceof Error ? err.message : "failed to reload batches",
+      );
+    }
+  }, [recipe.id]);
+
   const refetch = useCallback(
     async (newBatchSize: number, newUnits: UnitSystem) => {
       setLoading(true);
@@ -96,6 +131,7 @@ export default function RecipeDetailClient({
         const body = (await res.json()) as RecipeDetailResponse;
         setRecipe(body.data);
         await fetchShoppingList(newBatchSize, newUnits);
+        await fetchBatches();
       } catch (err) {
         console.error("refetch error", err);
         setError(err instanceof Error ? err.message : "failed to reload recipe");
@@ -103,7 +139,7 @@ export default function RecipeDetailClient({
         setLoading(false);
       }
     },
-    [recipe.id, fetchShoppingList],
+    [recipe.id, fetchShoppingList, fetchBatches],
   );
 
   function applyUnits(next: UnitSystem) {
@@ -172,6 +208,12 @@ export default function RecipeDetailClient({
         <ProcessSteps recipe={recipe} units={units} />
       )}
       {recipe.additions.length > 0 && <Additions recipe={recipe} />}
+
+      <BatchHistorySection
+        batches={batches}
+        units={units}
+        error={batchesError}
+      />
 
       <ShoppingListSection
         shoppingList={shoppingList}
