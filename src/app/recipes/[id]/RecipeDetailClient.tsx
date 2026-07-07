@@ -430,6 +430,13 @@ function Controls({
             {fmtNumber(recipe.efficiencyPct, 0)}%
           </span>
         </span>
+        <Link
+          href={`/priming-sugar?recipeId=${recipe.id}&units=${units}`}
+          className="text-[var(--accent)] underline"
+          data-testid="priming-sugar-link"
+        >
+          Calculate priming sugar →
+        </Link>
         {loading && <span className="italic">updating…</span>}
       </div>
     </section>
