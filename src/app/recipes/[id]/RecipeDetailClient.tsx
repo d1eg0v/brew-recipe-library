@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import { litersToGallons } from "@/lib/brewing/units";
 import { buildDetailUrl, buildShoppingListUrl } from "@/lib/ui/api";
 import {
   fermentableTypeLabel,
@@ -20,6 +21,11 @@ import {
   processStepLabel,
   titleCase,
 } from "@/lib/ui/format";
+import {
+  STORAGE_KEY,
+  UNITS_CHANGE_EVENT,
+  isUnitSystem,
+} from "@/lib/units/units";
 import type {
   RecipeDetail,
   RecipeDetailResponse,
@@ -54,6 +60,10 @@ export default function RecipeDetailClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shoppingListError, setShoppingListError] = useState<string | null>(null);
+  // Mirror the latest `units` so the UNITS_CHANGE_EVENT listener — which is
+  // bound once at mount with an empty dep array — can compare against the
+  // current value without re-binding on every state change.
+  const unitsRef = useRef<UnitSystem>(units);
 
   const fetchShoppingList = useCallback(
     async (newBatchSize: number, newUnits: UnitSystem): Promise<void> => {
@@ -105,30 +115,77 @@ export default function RecipeDetailClient({
     [recipe.id, fetchShoppingList],
   );
 
-  function applyUnits(next: UnitSystem) {
-    setUnits(next);
-    const parsed = Number.parseFloat(batchSize);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      refetch(parsed, next);
-    } else {
-      setShoppingListError(null);
-    }
-  }
+  const applyUnits = useCallback(
+    (next: UnitSystem) => {
+      if (next === unitsRef.current) return;
+      unitsRef.current = next;
+      setUnits(next);
+      // Keep the global state in lockstep with the in-page toggle: update
+      // `data-units` on <html>, persist to localStorage, and notify other
+      // consumers (e.g. <UnitToggle /> on the header) so the segmented
+      // control re-renders to match. We skip this when next already matches
+      // `document.documentElement.dataset.units` to avoid a redundant write
+      // loop when `syncFromDocument` fires.
+      if (
+        typeof document !== "undefined" &&
+        document.documentElement.getAttribute("data-units") !== next
+      ) {
+        document.documentElement.setAttribute("data-units", next);
+        try {
+          window.localStorage.setItem(STORAGE_KEY, next);
+        } catch {
+          // Ignore storage failures (private mode / quota).
+        }
+        window.dispatchEvent(
+          new CustomEvent(UNITS_CHANGE_EVENT, { detail: next }),
+        );
+      }
+      const parsed = Number.parseFloat(batchSize);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        void refetch(parsed, next);
+      } else {
+        setShoppingListError(null);
+      }
+    },
+    [batchSize, refetch],
+  );
 
-  function applyBatchSize(next: string) {
-    setBatchSize(next);
-    const parsed = Number.parseFloat(next);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      refetch(parsed, units);
-    } else {
-      setShoppingListError(null);
+  // React to the global header toggle. The boot script sets `data-units`
+  // before paint, so on mount we may need to align our local `units` state
+  // with the stored preference (when the URL didn't pin a value). After
+  // mount, listen for `UNITS_CHANGE_EVENT` fired by `<UnitToggle />` so a
+  // header click re-fetches this recipe in the new unit system. We update
+  // `unitsRef.current` inside `applyUnits` to keep the dep array empty.
+  useEffect(() => {
+    function syncFromDocument() {
+      const attr = document.documentElement.getAttribute("data-units");
+      const next: UnitSystem = isUnitSystem(attr) ? attr : "metric";
+      applyUnits(next);
     }
-  }
+    syncFromDocument();
+    window.addEventListener(UNITS_CHANGE_EVENT, syncFromDocument);
+    return () => {
+      window.removeEventListener(UNITS_CHANGE_EVENT, syncFromDocument);
+    };
+  }, [applyUnits]);
 
-  function resetBatchSize() {
+  const applyBatchSize = useCallback(
+    (next: string) => {
+      setBatchSize(next);
+      const parsed = Number.parseFloat(next);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        void refetch(parsed, unitsRef.current);
+      } else {
+        setShoppingListError(null);
+      }
+    },
+    [refetch],
+  );
+
+  const resetBatchSize = useCallback(() => {
     setBatchSize(String(initialRecipe.batchSizeLiters));
-    refetch(initialRecipe.batchSizeLiters, units);
-  }
+    void refetch(initialRecipe.batchSizeLiters, unitsRef.current);
+  }, [initialRecipe.batchSizeLiters, refetch]);
 
   const originalBatchLiters = initialRecipe.batchSizeLiters;
   const currentBatch = Number.parseFloat(batchSize);
@@ -248,7 +305,8 @@ function Controls({
             htmlFor="batch-size"
             className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] block"
           >
-            Target batch size (litres)
+            Target batch size (
+            {units === "imperial" ? "gallons" : "litres"})
           </label>
           <div className="flex gap-2 items-center">
             <input
@@ -266,17 +324,37 @@ function Controls({
                 onClick={onResetBatchSize}
                 className="px-3 py-2 rounded-md border border-[var(--border)] text-sm hover:bg-[var(--muted)]"
               >
-                Reset to original ({fmtNumber(originalBatchLiters, 1)} L)
+                Reset to original (
+                {fmtBatchSize(
+                  originalBatchLiters,
+                  recipe.batchSizeGallons ?? null,
+                  units,
+                )}
+                )
               </button>
             )}
           </div>
           {isScaled && currentBatchLiters != null && (
             <p className="text-xs text-[var(--muted-foreground)]">
               Showing scaled values for{" "}
-              <span className="font-mono">{fmtNumber(currentBatchLiters, 2)} L</span>{" "}
+              <span className="font-mono">
+                {fmtBatchSize(
+                  currentBatchLiters,
+                  currentBatchLiters != null
+                    ? litersToGallons(currentBatchLiters)
+                    : null,
+                  units,
+                )}
+              </span>{" "}
               (original{" "}
-              <span className="font-mono">{fmtNumber(originalBatchLiters, 2)} L</span>).
-              Targets unchanged.
+              <span className="font-mono">
+                {fmtBatchSize(
+                  originalBatchLiters,
+                  recipe.batchSizeGallons ?? null,
+                  units,
+                )}
+              </span>
+              ). Targets unchanged.
             </p>
           )}
         </div>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 
+import BatchSizeStat from "@/components/BatchSizeStat";
 import CategoryBadge from "@/components/CategoryBadge";
-import { categoryLabel, fmtNumber, fmtPercent } from "@/lib/ui/format";
+import { categoryLabel, fmtPercent } from "@/lib/ui/format";
 import type {
   RecipeCategory,
   RecipeListItem,
@@ -171,7 +172,9 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
         </p>
       )}
       <dl className="mt-4 grid grid-cols-3 gap-2 text-sm">
-        <Stat label="Batch" value={`${fmtNumber(recipe.batchSizeLiters, 1)} L`} />
+        <Stat label="Batch">
+          <BatchSizeStat liters={recipe.batchSizeLiters} />
+        </Stat>
         <Stat
           label="ABV"
           value={
@@ -192,13 +195,21 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div>
       <dt className="text-[10px] uppercase tracking-wide text-[var(--muted-foreground)]">
         {label}
       </dt>
-      <dd className="font-mono text-sm">{value}</dd>
+      <dd className="font-mono text-sm">{children ?? value}</dd>
     </div>
   );
 }

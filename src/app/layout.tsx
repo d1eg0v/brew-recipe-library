@@ -3,7 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import UnitToggle from "@/components/UnitToggle";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme/bootScript";
+import { UNIT_BOOT_SCRIPT } from "@/lib/units/bootScript";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,11 +32,13 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="light"
+      data-units="metric"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: UNIT_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
         <header className="border-b border-[var(--border)] bg-[var(--card)]/80 backdrop-blur sticky top-0 z-10">
@@ -54,6 +58,7 @@ export default function RootLayout({
               <Link href="/" className="hover:text-[var(--foreground)]">
                 Browse
               </Link>
+              <UnitToggle />
               <ThemeSwitcher />
             </nav>
           </div>
@@ -63,8 +68,8 @@ export default function RootLayout({
         </main>
         <footer className="border-t border-[var(--border)] bg-[var(--card)]/60">
           <div className="mx-auto max-w-6xl px-6 py-4 text-xs text-[var(--muted-foreground)]">
-            Brew Recipe Library — quantities stored in metric; toggle imperial
-            on any recipe page.
+            Brew Recipe Library — quantities stored in metric; use the header
+            toggle to switch between metric and imperial.
           </div>
         </footer>
       </body>
