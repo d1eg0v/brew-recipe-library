@@ -108,12 +108,19 @@ export default async function RecipePage({
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm">
+      <nav className="flex flex-wrap items-center justify-between gap-2 text-sm">
         <Link
           href="/"
           className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] no-underline"
         >
           ← All recipes
+        </Link>
+        <Link
+          href={`/recipes/${id}/print`}
+          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] no-underline inline-flex items-center gap-1"
+          data-testid="print-sheet-link"
+        >
+          <span aria-hidden>🖨</span> Print brew sheet
         </Link>
       </nav>
       <RecipeDetailClient
