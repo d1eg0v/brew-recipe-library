@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import RecipeDetailClient from "./RecipeDetailClient";
@@ -139,23 +138,13 @@ export default async function RecipePage({
     await fetchBatches(id);
 
   return (
-    <div className="space-y-6">
-      <nav className="text-sm">
-        <Link
-          href="/"
-          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] no-underline"
-        >
-          ← All recipes
-        </Link>
-      </nav>
-      <RecipeDetailClient
-        initialRecipe={recipe}
-        initialBatchSize={initialBatchSize}
-        initialUnits={initialUnits}
-        initialShoppingList={initialShoppingList ?? undefined}
-        initialBatches={initialBatches}
-        initialBatchesError={initialBatchesError}
-      />
-    </div>
+    <RecipeDetailClient
+      initialRecipe={recipe}
+      initialBatchSize={initialBatchSize}
+      initialUnits={initialUnits}
+      initialShoppingList={initialShoppingList ?? undefined}
+      initialBatches={initialBatches}
+      initialBatchesError={initialBatchesError}
+    />
   );
 }

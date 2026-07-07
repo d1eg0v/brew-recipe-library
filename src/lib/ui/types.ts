@@ -226,3 +226,35 @@ export interface BatchListResponse {
 export interface BatchResponse {
   data: BatchSummary;
 }
+
+// ---------------------------------------------------------------------------
+// Priming-sugar / carbonation calculator (BRE-32).
+// ---------------------------------------------------------------------------
+
+/** Sugar options the calculator accepts. */
+export type PrimingSugarType = "cornSugar" | "tableSugar" | "dme";
+
+/** Server-derived result of the priming-sugar calculation. */
+export interface PrimingSugarResult {
+  weightGrams: number;
+  weightOz: number;
+  residualVolumes: number;
+  volumesToAdd: number;
+  sugarType: PrimingSugarType;
+  input: {
+    volumeLiters: number;
+    targetVolumes: number;
+    temperatureC: number;
+    sugarType: PrimingSugarType;
+  };
+}
+
+/** `GET /api/priming-sugar` response shape. */
+export interface PrimingSugarResponse {
+  data: {
+    result: PrimingSugarResult;
+    imperial?: { weightOz: number } | null;
+    source: "standalone" | "recipe";
+    recipe?: { id: string; title: string; batchSizeLiters: number } | null;
+  };
+}

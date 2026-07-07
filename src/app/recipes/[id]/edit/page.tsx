@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import RecipeForm from "@/components/recipe/RecipeForm";
+import { ArrowGlyph, PencilGlyph } from "@/components/icons";
 import { prisma } from "@/lib/db";
 import { presentRecipe } from "@/lib/api/present";
 import type { RecipeDetail } from "@/lib/ui/types";
@@ -64,18 +65,25 @@ export default async function EditRecipePage({ params }: RouteParams) {
   if (!recipe) notFound();
 
   return (
-    <div className="space-y-6">
-      <nav className="text-sm">
+    <div className="mx-auto max-w-6xl px-6 py-10">
+      <nav className="mb-6">
         <Link
           href={`/recipes/${id}`}
-          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] no-underline"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
         >
-          ← Back to recipe
+          <ArrowGlyph className="h-3.5 w-3.5 rotate-180" />
+          Back to recipe
         </Link>
       </nav>
-      <header className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Edit recipe</h1>
-        <p className="text-sm text-[var(--muted-foreground)]">
+      <header className="mb-8 max-w-2xl">
+        <div className="flex items-center gap-2 text-[var(--accent)]">
+          <PencilGlyph className="h-5 w-5" />
+          <span className="label-eyebrow !text-[var(--accent)]">Editing</span>
+        </div>
+        <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight">
+          {recipe.title}
+        </h1>
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Saving replaces the recipe and all of its ingredients with the values
           in this form.
         </p>
