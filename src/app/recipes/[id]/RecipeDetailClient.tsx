@@ -332,13 +332,23 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
       />
       <div className="relative mx-auto max-w-6xl px-6 py-10">
         <nav className="mb-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
-          >
-            <ArrowGlyph className="h-3.5 w-3.5 rotate-180" />
-            All recipes
-          </Link>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
+            >
+              <ArrowGlyph className="h-3.5 w-3.5 rotate-180" />
+              All recipes
+            </Link>
+            <Link
+              href={`/recipes/${recipe.id}/print`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
+              data-testid="print-sheet-link"
+            >
+              Print brew sheet
+              <ArrowGlyph className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </nav>
 
         <div className="flex flex-wrap items-center gap-4">

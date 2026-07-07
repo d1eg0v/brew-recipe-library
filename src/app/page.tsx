@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import BatchSizeStat from "@/components/BatchSizeStat";
 import CategoryBadge from "@/components/CategoryBadge";
+import SrmSwatch from "@/components/SrmSwatch";
 import {
   ArrowGlyph,
   CategoryGlyph,
@@ -281,7 +282,12 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
         >
           <CategoryGlyph category={recipe.category} className="h-5 w-5" />
         </span>
-        <CategoryBadge category={recipe.category} />
+        <div className="flex shrink-0 items-center gap-2">
+          {recipe.category === "beer" && (
+            <SrmSwatch srm={recipe.targetSrm} size="md" />
+          )}
+          <CategoryBadge category={recipe.category} />
+        </div>
       </div>
 
       <h3 className="font-display mt-3 text-xl font-semibold leading-tight text-[var(--foreground)]">

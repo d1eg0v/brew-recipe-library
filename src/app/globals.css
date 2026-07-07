@@ -288,6 +288,10 @@ a {
   text-underline-offset: 3px;
 }
 
+a:hover {
+  text-decoration: underline;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Type scale                                                         */
 /*                                                                     */
@@ -617,5 +621,14 @@ h1, h2, h3 {
 /* Print ------------------------------------------------------------- */
 @media print {
   body::before, body::after { display: none; }
+  body > header,
+  body > footer {
+    display: none !important;
+  }
+  body > main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
   .no-print { display: none !important; }
 }

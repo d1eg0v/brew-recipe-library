@@ -21,6 +21,7 @@ export * from "./color";
 export * from "./scaling";
 export * from "./shoppingList";
 export * from "./batch";
+export * from "./checklist";
 export * from "./priming";
 
 /**
