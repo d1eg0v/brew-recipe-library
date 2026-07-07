@@ -8,6 +8,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { buildBatchUrl } from "@/lib/ui/api";
@@ -24,6 +25,7 @@ import type {
 } from "@/lib/ui/types";
 
 interface BatchHistorySectionProps {
+  recipeId: string;
   batches: BatchSummary[];
   units: UnitSystem;
   error: string | null;
@@ -32,6 +34,7 @@ interface BatchHistorySectionProps {
 const NOTES_PREVIEW_LIMIT = 90;
 
 export default function BatchHistorySection({
+  recipeId,
   batches,
   units,
   error,
@@ -46,13 +49,23 @@ export default function BatchHistorySection({
       </section>
     );
   }
+  const newBrewHref = `/recipes/${recipeId}/batches/new`;
   if (batches.length === 0) {
     return (
       <section
-        className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5"
+        className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 space-y-3"
         data-testid="batch-history-empty"
       >
-        <h2 className="text-base font-semibold mb-2">Batch history</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold">Batch history</h2>
+          <Link
+            href={newBrewHref}
+            className="px-3 py-1.5 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] text-sm font-medium hover:opacity-90 no-underline"
+            data-testid="batch-history-new-brew"
+          >
+            + Log a brew
+          </Link>
+        </div>
         <p className="text-sm text-[var(--muted-foreground)]">
           No brews logged for this recipe yet.
         </p>
@@ -66,12 +79,21 @@ export default function BatchHistorySection({
       aria-label="Batch history"
       data-testid="batch-history"
     >
-      <h2 className="text-base font-semibold mb-3">
-        Batch history{" "}
-        <span className="text-sm font-normal text-[var(--muted-foreground)]">
-          ({batches.length} brew{batches.length === 1 ? "" : "s"})
-        </span>
-      </h2>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="text-base font-semibold">
+          Batch history{" "}
+          <span className="text-sm font-normal text-[var(--muted-foreground)]">
+            ({batches.length} brew{batches.length === 1 ? "" : "s"})
+          </span>
+        </h2>
+        <Link
+          href={newBrewHref}
+          className="px-3 py-1.5 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] text-sm font-medium hover:opacity-90 no-underline"
+          data-testid="batch-history-new-brew"
+        >
+          + Log a brew
+        </Link>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -131,7 +153,12 @@ export default function BatchHistorySection({
           </thead>
           <tbody>
             {batches.map((batch) => (
-              <BatchRow key={batch.id} batch={batch} units={units} />
+              <BatchRow
+                key={batch.id}
+                batch={batch}
+                units={units}
+                recipeId={recipeId}
+              />
             ))}
           </tbody>
         </table>
@@ -143,9 +170,11 @@ export default function BatchHistorySection({
 function BatchRow({
   batch,
   units,
+  recipeId,
 }: {
   batch: BatchSummary;
   units: UnitSystem;
+  recipeId: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [details, setDetails] = useState<BatchSummary | null>(null);
@@ -241,6 +270,7 @@ function BatchRow({
               details={details ?? batch}
               units={units}
               id={batch.id}
+              recipeId={recipeId}
             />
           </td>
         </tr>
@@ -255,12 +285,14 @@ function BatchDetailsPanel({
   details,
   units,
   id,
+  recipeId,
 }: {
   loading: boolean;
   error: string | null;
   details: BatchSummary;
   units: UnitSystem;
   id: string;
+  recipeId: string;
 }) {
   if (error) {
     return (
@@ -336,6 +368,15 @@ function BatchDetailsPanel({
       <p className="text-xs text-[var(--muted-foreground)]">
         Source: <span className="font-mono">GET /api/batches/{id}</span>
       </p>
+      <div>
+        <Link
+          href={`/recipes/${recipeId}/batches/${id}/edit`}
+          className="inline-block px-3 py-1.5 rounded-md border border-[var(--border)] text-sm hover:bg-[var(--muted)] no-underline"
+          data-testid={`batch-edit-link-${id}`}
+        >
+          Edit this brew
+        </Link>
+      </div>
     </div>
   );
 }

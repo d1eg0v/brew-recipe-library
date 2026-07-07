@@ -210,6 +210,7 @@ export default function RecipeDetailClient({
       {recipe.additions.length > 0 && <Additions recipe={recipe} />}
 
       <BatchHistorySection
+        recipeId={recipe.id}
         batches={batches}
         units={units}
         error={batchesError}
