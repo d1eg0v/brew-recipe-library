@@ -27,6 +27,8 @@ interface RecipeListItem {
   title: string;
   category: string;
   batchSizeLiters: number;
+  tags?: string[];
+  tagDetails?: Array<{ id: string; name: string }>;
   [k: string]: unknown;
 }
 
@@ -80,24 +82,40 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
 
   // Synchronous-ish Prisma call (Prisma 7 returns a thenable).
   return db.prisma.recipe
-    .findMany({ where, orderBy: { updatedAt: "desc" }, skip: offset, take: limit })
+    .findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      skip: offset,
+      take: limit,
+      include: { recipeTags: { include: { tag: true } } },
+    })
     .then((rows) => ({
-      data: rows.map((r) => ({
-        id: r.id,
-        title: r.title,
-        author: r.author,
-        category: r.category,
-        styleName: r.styleName,
-        bjcpCategory: r.bjcpCategory,
-        batchSizeLiters: r.batchSizeLiters,
-        targetAbv: r.targetAbv,
-        targetIbu: r.targetIbu,
-        targetSrm: r.targetSrm,
-        targetOg: r.targetOg,
-        targetFg: r.targetFg,
-        description: r.description,
-        updatedAt: r.updatedAt.toISOString(),
-      })),
+      data: rows.map((r) => {
+        const tags = r.recipeTags
+          .map((rt) => rt.tag)
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((t) => t.name);
+        return {
+          id: r.id,
+          title: r.title,
+          author: r.author,
+          category: r.category,
+          styleName: r.styleName,
+          bjcpCategory: r.bjcpCategory,
+          batchSizeLiters: r.batchSizeLiters,
+          targetAbv: r.targetAbv,
+          targetIbu: r.targetIbu,
+          targetSrm: r.targetSrm,
+          targetOg: r.targetOg,
+          targetFg: r.targetFg,
+          description: r.description,
+          tags,
+          tagDetails: r.recipeTags
+            .map((rt) => ({ id: rt.tag.id, name: rt.tag.name }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+          updatedAt: r.updatedAt.toISOString(),
+        };
+      }),
       total: rows.length,
       limit,
       offset,
@@ -162,6 +180,27 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       // Filter form is present.
       expect(html).toContain("name=\"category\"");
       expect(html).toContain("name=\"style\"");
+      expect(html).toContain("name=\"tag\"");
+    } finally {
+      restore();
+    }
+  });
+
+  it("renders tag chips on the recipe card when the recipe has tags", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      // Pick a recipe and attach a tag via the test DB.
+      const first = await db.prisma.recipe.findFirstOrThrow();
+      const tag = await db.prisma.tag.create({ data: { name: "session" } });
+      await db.prisma.recipeTag.create({
+        data: { recipeId: first.id, tagId: tag.id },
+      });
+
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+      expect(html).toContain("session");
+      expect(html).toContain('href="/?tag=session"');
     } finally {
       restore();
     }

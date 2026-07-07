@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import TagChip from "@/components/TagChip";
 import { categoryLabel, fmtNumber, fmtPercent } from "@/lib/ui/format";
 import type {
   RecipeCategory,
@@ -16,6 +17,8 @@ const CATEGORIES = RECIPE_CATEGORIES;
 interface BrowseSearchParams {
   category?: string;
   style?: string;
+  ingredient?: string;
+  tag?: string;
 }
 
 async function fetchRecipes(
@@ -25,6 +28,8 @@ async function fetchRecipes(
   const url = new URL("/api/recipes", base);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.style) url.searchParams.set("style", params.style);
+  if (params.ingredient) url.searchParams.set("ingredient", params.ingredient);
+  if (params.tag) url.searchParams.set("tag", params.tag);
   url.searchParams.set("limit", "100");
 
   try {
@@ -59,7 +64,7 @@ export default async function HomePage({
   // since both pages and API are in the same Next.js deployment.
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const response = await fetchRecipes(base, params);
-  const filtered = params.category || params.style;
+  const filtered = params.category || params.style || params.ingredient || params.tag;
 
   return (
     <div className="space-y-8">
@@ -89,11 +94,14 @@ export default async function HomePage({
 }
 
 function FilterControls({ params }: { params: BrowseSearchParams }) {
+  const hasFilter = Boolean(
+    params.category || params.style || params.ingredient || params.tag,
+  );
   return (
     <form
       method="get"
       action="/"
-      className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-3 items-end p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_2fr_2fr_auto] gap-3 items-end p-4 rounded-lg border border-[var(--border)] bg-[var(--card)]"
     >
       <div className="flex flex-col gap-1">
         <label
@@ -134,6 +142,23 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
         />
       </div>
 
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="tag"
+          className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]"
+        >
+          Tag
+        </label>
+        <input
+          id="tag"
+          name="tag"
+          type="text"
+          defaultValue={params.tag ?? ""}
+          placeholder="e.g. session, competition"
+          className="border border-[var(--border)] rounded-md px-3 py-2 bg-[var(--background)] text-[var(--foreground)]"
+        />
+      </div>
+
       <div className="flex gap-2">
         <button
           type="submit"
@@ -141,7 +166,7 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
         >
           Filter
         </button>
-        {(params.category || params.style) && (
+        {hasFilter && (
           <Link
             href="/"
             className="px-4 py-2 rounded-md border border-[var(--border)] text-[var(--foreground)] no-underline hover:bg-[var(--muted)]"
@@ -155,6 +180,7 @@ function FilterControls({ params }: { params: BrowseSearchParams }) {
 }
 
 function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
+  const tags = recipe.tags ?? [];
   return (
     <Link
       href={recipeHref(recipe)}
@@ -183,6 +209,13 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
           value={recipe.targetOg != null ? recipe.targetOg.toFixed(3) : "—"}
         />
       </dl>
+      {tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {tags.map((t) => (
+            <TagChip key={t} name={t} asLink size="sm" />
+          ))}
+        </div>
+      )}
       {recipe.description && (
         <p className="mt-3 text-sm text-[var(--muted-foreground)] line-clamp-3">
           {recipe.description}

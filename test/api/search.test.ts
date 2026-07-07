@@ -65,4 +65,22 @@ describe("buildRecipeWhere", () => {
       styleName: { contains: "Pale" },
     });
   });
+
+  it("compiles a tag filter that matches the join on the normalised name", () => {
+    expect(where({ tag: "Session" })).toEqual({
+      recipeTags: { some: { tag: { name: "session" } } },
+    });
+  });
+
+  it("ignores a blank tag value", () => {
+    expect(where({ tag: "   " })).toEqual({});
+  });
+
+  it("combines tag + ABV bounds in the same where clause", () => {
+    const out = where({ tag: "summer", abvMin: 4, abvMax: 7 });
+    expect(out.recipeTags).toEqual({
+      some: { tag: { name: "summer" } },
+    });
+    expect(out.targetAbv).toEqual({ gte: 4, lte: 7 });
+  });
 });

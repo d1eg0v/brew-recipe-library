@@ -7,6 +7,7 @@
 // limit matching to a few high-signal fields. SQLite-specific `contains` works
 // fine here.
 
+import { normalizeTagName } from "@/lib/tags";
 import type { RecipeListQuery } from "./schemas";
 
 export interface IngredientFilter {
@@ -29,6 +30,7 @@ function escapeLike(input: string): string {
  *  - `style`     — case-insensitive substring over styleName
  *  - `bjcpCategory` — exact match
  *  - `ingredient` — substring match across any fermentable/hop/yeast name
+ *  - `tag`       — exact (normalised) match on a tag name
  *  - `abvMin`/`abvMax` — bounds on `targetAbv`
  */
 export function buildRecipeWhere(q: RecipeListQuery) {
@@ -63,6 +65,16 @@ export function buildRecipeWhere(q: RecipeListQuery) {
       { hops: { some: { name: { contains: safe } } } },
       { yeasts: { some: { name: { contains: safe } } } },
     ];
+  }
+
+  if (q.tag && q.tag.trim().length > 0) {
+    const norm = normalizeTagName(q.tag);
+    if (norm) {
+      // Match the join on the normalised name. We don't fall back to a partial
+      // match because tag names are a small, curated set and substring matches
+      // here would be surprising.
+      where.recipeTags = { some: { tag: { name: norm } } };
+    }
   }
 
   if (q.abvMin != null || q.abvMax != null) {

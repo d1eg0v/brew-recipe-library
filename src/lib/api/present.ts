@@ -11,6 +11,7 @@ import {
   litersToGallons,
   roundTo,
 } from "@/lib/brewing/units";
+import { tagsFromRecipeTags, type RecipeTagLinkRow } from "./presentTags";
 import type { UnitSystem } from "./schemas";
 
 const SCALE_KEYS = [
@@ -130,6 +131,7 @@ export interface RecipeView {
   mashSteps?: Record<string, unknown>[];
   processSteps?: Record<string, unknown>[];
   additions?: Record<string, unknown>[];
+  recipeTags?: RecipeTagLinkRow[];
   [k: string]: unknown;
 }
 
@@ -192,6 +194,17 @@ export function presentRecipe<T extends RecipeView>(
   } else {
     delete next.batchSizeGallons;
   }
+
+  // Tags (BRE-29): flatten the `recipeTags` join into a sorted `tags: string[]`
+  // so the client can render chips without traversing the join table.
+  const recipeTags = (recipe.recipeTags ??
+    (next.recipeTags as RecipeTagLinkRow[] | undefined)) as
+    | RecipeTagLinkRow[]
+    | undefined;
+  const tags = tagsFromRecipeTags(recipeTags);
+  next.tags = tags.map((t) => t.name);
+  next.tagDetails = tags.map((t) => ({ id: t.id, name: t.name }));
+  delete next.recipeTags;
 
   return next as T;
 }

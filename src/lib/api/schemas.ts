@@ -5,6 +5,8 @@
 
 import { z } from "zod";
 
+import { normalizeTagName } from "@/lib/tags";
+
 /** Allowed recipe categories. "beer" | "mead" | "wine" | "cider" | "other". */
 export const RECIPE_CATEGORIES = [
   "beer",
@@ -78,6 +80,25 @@ const nameField = z.string().trim().min(1).max(200);
 const notesField = z.string().trim().max(10_000).optional();
 const temperatureField = z.number().finite().gte(-50).lte(150); // °C; bounded guard
 const percentageField = z.number().finite().gte(0).lte(100);
+
+/**
+ * One freeform tag name as accepted on the wire (BRE-29). Validates shape only;
+ * canonicalisation (trim + lower-case) happens in the mapper so the unique DB
+ * index can dedupe case-insensitively. Empty / whitespace-only names are
+ * rejected here so the client gets a useful error instead of silent drops.
+ */
+const tagNameField = z
+  .string()
+  .trim()
+  .min(1, "tag cannot be empty")
+  .max(50, "tag is too long");
+
+/** An ordered list of tag names. Empty / duplicates are tolerated; the mapper
+ *  collapses them. We bound the count to keep payloads reasonable. */
+const tagsField = z
+  .array(tagNameField)
+  .max(50, "too many tags")
+  .default([]);
 
 const fermentableInputSchema = z
   .object({
@@ -240,6 +261,7 @@ export const recipeBodySchema = z
     mashSteps: z.array(mashStepInputSchema).default([]),
     processSteps: z.array(processStepInputSchema).default([]),
     additions: z.array(additionInputSchema).default([]),
+    tags: tagsField,
   })
   .refine(
     (r) => !(r.targetOg != null && r.targetFg != null) || r.targetOg >= r.targetFg,
@@ -279,6 +301,7 @@ export const recipePatchSchema = z
     mashSteps: z.array(mashStepInputSchema).optional(),
     processSteps: z.array(processStepInputSchema).optional(),
     additions: z.array(additionInputSchema).optional(),
+    tags: z.array(tagNameField).max(50).optional(),
   })
   .strict();
 
@@ -306,6 +329,7 @@ export const recipeListQuerySchema = z
     style: z.string().trim().max(200).optional(),
     bjcpCategory: z.string().trim().max(20).optional(),
     ingredient: z.string().trim().max(200).optional(),
+    tag: z.string().trim().max(50).optional(),
     abvMin: z.coerce.number().gte(0).lte(25).optional(),
     abvMax: z.coerce.number().gte(0).lte(25).optional(),
     limit: z.coerce.number().int().gte(1).lte(200).default(50),
@@ -368,3 +392,37 @@ export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;
 export type RecipeListQuery = z.infer<typeof recipeListQuerySchema>;
 export type RecipeDetailQuery = z.infer<typeof recipeDetailQuerySchema>;
+
+// -----------------------------------------------------------------------------
+// Tag schemas (BRE-29) — freeform recipe labels.
+// -----------------------------------------------------------------------------
+
+/** Body for `PUT /api/recipes/[id]/tags` (replace the tag set wholesale). */
+export const recipeTagsReplaceSchema = z
+  .object({
+    tags: z.array(tagNameField).max(50),
+  })
+  .strict();
+
+/** Body for `POST /api/recipes/[id]/tags` (add a single tag, idempotent). */
+export const recipeTagAddSchema = z
+  .object({
+    name: tagNameField,
+  })
+  .strict()
+  .transform((v) => ({ name: normalizeTagName(v.name) ?? v.name }));
+
+/** Body for `POST /api/tags` (admin-style create; same shape as add). */
+export const tagCreateSchema = recipeTagAddSchema;
+
+export type RecipeTagsReplaceBody = z.infer<typeof recipeTagsReplaceSchema>;
+export type RecipeTagAddBody = z.infer<typeof recipeTagAddSchema>;
+export type TagCreateBody = z.infer<typeof tagCreateSchema>;
+
+/** Query params for `GET /api/tags` — supports sorting and a min count. */
+export const tagListQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  minCount: z.coerce.number().int().gte(0).optional(),
+  limit: z.coerce.number().int().gte(1).lte(500).default(200),
+});
+export type TagListQuery = z.infer<typeof tagListQuerySchema>;

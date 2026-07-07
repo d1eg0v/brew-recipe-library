@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import TagEditor from "@/components/recipe/TagEditor";
 import { buildDetailUrl, buildShoppingListUrl } from "@/lib/ui/api";
 import {
   fermentableTypeLabel,
@@ -146,6 +147,8 @@ export default function RecipeDetailClient({
         </div>
       )}
 
+      <TagsSection recipe={recipe} />
+
       <Controls
         batchSize={batchSize}
         onBatchSizeChange={applyBatchSize}
@@ -213,6 +216,37 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
         <p className="text-base leading-relaxed">{recipe.description}</p>
       )}
     </header>
+  );
+}
+
+function TagsSection({ recipe }: { recipe: RecipeDetail }) {
+  const tags = recipe.tags ?? [];
+  return (
+    <section
+      className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 space-y-3"
+      aria-labelledby="tags-heading"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2
+          id="tags-heading"
+          className="text-base font-semibold"
+        >
+          Tags{" "}
+          <span className="text-sm font-normal text-[var(--muted-foreground)]">
+            ({tags.length})
+          </span>
+        </h2>
+        {tags.length > 0 && (
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Click a tag to filter the library
+          </p>
+        )}
+      </div>
+      <TagEditor
+        recipeId={recipe.id}
+        initialTags={tags}
+      />
+    </section>
   );
 }
 
