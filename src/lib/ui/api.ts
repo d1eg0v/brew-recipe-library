@@ -57,3 +57,18 @@ export function buildShoppingListUrl(
   // the recipe-detail route so the UI can fetch both with one helper.
   return buildDetailUrl(base, `${id}/shopping-list`, params);
 }
+
+/** URL for a recipe's batch list (GET /api/recipes/[id]/batches). */
+export function buildRecipeBatchesUrl(base: string, id: string): string {
+  const url = new URL(
+    `/api/recipes/${id}/batches`,
+    base || "http://localhost",
+  );
+  return url.pathname + (url.search || "");
+}
+
+/** URL for a single batch (GET /api/batches/[id]). */
+export function buildBatchUrl(base: string, id: string): string {
+  const url = new URL(`/api/batches/${id}`, base || "http://localhost");
+  return url.pathname + (url.search || "");
+}

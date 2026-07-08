@@ -24,7 +24,7 @@ function escapeLike(input: string): string {
  * Build a Prisma where clause from the parsed query params.
  *
  * Filters:
- *  - `q`         — case-insensitive substring over title/description/notes/styleName
+ *  - `q`         — case-insensitive substring over title/author/description/notes
  *  - `category`  — exact match
  *  - `style`     — case-insensitive substring over styleName
  *  - `bjcpCategory` — exact match
@@ -41,12 +41,14 @@ export function buildRecipeWhere(q: RecipeListQuery) {
   const where: Record<string, unknown> = {};
 
   if (q.q && q.q.trim().length > 0) {
-    const needle = q.q.trim();
+    // Escape SQLite LIKE wildcards so user-typed `%` or `_` don't act as
+    // wildcards when matching across the four text fields.
+    const needle = escapeLike(q.q.trim());
     where.OR = [
       { title: { contains: needle } },
+      { author: { contains: needle } },
       { description: { contains: needle } },
       { notes: { contains: needle } },
-      { styleName: { contains: needle } },
     ];
   }
 
