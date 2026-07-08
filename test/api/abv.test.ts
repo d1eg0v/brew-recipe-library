@@ -18,6 +18,7 @@ import {
   setupTestDatabase,
   type TestDatabase,
 } from "../helpers/db";
+import type { NextRequest } from "next/server";
 
 let db: TestDatabase;
 let abvRoute: typeof import("@/app/api/abv/route");
@@ -38,8 +39,11 @@ afterAll(async () => {
   await db.teardown();
 });
 
-function buildRequest(url: string) {
-  return new Request(new URL(url, "http://localhost"));
+// The route handlers expect a NextRequest; the test only reads URL query
+// params, so the structural cast below is safe and lets the call sites stay
+// short.
+function buildRequest(url: string): NextRequest {
+  return new Request(new URL(url, "http://localhost")) as unknown as NextRequest;
 }
 
 interface AbvResultData {

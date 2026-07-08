@@ -582,6 +582,13 @@ function Controls({
         >
           Calculate priming sugar →
         </Link>
+        <Link
+          href={`/abv?recipeId=${recipe.id}`}
+          className="text-[var(--accent)] underline"
+          data-testid="abv-link"
+        >
+          Calculate ABV →
+        </Link>
         {loading && <span className="italic">updating…</span>}
       </div>
     </section>
