@@ -292,7 +292,22 @@ export type UnitSystem = (typeof UNIT_SYSTEMS)[number];
 const positiveNumberOrString = z
   .union([z.number().finite().positive(), z.string().regex(/^\d+(\.\d+)?$/, "must be a positive number")]);
 
-/** Query params for `GET /api/recipes` (search/filter). */
+/** Allowed sort fields for `GET /api/recipes`. `gravity` aliases to
+ *  `targetOg`; `date` is the recipe's creation time (date added). */
+export const RECIPE_SORT_FIELDS = [
+  "name",
+  "abv",
+  "ibu",
+  "gravity",
+  "date",
+] as const;
+export type RecipeSortField = (typeof RECIPE_SORT_FIELDS)[number];
+
+/** Allowed sort directions. */
+export const RECIPE_SORT_DIRS = ["asc", "desc"] as const;
+export type RecipeSortDir = (typeof RECIPE_SORT_DIRS)[number];
+
+/** Query params for `GET /api/recipes` (search/filter/sort). */
 export const recipeListQuerySchema = z
   .object({
     q: z.string().trim().max(200).optional(),
@@ -314,6 +329,8 @@ export const recipeListQuerySchema = z
     srmMax: z.coerce.number().gte(0).lte(80).optional(),
     ogMin: z.coerce.number().gte(0.95).lte(1.2).optional(),
     ogMax: z.coerce.number().gte(0.95).lte(1.2).optional(),
+    sort: z.enum(RECIPE_SORT_FIELDS).default("date"),
+    dir: z.enum(RECIPE_SORT_DIRS).default("desc"),
     limit: z.coerce.number().int().gte(1).lte(200).default(50),
     offset: z.coerce.number().int().gte(0).default(0),
   })

@@ -19,11 +19,33 @@ import type {
   RecipeListItem,
   RecipeListResponse,
 } from "@/lib/ui/types";
-import { RECIPE_CATEGORIES } from "@/lib/api/schemas";
+import {
+  RECIPE_CATEGORIES,
+  RECIPE_SORT_DIRS,
+  RECIPE_SORT_FIELDS,
+  type RecipeSortDir,
+  type RecipeSortField,
+} from "@/lib/api/schemas";
 
 export const dynamic = "force-dynamic";
 
 const CATEGORIES = RECIPE_CATEGORIES;
+
+const SORT_FIELD_LABELS: Record<RecipeSortField, string> = {
+  name: "Name",
+  abv: "ABV",
+  ibu: "IBU",
+  gravity: "Gravity (OG)",
+  date: "Date added",
+};
+
+const SORT_DIR_LABELS: Record<RecipeSortDir, string> = {
+  asc: "Ascending",
+  desc: "Descending",
+};
+
+const DEFAULT_SORT: RecipeSortField = "date";
+const DEFAULT_DIR: RecipeSortDir = "desc";
 
 interface BrowseSearchParams {
   q?: string;
@@ -37,6 +59,20 @@ interface BrowseSearchParams {
   srmMax?: string;
   ogMin?: string;
   ogMax?: string;
+  sort?: string;
+  dir?: string;
+}
+
+function parseSort(p: BrowseSearchParams): RecipeSortField {
+  return (RECIPE_SORT_FIELDS as readonly string[]).includes(p.sort ?? "")
+    ? (p.sort as RecipeSortField)
+    : DEFAULT_SORT;
+}
+
+function parseDir(p: BrowseSearchParams): RecipeSortDir {
+  return (RECIPE_SORT_DIRS as readonly string[]).includes(p.dir ?? "")
+    ? (p.dir as RecipeSortDir)
+    : DEFAULT_DIR;
 }
 
 async function fetchRecipes(
@@ -55,6 +91,8 @@ async function fetchRecipes(
   if (params.srmMax) url.searchParams.set("srmMax", params.srmMax);
   if (params.ogMin) url.searchParams.set("ogMin", params.ogMin);
   if (params.ogMax) url.searchParams.set("ogMax", params.ogMax);
+  url.searchParams.set("sort", parseSort(params));
+  url.searchParams.set("dir", parseDir(params));
   url.searchParams.set("limit", "100");
 
   try {
@@ -145,6 +183,10 @@ function hasAnyFilter(p: BrowseSearchParams): boolean {
   return Boolean(p.q || p.category || p.style || hasRangeFilter(p));
 }
 
+function hasAnySort(p: BrowseSearchParams): boolean {
+  return parseSort(p) !== DEFAULT_SORT || parseDir(p) !== DEFAULT_DIR;
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -184,7 +226,7 @@ export default async function HomePage({
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--muted-foreground)]">
             {all.length} recipe{all.length === 1 ? "" : "s"} in the library
-            {isFiltered ? (
+            {isFiltered || hasAnySort(params) ? (
               <>
                 {" "}
                 — <span className="text-[var(--foreground)] font-medium">
@@ -192,6 +234,8 @@ export default async function HomePage({
                   {filtered.length === 1 ? "" : "es"}
                 </span>{" "}
                 your filters
+                {hasAnySort(params) &&
+                  `, sorted by ${SORT_FIELD_LABELS[parseSort(params)].toLowerCase()} (${SORT_DIR_LABELS[parseDir(params)].toLowerCase()})`}
               </>
             ) : (
               <>
@@ -227,6 +271,8 @@ export default async function HomePage({
               />
               <input type="hidden" name="style" value={params.style ?? ""} />
               <HiddenRangeInputs params={params} />
+              <input type="hidden" name="sort" value={parseSort(params)} />
+              <input type="hidden" name="dir" value={parseDir(params)} />
             </div>
             {/* Keep a category control in the form (progressive: chips below
                 are the primary nav, but this keeps the query shareable). */}
@@ -268,6 +314,7 @@ export default async function HomePage({
           params={params}
         />
         <RangeFilters params={params} />
+        <SortControls params={params} />
 
         {/* Active filter summary + clear */}
         {isFiltered && (
@@ -318,6 +365,10 @@ function CategoryChips({
     for (const key of RANGE_PARAM_KEYS) {
       const value = params[key];
       if (value) sp.set(key, value);
+    }
+    if (hasAnySort(params)) {
+      sp.set("sort", parseSort(params));
+      sp.set("dir", parseDir(params));
     }
     const qs = sp.toString();
     return qs ? `?${qs}` : "";
@@ -384,6 +435,8 @@ function RangeFilters({ params }: { params: BrowseSearchParams }) {
       <input type="hidden" name="q" value={params.q ?? ""} />
       <input type="hidden" name="category" value={params.category ?? ""} />
       <input type="hidden" name="style" value={params.style ?? ""} />
+      <input type="hidden" name="sort" value={parseSort(params)} />
+      <input type="hidden" name="dir" value={parseDir(params)} />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="section-title mb-0 text-base">Target ranges</h2>
         <div className="flex gap-2">
@@ -430,6 +483,55 @@ function RangeFilters({ params }: { params: BrowseSearchParams }) {
           maxValue={params.ogMax}
           step={0.001}
         />
+      </div>
+    </form>
+  );
+}
+
+function SortControls({ params }: { params: BrowseSearchParams }) {
+  return (
+    <form method="get" action="/" className="section" aria-label="Sort recipes">
+      <input type="hidden" name="q" value={params.q ?? ""} />
+      <input type="hidden" name="category" value={params.category ?? ""} />
+      <input type="hidden" name="style" value={params.style ?? ""} />
+      <HiddenRangeInputs params={params} />
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="section-title mb-0 text-base">Sort</h2>
+        <button type="submit" className="btn btn-primary btn-sm">
+          Apply
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label>
+          <span className="label-eyebrow mb-1.5 block">Sort by</span>
+          <select
+            id="sort"
+            name="sort"
+            defaultValue={parseSort(params)}
+            className="field field-mono"
+          >
+            {RECIPE_SORT_FIELDS.map((field) => (
+              <option key={field} value={field}>
+                {SORT_FIELD_LABELS[field]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="label-eyebrow mb-1.5 block">Order</span>
+          <select
+            id="dir"
+            name="dir"
+            defaultValue={parseDir(params)}
+            className="field field-mono"
+          >
+            {RECIPE_SORT_DIRS.map((dir) => (
+              <option key={dir} value={dir}>
+                {SORT_DIR_LABELS[dir]}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
     </form>
   );

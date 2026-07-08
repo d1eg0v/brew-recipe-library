@@ -362,4 +362,61 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       restore();
     }
   });
+
+  it("renders sort controls (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      expect(html).toContain("name=\"sort\"");
+      expect(html).toContain("id=\"sort\"");
+      expect(html).toContain("name=\"dir\"");
+      expect(html).toContain("id=\"dir\"");
+      expect(html).toContain("Date added");
+      expect(html).toContain("ABV");
+      expect(html).toContain("Ascending");
+      expect(html).toContain("Descending");
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards sort params to /api/recipes and pre-selects controls (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({ sort: "abv", dir: "asc" }),
+        });
+        const html = renderToStaticMarkup(element);
+
+        expect(seen.some((s) => s.includes("sort=abv"))).toBe(true);
+        expect(seen.some((s) => s.includes("dir=asc"))).toBe(true);
+        expect(html).toMatch(/<select[^>]*name="sort"[^>]*>[\s\S]*<option value="abv" selected="">ABV<\/option>/);
+        expect(html).toMatch(/<select[^>]*name="dir"[^>]*>[\s\S]*<option value="asc" selected="">Ascending<\/option>/);
+      } finally {
+        global.fetch = originalMock;
+      }
+    } finally {
+      restore();
+    }
+  });
 });

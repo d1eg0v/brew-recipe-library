@@ -7,7 +7,13 @@
 // limit matching to a few high-signal fields. SQLite-specific `contains` works
 // fine here.
 
-import type { RecipeListQuery } from "./schemas";
+import type { Prisma } from "@/generated/prisma/client";
+
+import type {
+  RecipeListQuery,
+  RecipeSortDir,
+  RecipeSortField,
+} from "./schemas";
 
 export interface IngredientFilter {
   /** Search string supplied by the client (raw, may be empty). */
@@ -94,11 +100,34 @@ function applyRange(
   where[field] = clause;
 }
 
-/** Default order: most-recently updated first, with stable id tiebreak. */
-export const RECIPE_DEFAULT_ORDER = [
-  { updatedAt: "desc" as const },
-  { id: "asc" as const },
-];
+/** Map a sort-field alias to the underlying Recipe column. */
+function sortFieldToColumn(
+  field: RecipeSortField,
+): keyof Prisma.RecipeOrderByWithRelationInput {
+  switch (field) {
+    case "name":
+      return "title";
+    case "abv":
+      return "targetAbv";
+    case "ibu":
+      return "targetIbu";
+    case "gravity":
+      return "targetOg";
+    case "date":
+      return "createdAt";
+  }
+}
 
-/** Default pagination. */
-export const RECIPE_DEFAULT_PAGINATION = { limit: 50, offset: 0 };
+/**
+ * Build a Prisma `orderBy` array for `GET /api/recipes` from the parsed
+ * query params. The primary sort is `sort`/`dir`; `id asc` is appended as a
+ * stable tiebreaker so pagination is deterministic when many rows share the
+ * primary value (or are all `null` on the sorted column).
+ */
+export function buildRecipeOrderBy(
+  sort: RecipeSortField,
+  dir: RecipeSortDir,
+): Prisma.RecipeOrderByWithRelationInput[] {
+  const column = sortFieldToColumn(sort);
+  return [{ [column]: dir }, { id: "asc" }];
+}
