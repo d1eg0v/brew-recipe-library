@@ -57,6 +57,7 @@ import {
 } from "@/lib/units/units";
 
 import BatchHistorySection from "./BatchHistorySection";
+import RecipeActions from "./RecipeActions";
 import ShoppingListSection from "./ShoppingListSection";
 
 interface RecipeDetailClientProps {
@@ -258,6 +259,8 @@ export default function RecipeDetailClient({
       )}
 
       <div className="mt-8 space-y-6">
+        <RecipeActions recipeId={recipe.id} recipeTitle={recipe.title} />
+
         <Controls
           batchSize={batchSize}
           onBatchSizeChange={applyBatchSize}
@@ -284,19 +287,19 @@ export default function RecipeDetailClient({
         )}
         {recipe.additions.length > 0 && <Additions recipe={recipe} />}
 
-      <BatchHistorySection
-        recipeId={recipe.id}
-        batches={batches}
-        units={units}
-        error={batchesError}
-      />
+        <BatchHistorySection
+          recipeId={recipe.id}
+          batches={batches}
+          units={units}
+          error={batchesError}
+        />
 
-      <ShoppingListSection
-        shoppingList={shoppingList}
-        units={units}
-        error={shoppingListError}
-        recipeTitle={recipe.title}
-      />
+        <ShoppingListSection
+          shoppingList={shoppingList}
+          units={units}
+          error={shoppingListError}
+          recipeTitle={recipe.title}
+        />
 
         {recipe.notes && (
           <section className="section">
