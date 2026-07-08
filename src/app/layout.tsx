@@ -85,6 +85,12 @@ export default function RootLayout({
                   Priming sugar
                 </Link>
                 <Link
+                  href="/abv"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  ABV
+                </Link>
+                <Link
                   href="/recipes/new"
                   className="btn btn-outline btn-sm no-underline"
                 >
