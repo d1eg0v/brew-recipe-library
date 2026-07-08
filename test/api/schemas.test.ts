@@ -205,6 +205,55 @@ describe("recipeListQuerySchema", () => {
     expect(r.success).toBe(false);
   });
 
+  it("coerces all four range pairs from strings", () => {
+    const r = recipeListQuerySchema.safeParse({
+      abvMin: "4",
+      abvMax: "8",
+      ibuMin: "20",
+      ibuMax: "60",
+      srmMin: "4",
+      srmMax: "12",
+      ogMin: "1.05",
+      ogMax: "1.075",
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.ibuMin).toBe(20);
+      expect(r.data.ibuMax).toBe(60);
+      expect(r.data.srmMin).toBe(4);
+      expect(r.data.srmMax).toBe(12);
+      expect(r.data.ogMin).toBe(1.05);
+      expect(r.data.ogMax).toBe(1.075);
+    }
+  });
+
+  it("rejects ibuMin > ibuMax", () => {
+    const r = recipeListQuerySchema.safeParse({ ibuMin: 80, ibuMax: 20 });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects srmMin > srmMax", () => {
+    const r = recipeListQuerySchema.safeParse({ srmMin: 30, srmMax: 10 });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects ogMin > ogMax", () => {
+    const r = recipeListQuerySchema.safeParse({ ogMin: 1.08, ogMax: 1.04 });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects range values outside the documented domain", () => {
+    expect(
+      recipeListQuerySchema.safeParse({ ibuMin: 500 }).success,
+    ).toBe(false);
+    expect(
+      recipeListQuerySchema.safeParse({ srmMax: 200 }).success,
+    ).toBe(false);
+    expect(
+      recipeListQuerySchema.safeParse({ ogMin: 1.5 }).success,
+    ).toBe(false);
+  });
+
   it("rejects unknown category", () => {
     const r = recipeListQuerySchema.safeParse({ category: "whiskey" });
     expect(r.success).toBe(false);

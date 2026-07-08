@@ -29,6 +29,14 @@ interface BrowseSearchParams {
   q?: string;
   category?: string;
   style?: string;
+  abvMin?: string;
+  abvMax?: string;
+  ibuMin?: string;
+  ibuMax?: string;
+  srmMin?: string;
+  srmMax?: string;
+  ogMin?: string;
+  ogMax?: string;
 }
 
 async function fetchRecipes(
@@ -39,6 +47,14 @@ async function fetchRecipes(
   if (params.q) url.searchParams.set("q", params.q);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.style) url.searchParams.set("style", params.style);
+  if (params.abvMin) url.searchParams.set("abvMin", params.abvMin);
+  if (params.abvMax) url.searchParams.set("abvMax", params.abvMax);
+  if (params.ibuMin) url.searchParams.set("ibuMin", params.ibuMin);
+  if (params.ibuMax) url.searchParams.set("ibuMax", params.ibuMax);
+  if (params.srmMin) url.searchParams.set("srmMin", params.srmMin);
+  if (params.srmMax) url.searchParams.set("srmMax", params.srmMax);
+  if (params.ogMin) url.searchParams.set("ogMin", params.ogMin);
+  if (params.ogMax) url.searchParams.set("ogMax", params.ogMax);
   url.searchParams.set("limit", "100");
 
   try {
@@ -85,7 +101,48 @@ function matchesFilters(
       .toLowerCase();
     if (!hay.includes(q)) return false;
   }
+  if (!matchesRange(recipe.targetAbv, params.abvMin, params.abvMax)) return false;
+  if (!matchesRange(recipe.targetIbu, params.ibuMin, params.ibuMax)) return false;
+  if (!matchesRange(recipe.targetSrm, params.srmMin, params.srmMax)) return false;
+  if (!matchesRange(recipe.targetOg, params.ogMin, params.ogMax)) return false;
   return true;
+}
+
+function parseOptionalNumber(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function matchesRange(
+  value: number | null,
+  minRaw: string | undefined,
+  maxRaw: string | undefined,
+): boolean {
+  const min = parseOptionalNumber(minRaw);
+  const max = parseOptionalNumber(maxRaw);
+  if (min == null && max == null) return true;
+  if (value == null) return false;
+  if (min != null && value < min) return false;
+  if (max != null && value > max) return false;
+  return true;
+}
+
+function hasRangeFilter(p: BrowseSearchParams): boolean {
+  return Boolean(
+    p.abvMin ||
+      p.abvMax ||
+      p.ibuMin ||
+      p.ibuMax ||
+      p.srmMin ||
+      p.srmMax ||
+      p.ogMin ||
+      p.ogMax,
+  );
+}
+
+function hasAnyFilter(p: BrowseSearchParams): boolean {
+  return Boolean(p.q || p.category || p.style || hasRangeFilter(p));
 }
 
 export default async function HomePage({
@@ -104,7 +161,7 @@ export default async function HomePage({
   }, {});
 
   const filtered = all.filter((r) => matchesFilters(r, params));
-  const isFiltered = Boolean(params.q || params.category || params.style);
+  const isFiltered = hasAnyFilter(params);
 
   return (
     <div>
@@ -169,6 +226,7 @@ export default async function HomePage({
                 style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
               />
               <input type="hidden" name="style" value={params.style ?? ""} />
+              <HiddenRangeInputs params={params} />
             </div>
             {/* Keep a category control in the form (progressive: chips below
                 are the primary nav, but this keeps the query shareable). */}
@@ -207,9 +265,9 @@ export default async function HomePage({
         <CategoryChips
           counts={counts}
           active={params.category ?? ""}
-          q={params.q}
-          style={params.style}
+          params={params}
         />
+        <RangeFilters params={params} />
 
         {/* Active filter summary + clear */}
         {isFiltered && (
@@ -245,20 +303,22 @@ export default async function HomePage({
 function CategoryChips({
   counts,
   active,
-  q,
-  style,
+  params,
 }: {
   counts: Record<string, number>;
   active: string;
-  q?: string;
-  style?: string;
+  params: BrowseSearchParams;
 }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const querySuffix = (category?: string): string => {
     const sp = new URLSearchParams();
     if (category) sp.set("category", category);
-    if (q) sp.set("q", q);
-    if (style) sp.set("style", style);
+    if (params.q) sp.set("q", params.q);
+    if (params.style) sp.set("style", params.style);
+    for (const key of RANGE_PARAM_KEYS) {
+      const value = params[key];
+      if (value) sp.set(key, value);
+    }
     const qs = sp.toString();
     return qs ? `?${qs}` : "";
   };
@@ -289,6 +349,137 @@ function CategoryChips({
         );
       })}
     </nav>
+  );
+}
+
+const RANGE_PARAM_KEYS = [
+  "abvMin",
+  "abvMax",
+  "ibuMin",
+  "ibuMax",
+  "srmMin",
+  "srmMax",
+  "ogMin",
+  "ogMax",
+] as const;
+
+function HiddenRangeInputs({ params }: { params: BrowseSearchParams }) {
+  return (
+    <>
+      {RANGE_PARAM_KEYS.map((key) => (
+        <input key={key} type="hidden" name={key} value={params[key] ?? ""} />
+      ))}
+    </>
+  );
+}
+
+function RangeFilters({ params }: { params: BrowseSearchParams }) {
+  return (
+    <form
+      method="get"
+      action="/"
+      className="section"
+      aria-label="Target range filters"
+    >
+      <input type="hidden" name="q" value={params.q ?? ""} />
+      <input type="hidden" name="category" value={params.category ?? ""} />
+      <input type="hidden" name="style" value={params.style ?? ""} />
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="section-title mb-0 text-base">Target ranges</h2>
+        <div className="flex gap-2">
+          <button type="submit" className="btn btn-primary btn-sm">
+            Apply
+          </button>
+          {hasRangeFilter(params) && (
+            <Link href="/" className="btn btn-ghost btn-sm no-underline">
+              Clear
+            </Link>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <RangeControl
+          label="ABV (%)"
+          minName="abvMin"
+          maxName="abvMax"
+          minValue={params.abvMin}
+          maxValue={params.abvMax}
+          step={0.1}
+        />
+        <RangeControl
+          label="IBU"
+          minName="ibuMin"
+          maxName="ibuMax"
+          minValue={params.ibuMin}
+          maxValue={params.ibuMax}
+          step={1}
+        />
+        <RangeControl
+          label="SRM"
+          minName="srmMin"
+          maxName="srmMax"
+          minValue={params.srmMin}
+          maxValue={params.srmMax}
+          step={0.5}
+        />
+        <RangeControl
+          label="OG"
+          minName="ogMin"
+          maxName="ogMax"
+          minValue={params.ogMin}
+          maxValue={params.ogMax}
+          step={0.001}
+        />
+      </div>
+    </form>
+  );
+}
+
+function RangeControl({
+  label,
+  minName,
+  maxName,
+  minValue,
+  maxValue,
+  step,
+}: {
+  label: string;
+  minName: (typeof RANGE_PARAM_KEYS)[number];
+  maxName: (typeof RANGE_PARAM_KEYS)[number];
+  minValue?: string;
+  maxValue?: string;
+  step: number;
+}) {
+  return (
+    <div>
+      <span className="label-eyebrow mb-1.5 block">{label}</span>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          id={minName}
+          name={minName}
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step={step}
+          defaultValue={minValue ?? ""}
+          placeholder="min"
+          aria-label={`${label} minimum`}
+          className="field field-mono"
+        />
+        <input
+          id={maxName}
+          name={maxName}
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step={step}
+          defaultValue={maxValue ?? ""}
+          placeholder="max"
+          aria-label={`${label} maximum`}
+          className="field field-mono"
+        />
+      </div>
+    </div>
   );
 }
 

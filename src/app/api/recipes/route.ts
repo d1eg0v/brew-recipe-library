@@ -1,4 +1,4 @@
-// `GET  /api/recipes` — paginated list with filters (category, style, ABV, ingredient, full-text)
+// `GET  /api/recipes` — paginated list with filters (category, style, ABV/IBU/SRM/OG ranges, ingredient, full-text)
 // `POST /api/recipes` — create a new recipe
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -35,6 +35,12 @@ export async function GET(request: NextRequest) {
     ingredient: url.searchParams.get("ingredient") ?? undefined,
     abvMin: url.searchParams.get("abvMin") ?? undefined,
     abvMax: url.searchParams.get("abvMax") ?? undefined,
+    ibuMin: url.searchParams.get("ibuMin") ?? undefined,
+    ibuMax: url.searchParams.get("ibuMax") ?? undefined,
+    srmMin: url.searchParams.get("srmMin") ?? undefined,
+    srmMax: url.searchParams.get("srmMax") ?? undefined,
+    ogMin: url.searchParams.get("ogMin") ?? undefined,
+    ogMax: url.searchParams.get("ogMax") ?? undefined,
     limit: url.searchParams.get("limit") ?? undefined,
     offset: url.searchParams.get("offset") ?? undefined,
   });

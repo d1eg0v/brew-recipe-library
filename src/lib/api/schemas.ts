@@ -308,12 +308,30 @@ export const recipeListQuerySchema = z
     ingredient: z.string().trim().max(200).optional(),
     abvMin: z.coerce.number().gte(0).lte(25).optional(),
     abvMax: z.coerce.number().gte(0).lte(25).optional(),
+    ibuMin: z.coerce.number().gte(0).lte(200).optional(),
+    ibuMax: z.coerce.number().gte(0).lte(200).optional(),
+    srmMin: z.coerce.number().gte(0).lte(80).optional(),
+    srmMax: z.coerce.number().gte(0).lte(80).optional(),
+    ogMin: z.coerce.number().gte(0.95).lte(1.2).optional(),
+    ogMax: z.coerce.number().gte(0.95).lte(1.2).optional(),
     limit: z.coerce.number().int().gte(1).lte(200).default(50),
     offset: z.coerce.number().int().gte(0).default(0),
   })
   .refine(
     (q) => q.abvMin == null || q.abvMax == null || q.abvMin <= q.abvMax,
     { message: "abvMin must be <= abvMax", path: ["abvMin"] },
+  )
+  .refine(
+    (q) => q.ibuMin == null || q.ibuMax == null || q.ibuMin <= q.ibuMax,
+    { message: "ibuMin must be <= ibuMax", path: ["ibuMin"] },
+  )
+  .refine(
+    (q) => q.srmMin == null || q.srmMax == null || q.srmMin <= q.srmMax,
+    { message: "srmMin must be <= srmMax", path: ["srmMin"] },
+  )
+  .refine(
+    (q) => q.ogMin == null || q.ogMax == null || q.ogMin <= q.ogMax,
+    { message: "ogMin must be <= ogMax", path: ["ogMin"] },
   );
 
 /** Query params for recipe-detail "scale" + "units" controls. */

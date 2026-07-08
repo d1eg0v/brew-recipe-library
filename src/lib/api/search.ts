@@ -30,6 +30,12 @@ function escapeLike(input: string): string {
  *  - `bjcpCategory` — exact match
  *  - `ingredient` — substring match across any fermentable/hop/yeast name
  *  - `abvMin`/`abvMax` — bounds on `targetAbv`
+ *  - `ibuMin`/`ibuMax` — bounds on `targetIbu`
+ *  - `srmMin`/`srmMax` — bounds on `targetSrm`
+ *  - `ogMin`/`ogMax`   — bounds on `targetOg`
+ *
+ * Note on null exclusion: Prisma's `gte`/`lte` already exclude `null` values,
+ * so an active bound naturally hides recipes that haven't recorded that target.
  */
 export function buildRecipeWhere(q: RecipeListQuery) {
   const where: Record<string, unknown> = {};
@@ -67,13 +73,25 @@ export function buildRecipeWhere(q: RecipeListQuery) {
     ];
   }
 
-  if (q.abvMin != null || q.abvMax != null) {
-    where.targetAbv = {};
-    if (q.abvMin != null) (where.targetAbv as Record<string, number>).gte = q.abvMin;
-    if (q.abvMax != null) (where.targetAbv as Record<string, number>).lte = q.abvMax;
-  }
+  applyRange(where, "targetAbv", q.abvMin, q.abvMax);
+  applyRange(where, "targetIbu", q.ibuMin, q.ibuMax);
+  applyRange(where, "targetSrm", q.srmMin, q.srmMax);
+  applyRange(where, "targetOg", q.ogMin, q.ogMax);
 
   return where;
+}
+
+function applyRange(
+  where: Record<string, unknown>,
+  field: string,
+  min: number | undefined,
+  max: number | undefined,
+): void {
+  if (min == null && max == null) return;
+  const clause: Record<string, number> = {};
+  if (min != null) clause.gte = min;
+  if (max != null) clause.lte = max;
+  where[field] = clause;
 }
 
 /** Default order: most-recently updated first, with stable id tiebreak. */

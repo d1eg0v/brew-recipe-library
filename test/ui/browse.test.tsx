@@ -260,4 +260,106 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       restore();
     }
   });
+
+  it("renders min/max number inputs for ABV, IBU, SRM, OG (BRE-26)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      for (const field of ["abv", "ibu", "srm", "og"]) {
+        expect(html).toContain(`name="${field}Min"`);
+        expect(html).toContain(`name="${field}Max"`);
+        expect(html).toContain(`id="${field}Min"`);
+        expect(html).toContain(`id="${field}Max"`);
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards range filter values to /api/recipes and pre-fills inputs (BRE-26)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({
+            abvMin: "5",
+            abvMax: "8",
+            ibuMin: "30",
+            ibuMax: "70",
+            srmMin: "4",
+            srmMax: "20",
+            ogMin: "1.05",
+            ogMax: "1.08",
+          }),
+        });
+        const html = renderToStaticMarkup(element);
+
+        for (const param of [
+          "abvMin=5",
+          "abvMax=8",
+          "ibuMin=30",
+          "ibuMax=70",
+          "srmMin=4",
+          "srmMax=20",
+          "ogMin=1.05",
+          "ogMax=1.08",
+        ]) {
+          expect(seen.some((s) => s.includes(param))).toBe(true);
+        }
+        expect(html).toMatch(/<input[^>]*name="abvMin"[^>]*value="5"/);
+        expect(html).toMatch(/<input[^>]*name="ibuMax"[^>]*value="70"/);
+        expect(html).toMatch(/<input[^>]*name="ogMin"[^>]*value="1\.05"/);
+      } finally {
+        global.fetch = originalMock;
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("narrows the list when an ABV range is active (BRE-26)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const lowCount = await db.prisma.recipe.count({
+        where: { targetAbv: { gte: 4, lte: 5.5 } },
+      });
+      expect(lowCount).toBeGreaterThan(0);
+
+      const element = await HomePage({
+        searchParams: Promise.resolve({ abvMin: "4", abvMax: "5.5" }),
+      });
+      const html = renderToStaticMarkup(element);
+
+      expect(html).toContain(`Showing ${lowCount}`);
+      const strong = await db.prisma.recipe.findFirst({
+        where: { targetAbv: { gt: 9 } },
+        select: { title: true },
+      });
+      if (strong) {
+        expect(html).not.toContain(`>${strong.title}<`);
+      }
+    } finally {
+      restore();
+    }
+  });
 });
