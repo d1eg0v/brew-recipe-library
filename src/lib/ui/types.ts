@@ -20,6 +20,7 @@ export interface RecipeListItem {
   title: string;
   author: string | null;
   category: string;
+  beverageType?: string | null;
   styleName: string | null;
   bjcpCategory: string | null;
   batchSizeLiters: number;
@@ -28,6 +29,7 @@ export interface RecipeListItem {
   targetSrm: number | null;
   targetOg: number | null;
   targetFg: number | null;
+  targetPh: number | null;
   description: string | null;
   /** Sorted, normalised tag names. Empty array when the recipe has none. */
   tags: string[];
@@ -73,6 +75,7 @@ export interface YeastRow {
   type: string | null;
   form: string | null;
   attenuationPct: number | null;
+  abvTolerancePct: number | null;
   temperatureCMin: number | null;
   temperatureCMax: number | null;
   temperatureFMin?: number | null;
@@ -124,6 +127,7 @@ export interface RecipeDetail {
   description: string | null;
   notes: string | null;
   category: string;
+  beverageType?: string | null;
   styleName: string | null;
   bjcpCategory: string | null;
   batchSizeLiters: number;
@@ -132,6 +136,7 @@ export interface RecipeDetail {
   efficiencyPct: number;
   targetOg: number | null;
   targetFg: number | null;
+  targetPh: number | null;
   targetAbv: number | null;
   targetIbu: number | null;
   targetSrm: number | null;
@@ -167,6 +172,21 @@ export interface RecipeListResponse {
 
 export interface RecipeDetailResponse {
   data: RecipeDetail;
+}
+
+export interface BatchLogRow {
+  id: string;
+  recipeId: string;
+  batchId: string | null;
+  logDate: string;
+  type: string;
+  gravity: number | null;
+  ph: number | null;
+  temperatureC: number | null;
+  volumeLiters: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** One row of the shopping list as returned by `GET /api/recipes/[id]/shopping-list`. */

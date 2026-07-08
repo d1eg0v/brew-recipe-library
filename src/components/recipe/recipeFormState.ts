@@ -58,6 +58,7 @@ export interface YeastRowState {
   type: YeastType | "";
   form: YeastForm | "";
   attenuationPct: number | null;
+  abvTolerancePct: number | null;
   temperatureCMin: number | null;
   temperatureCMax: number | null;
   notes: string;
@@ -105,6 +106,7 @@ export interface RecipeFormState {
   efficiencyPct: number | null;
   targetOg: number | null;
   targetFg: number | null;
+  targetPh: number | null;
   targetAbv: number | null;
   targetIbu: number | null;
   targetSrm: number | null;
@@ -160,6 +162,7 @@ export function emptyYeast(): YeastRowState {
     type: "",
     form: "",
     attenuationPct: null,
+    abvTolerancePct: null,
     temperatureCMin: null,
     temperatureCMax: null,
     notes: "",
@@ -216,6 +219,7 @@ export function blankRecipeFormState(): RecipeFormState {
     efficiencyPct: 75,
     targetOg: null,
     targetFg: null,
+    targetPh: null,
     targetAbv: null,
     targetIbu: null,
     targetSrm: null,
