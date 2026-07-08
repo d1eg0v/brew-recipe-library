@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 
 interface RecipeActionsProps {
   recipeId: string;
@@ -24,7 +23,6 @@ export default function RecipeActions({
   recipeId,
   recipeTitle,
 }: RecipeActionsProps) {
-  const router = useRouter();
   const [duplicating, setDuplicating] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -73,7 +71,7 @@ export default function RecipeActions({
       const body = (await res.json()) as { data?: { id?: string } };
       const newId = body.data?.id;
       if (!newId) throw new Error("clone response missing id");
-      router.push(`/recipes/${newId}`);
+      window.location.assign(`/recipes/${newId}`);
     } catch (err) {
       console.error("duplicate failed", err);
       setDuplicateError(
@@ -81,7 +79,7 @@ export default function RecipeActions({
       );
       setDuplicating(false);
     }
-  }, [duplicating, recipeId, router]);
+  }, [duplicating, recipeId]);
 
   const handleDelete = useCallback(async () => {
     if (deleting) return;
@@ -95,7 +93,7 @@ export default function RecipeActions({
         const text = await res.text().catch(() => "");
         throw new Error(text || `request failed: ${res.status}`);
       }
-      router.push("/");
+      window.location.assign("/");
     } catch (err) {
       console.error("delete failed", err);
       setDeleteError(
@@ -104,7 +102,7 @@ export default function RecipeActions({
       setDeleting(false);
       setConfirmingDelete(false);
     }
-  }, [deleting, recipeId, router]);
+  }, [deleting, recipeId]);
 
   return (
     <section

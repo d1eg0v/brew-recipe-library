@@ -1,0 +1,370 @@
+/* Print brew sheet (BRE-42) — print-friendly one-page layout.
+ *
+ * The page is a server component that renders a static structure, with a
+ * small client island for the unit toggle and "Print" button. On `@media
+ * print` we strip margins, hide the chrome (header/nav/footer, the toolbar
+ * island, the theme background), force black text on white, and lay the
+ * sections out for a single A4 / Letter page when possible.
+ */
+
+.shell {
+  /* On screen: a card-like preview that the user can see before printing. */
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #ffffff;
+  color: #1c1208;
+  border: 1px solid var(--border, #e2d6bf);
+  border-radius: 12px;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  line-height: 1.4;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2d6bf;
+}
+
+.toolbarBack {
+  font-size: 13px;
+  color: #6b5d49;
+  text-decoration: none;
+}
+
+.toolbarBack:hover {
+  text-decoration: underline;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.unitsToggle {
+  display: inline-flex;
+  border: 1px solid #d6c8a8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.unitsBtn {
+  background: #fbf7ef;
+  color: #1c1208;
+  border: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.unitsBtnActive {
+  background: #8b3a13;
+  color: #fbf7ef;
+}
+
+.printBtn {
+  background: #8b3a13;
+  color: #fbf7ef;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.printBtn:hover {
+  opacity: 0.92;
+}
+
+/* --- Header --- */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #fde68a;
+  color: #78350f;
+  border: 1px solid #d6c8a8;
+}
+
+.styleLine {
+  color: #6b5d49;
+  font-size: 13px;
+}
+
+.author {
+  color: #6b5d49;
+  font-size: 13px;
+  margin: 0 0 6px 0;
+}
+
+.description {
+  margin: 4px 0 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* --- Targets strip --- */
+
+.targets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: #fbf7ef;
+  border: 1px solid #e2d6bf;
+  border-radius: 8px;
+}
+
+.targetCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.targetLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b5d49;
+}
+
+.targetValue {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-mono), monospace;
+}
+
+/* --- Section (title + grid) --- */
+
+.section {
+  margin-top: 14px;
+  page-break-inside: avoid;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2d6bf;
+}
+
+.subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.subgrid > .section {
+  margin-top: 0;
+}
+
+/* --- Tables ---
+ *
+ * CSS Modules require pure selectors, so the table/td/tr/th tags are styled
+ * via the `.sheetTable` class on the table root and child classes below. */
+
+.sheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  page-break-inside: avoid;
+}
+
+.sheetTh {
+  text-align: left;
+  padding: 4px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b5d49;
+  font-weight: 500;
+  border-bottom: 1px solid #d6c8a8;
+}
+
+.sheetTd {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid #f0e6cf;
+  vertical-align: top;
+  font-family: var(--font-sans), Arial, sans-serif;
+  page-break-inside: avoid;
+}
+
+.sheetTdNum {
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--font-mono), monospace;
+}
+
+.sheetTdMuted {
+  color: #6b5d49;
+  font-size: 11px;
+}
+
+/* --- Checklist --- */
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checklistItem {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  page-break-inside: avoid;
+}
+
+.checklistBox {
+  width: 14px;
+  height: 14px;
+  border: 1.2px solid #1c1208;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.checklistLabel {
+  font-weight: 500;
+}
+
+.checklistDetail {
+  color: #6b5d49;
+  font-size: 12px;
+  font-family: var(--font-mono), monospace;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.checklistSubsection {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8b3a13;
+  margin: 10px 0 4px 24px;
+}
+
+.checklistSubsection:first-child {
+  margin-top: 0;
+}
+
+/* --- Notes block --- */
+
+.notesBox {
+  border: 1px solid #d6c8a8;
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 80px;
+  font-size: 13px;
+  background: #fff;
+  line-height: 1.6;
+  page-break-inside: avoid;
+}
+
+.notesBoxEmpty {
+  background: repeating-linear-gradient(
+    to bottom,
+    #fff 0,
+    #fff 23px,
+    #f4ecd8 23px,
+    #f4ecd8 24px
+  );
+}
+
+.footer {
+  margin-top: 18px;
+  padding-top: 8px;
+  border-top: 1px solid #e2d6bf;
+  font-size: 10px;
+  color: #6b5d49;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* --- Screen-only helpers (visible in browser, hidden in print) --- */
+
+.screenOnly {
+  display: block;
+}
+
+.printOnly {
+  display: none;
+}
+
+/* --- Print rules --- */
+
+@media print {
+  .shell {
+    border: 0;
+    border-radius: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .screenOnly {
+    display: none !important;
+  }
+  .printOnly {
+    display: block;
+  }
+  .section,
+  .checklistItem,
+  .subgrid > .section,
+  .sheetTable,
+  .notesBox {
+    page-break-inside: avoid;
+  }
+  /* Force a clean black-on-white render. The brew themes are too low-contrast
+   * for ink-on-paper and would waste toner. */
+  .shell,
+  .shell * {
+    color: #000 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border-color: #000 !important;
+  }
+  .badge {
+    border: 1px solid #000 !important;
+  }
+  /* A4 / Letter: keep it tight. */
+  @page {
+    size: A4;
+    margin: 12mm 10mm;
+  }
+}
+
