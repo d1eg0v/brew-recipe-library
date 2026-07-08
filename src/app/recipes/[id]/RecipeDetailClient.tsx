@@ -430,6 +430,13 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
 
           <div className="ml-auto flex gap-2">
             <Link
+              href={`/recipes/compare?a=${recipe.id}`}
+              className="btn btn-ghost no-underline"
+              data-testid="compare-link"
+            >
+              Compare with…
+            </Link>
+            <Link
               href={`/recipes/${recipe.id}/edit`}
               className="btn btn-outline no-underline"
             >
