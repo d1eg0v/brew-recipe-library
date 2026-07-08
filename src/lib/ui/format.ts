@@ -5,6 +5,8 @@
 // `?units=imperial` is set. These helpers pick the right field for display
 // and format numbers in a brewer-friendly way.
 
+import { litersToGallons } from "@/lib/brewing/units";
+
 import type { UnitSystem } from "./types";
 
 /** Format a number with up to N decimals, trimming trailing zeros. */
@@ -119,6 +121,113 @@ export function fmtBatchSize(
   }
   if (liters == null) return "—";
   return `${fmtNumber(liters, 2)} L`;
+}
+
+/** Format a batch's logged volume into the fermenter in L or gal. Unlike
+ * `fmtBatchSize`, the batch API only returns the metric value, so the
+ * imperial display is computed here from the canonical litres. */
+export function fmtBatchVolume(
+  liters: number | null | undefined,
+  units: UnitSystem,
+): string {
+  if (liters == null || !Number.isFinite(liters)) return "—";
+  if (units === "imperial") {
+    return `${fmtNumber(litersToGallons(liters), 2)} gal`;
+  }
+  return `${fmtNumber(liters, 2)} L`;
+}
+
+/** Format an ISO brew-date string as e.g. "May 1, 2026". */
+export function fmtBrewDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * SRM (Standard Reference Method) beer color → sRGB hex.
+ *
+ * Uses a piecewise-linear interpolation across measured beer-color anchors
+ * (Brewers Friend palette) so the swatch on cards and detail headers
+ * approximates the actual pour colour of the recipe.
+ */
+const SRM_STOPS: ReadonlyArray<[number, [number, number, number]]> = [
+  [1.0, [255, 245, 184]],
+  [2.0, [255, 230, 153]],
+  [3.0, [255, 216, 120]],
+  [4.0, [255, 202, 90]],
+  [6.0, [255, 191, 66]],
+  [8.0, [251, 177, 35]],
+  [10.0, [248, 166, 0]],
+  [13.0, [229, 133, 0]],
+  [17.0, [209, 112, 0]],
+  [20.0, [141, 76, 50]],
+  [24.0, [90, 44, 14]],
+  [30.0, [61, 26, 10]],
+  [35.0, [38, 17, 6]],
+  [40.0, [20, 10, 5]],
+];
+
+export function srmToRgb(srm: number | null | undefined): [number, number, number] {
+  if (srm == null || !Number.isFinite(srm) || srm <= 0) return [220, 190, 110];
+  const s = Math.min(Math.max(srm, 1), 40);
+  for (let i = 0; i < SRM_STOPS.length - 1; i++) {
+    const [s0, c0] = SRM_STOPS[i];
+    const [s1, c1] = SRM_STOPS[i + 1];
+    if (s >= s0 && s <= s1) {
+      const t = (s - s0) / (s1 - s0);
+      return [
+        Math.round(c0[0] + (c1[0] - c0[0]) * t),
+        Math.round(c0[1] + (c1[1] - c0[1]) * t),
+        Math.round(c0[2] + (c1[2] - c0[2]) * t),
+      ];
+    }
+  }
+  return SRM_STOPS[SRM_STOPS.length - 1][1];
+}
+
+export function srmToHex(srm: number | null | undefined): string {
+  const [r, g, b] = srmToRgb(srm);
+  const hex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+
+/**
+ * Per-category accent colour used for card stripes, vitals rings, and icons
+ * when no SRM colour is available. Beer falls back to the SRM swatch.
+ */
+export function categoryAccent(
+  category: string | null | undefined,
+  srm?: number | null,
+): string {
+  switch (category) {
+    case "beer":
+      return srmToHex(srm ?? null);
+    case "mead":
+      return "#d4a017";
+    case "wine":
+      return "#7c1f2b";
+    case "cider":
+      return "#c66a3a";
+    case "other":
+    default:
+      return "#8a7a52";
+  }
+}
+
+/** Contrast-aware text colour (dark ink or light) for a hex background. */
+export function inkOn(hex: string): "#1c1208" | "#fbf7ef" {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#1c1208" : "#fbf7ef";
 }
 
 /** Capitalise a known enum-style string for display ("beer" → "Beer"). */

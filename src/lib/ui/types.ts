@@ -202,3 +202,73 @@ export interface ShoppingList {
 export interface ShoppingListResponse {
   data: ShoppingList;
 }
+
+// -----------------------------------------------------------------------------
+// Batch (brew log) types — mirror the response from
+// `GET /api/recipes/[id]/batches` and `GET /api/batches/[id]`. The list and
+// detail endpoints return the same row shape, with a `derived` block
+// (actualAbv / apparentAttenuation / brewhouseEfficiency) attached by the
+// presentation layer.
+// -----------------------------------------------------------------------------
+
+/** Derived metrics attached to a Batch row by `presentBatch`. */
+export interface BatchDerived {
+  actualAbv: number | null;
+  apparentAttenuation: number | null;
+  brewhouseEfficiency: number | null;
+}
+
+/** One logged brew as returned by both batch endpoints. */
+export interface BatchSummary {
+  id: string;
+  recipeId: string;
+  /** ISO timestamp of brew day. */
+  brewDate: string;
+  measuredOg: number | null;
+  measuredFg: number | null;
+  volumeLiters: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  derived: BatchDerived;
+}
+
+export interface BatchListResponse {
+  data: BatchSummary[];
+}
+
+export interface BatchResponse {
+  data: BatchSummary;
+}
+
+// ---------------------------------------------------------------------------
+// Priming-sugar / carbonation calculator (BRE-32).
+// ---------------------------------------------------------------------------
+
+/** Sugar options the calculator accepts. */
+export type PrimingSugarType = "cornSugar" | "tableSugar" | "dme";
+
+/** Server-derived result of the priming-sugar calculation. */
+export interface PrimingSugarResult {
+  weightGrams: number;
+  weightOz: number;
+  residualVolumes: number;
+  volumesToAdd: number;
+  sugarType: PrimingSugarType;
+  input: {
+    volumeLiters: number;
+    targetVolumes: number;
+    temperatureC: number;
+    sugarType: PrimingSugarType;
+  };
+}
+
+/** `GET /api/priming-sugar` response shape. */
+export interface PrimingSugarResponse {
+  data: {
+    result: PrimingSugarResult;
+    imperial?: { weightOz: number } | null;
+    source: "standalone" | "recipe";
+    recipe?: { id: string; title: string; batchSizeLiters: number } | null;
+  };
+}

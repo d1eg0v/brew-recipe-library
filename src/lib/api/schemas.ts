@@ -315,7 +315,22 @@ export type UnitSystem = (typeof UNIT_SYSTEMS)[number];
 const positiveNumberOrString = z
   .union([z.number().finite().positive(), z.string().regex(/^\d+(\.\d+)?$/, "must be a positive number")]);
 
-/** Query params for `GET /api/recipes` (search/filter). */
+/** Allowed sort fields for `GET /api/recipes`. `gravity` aliases to
+ *  `targetOg`; `date` is the recipe's creation time (date added). */
+export const RECIPE_SORT_FIELDS = [
+  "name",
+  "abv",
+  "ibu",
+  "gravity",
+  "date",
+] as const;
+export type RecipeSortField = (typeof RECIPE_SORT_FIELDS)[number];
+
+/** Allowed sort directions. */
+export const RECIPE_SORT_DIRS = ["asc", "desc"] as const;
+export type RecipeSortDir = (typeof RECIPE_SORT_DIRS)[number];
+
+/** Query params for `GET /api/recipes` (search/filter/sort). */
 export const recipeListQuerySchema = z
   .object({
     q: z.string().trim().max(200).optional(),
@@ -332,12 +347,32 @@ export const recipeListQuerySchema = z
     tag: z.string().trim().max(50).optional(),
     abvMin: z.coerce.number().gte(0).lte(25).optional(),
     abvMax: z.coerce.number().gte(0).lte(25).optional(),
+    ibuMin: z.coerce.number().gte(0).lte(200).optional(),
+    ibuMax: z.coerce.number().gte(0).lte(200).optional(),
+    srmMin: z.coerce.number().gte(0).lte(80).optional(),
+    srmMax: z.coerce.number().gte(0).lte(80).optional(),
+    ogMin: z.coerce.number().gte(0.95).lte(1.2).optional(),
+    ogMax: z.coerce.number().gte(0.95).lte(1.2).optional(),
+    sort: z.enum(RECIPE_SORT_FIELDS).default("date"),
+    dir: z.enum(RECIPE_SORT_DIRS).default("desc"),
     limit: z.coerce.number().int().gte(1).lte(200).default(50),
     offset: z.coerce.number().int().gte(0).default(0),
   })
   .refine(
     (q) => q.abvMin == null || q.abvMax == null || q.abvMin <= q.abvMax,
     { message: "abvMin must be <= abvMax", path: ["abvMin"] },
+  )
+  .refine(
+    (q) => q.ibuMin == null || q.ibuMax == null || q.ibuMin <= q.ibuMax,
+    { message: "ibuMin must be <= ibuMax", path: ["ibuMin"] },
+  )
+  .refine(
+    (q) => q.srmMin == null || q.srmMax == null || q.srmMin <= q.srmMax,
+    { message: "srmMin must be <= srmMax", path: ["srmMin"] },
+  )
+  .refine(
+    (q) => q.ogMin == null || q.ogMax == null || q.ogMin <= q.ogMax,
+    { message: "ogMin must be <= ogMax", path: ["ogMin"] },
   );
 
 /** Query params for recipe-detail "scale" + "units" controls. */
@@ -386,6 +421,58 @@ export const batchPatchSchema = z
 
 export type BatchCreateBody = z.infer<typeof batchCreateSchema>;
 export type BatchPatchBody = z.infer<typeof batchPatchSchema>;
+
+// -----------------------------------------------------------------------------
+// Priming-sugar (carbonation) calculator — query params for GET /api/priming-sugar.
+// All physical quantities are metric (litres, °C); imperial display happens in
+// the presentation layer.
+// -----------------------------------------------------------------------------
+
+/** Sugar types supported by the priming-sugar calculator. */
+export const PRIMING_SUGAR_TYPES = [
+  "cornSugar",
+  "tableSugar",
+  "dme",
+] as const;
+export type PrimingSugarType = (typeof PRIMING_SUGAR_TYPES)[number];
+
+/** Query params for `GET /api/priming-sugar`. */
+export const primingSugarQuerySchema = z
+  .object({
+    /** Batch volume at bottling, in litres. Coerced from string when needed. */
+    volumeLiters: z.coerce.number().finite().positive().optional(),
+    /** Target CO2 in volumes. Typical: 1.0–1.5 for low, 2.0–2.5 for ales, 2.5–3.5 for Belgian. */
+    targetVolumes: z.coerce.number().finite().gte(0).lte(6),
+    /** Conditioning temperature in °C. Typical: 0–25 °C. */
+    temperatureC: z.coerce.number().finite().gte(-20).lte(60),
+    /** Which sugar to dose with. */
+    sugarType: z
+      .string()
+      .refine(
+        (v) => (PRIMING_SUGAR_TYPES as readonly string[]).includes(v),
+        { message: `must be one of: ${PRIMING_SUGAR_TYPES.join(", ")}` },
+      ),
+    /** Optional recipe id — when present, the route looks up the batch size
+     *  to pre-fill the volume. */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+    /** Display unit system. "metric" returns g; "imperial" returns g + oz. */
+    units: z
+      .string()
+      .refine(
+        (v) => (UNIT_SYSTEMS as readonly string[]).includes(v),
+        { message: `must be one of: ${UNIT_SYSTEMS.join(", ")}` },
+      )
+      .optional(),
+  })
+  .refine(
+    (q) => q.recipeId != null || q.volumeLiters != null,
+    {
+      message: "either recipeId or volumeLiters is required",
+      path: ["volumeLiters"],
+    },
+  );
+
+export type PrimingSugarQuery = z.infer<typeof primingSugarQuerySchema>;
 
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
