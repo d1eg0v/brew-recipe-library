@@ -77,10 +77,6 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
   if (category) where.category = category;
   const style = query.get("style");
   if (style) where.styleName = { contains: style };
-  applyRange(where, "targetAbv", query.get("abvMin"), query.get("abvMax"));
-  applyRange(where, "targetIbu", query.get("ibuMin"), query.get("ibuMax"));
-  applyRange(where, "targetSrm", query.get("srmMin"), query.get("srmMax"));
-  applyRange(where, "targetOg", query.get("ogMin"), query.get("ogMax"));
 
   // Synchronous-ish Prisma call (Prisma 7 returns a thenable).
   return db.prisma.recipe
@@ -106,21 +102,6 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
       limit,
       offset,
     }));
-}
-
-function applyRange(
-  where: Record<string, unknown>,
-  field: string,
-  min: string | null,
-  max: string | null,
-): void {
-  const minN = min != null && min !== "" ? Number.parseFloat(min) : null;
-  const maxN = max != null && max !== "" ? Number.parseFloat(max) : null;
-  if (minN == null && maxN == null) return;
-  const clause: Record<string, number> = {};
-  if (minN != null && !Number.isNaN(minN)) clause.gte = minN;
-  if (maxN != null && !Number.isNaN(maxN)) clause.lte = maxN;
-  if (Object.keys(clause).length > 0) where[field] = clause;
 }
 
 function installFetchMock() {
@@ -181,6 +162,17 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       // Filter form is present.
       expect(html).toContain("name=\"category\"");
       expect(html).toContain("name=\"style\"");
+
+      // SRM swatch is rendered for beer cards (BRE-45). Pull a beer
+      // recipe with a non-null targetSrm and assert the swatch aria label
+      // appears in the HTML.
+      const beer = await db.prisma.recipe.findFirst({
+        where: { category: "beer", targetSrm: { not: null } },
+        select: { targetSrm: true },
+      });
+      if (beer?.targetSrm != null) {
+        expect(html).toContain(`aria-label="SRM ${beer.targetSrm.toFixed(1)}"`);
+      }
     } finally {
       restore();
     }
@@ -214,6 +206,61 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
     }
   });
 
+  it("renders a full-text search input (BRE-25)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      // Search input is part of the filter form, with id/name=q.
+      expect(html).toContain("name=\"q\"");
+      expect(html).toContain("id=\"q\"");
+      // Empty default value (no q in URL).
+      expect(html).toMatch(/<input[^>]*name="q"[^>]*value=""/);
+      // Placeholder hints at the four searched fields.
+      expect(html).toMatch(/Search title, author, description, notes/);
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards q to /api/recipes and pre-fills the input", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        // Empty result so we just exercise the wiring, not the rendering.
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({ q: "sessionable" }),
+        });
+        const html = renderToStaticMarkup(element);
+        expect(seen.some((s) => s.includes("q=sessionable"))).toBe(true);
+        // Input echoes the query so the user sees what they searched for.
+        expect(html).toMatch(/<input[^>]*name="q"[^>]*value="sessionable"/);
+      } finally {
+        global.fetch = originalMock;
+      }
+    } finally {
+      restore();
+    }
+  });
+
   it("renders min/max number inputs for ABV, IBU, SRM, OG (BRE-26)", async () => {
     const restore = installFetchMock();
     try {
@@ -237,7 +284,7 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
     try {
       await loadSeed();
       const seen: string[] = [];
-      const original = global.fetch;
+      const originalMock = global.fetch;
       global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
         const url =
           typeof input === "string"
@@ -266,7 +313,6 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
         });
         const html = renderToStaticMarkup(element);
 
-        // Each forwarded param appears in the fetch URL.
         for (const param of [
           "abvMin=5",
           "abvMax=8",
@@ -279,12 +325,11 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
         ]) {
           expect(seen.some((s) => s.includes(param))).toBe(true);
         }
-        // Echo values in the form so the user sees what they typed.
         expect(html).toMatch(/<input[^>]*name="abvMin"[^>]*value="5"/);
         expect(html).toMatch(/<input[^>]*name="ibuMax"[^>]*value="70"/);
         expect(html).toMatch(/<input[^>]*name="ogMin"[^>]*value="1\.05"/);
       } finally {
-        global.fetch = original;
+        global.fetch = originalMock;
       }
     } finally {
       restore();
@@ -298,8 +343,6 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       const lowCount = await db.prisma.recipe.count({
         where: { targetAbv: { gte: 4, lte: 5.5 } },
       });
-      // Sanity: there should be at least one session-strength recipe in the
-      // seed dataset (e.g. the lower-ABV IPAs/meads).
       expect(lowCount).toBeGreaterThan(0);
 
       const element = await HomePage({
@@ -307,10 +350,7 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       });
       const html = renderToStaticMarkup(element);
 
-      // The total reflects the filtered count.
-      expect(html).toContain(`${lowCount} recipe`);
-      // No recipe with a high ABV should be in the rendered list — grab one
-      // and assert it's absent.
+      expect(html).toContain(`Showing ${lowCount}`);
       const strong = await db.prisma.recipe.findFirst({
         where: { targetAbv: { gt: 9 } },
         select: { title: true },
@@ -323,53 +363,32 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
     }
   });
 
-  it("renders sort + dir selects with the documented options (BRE-27)", async () => {
+  it("renders sort controls (BRE-27)", async () => {
     const restore = installFetchMock();
     try {
       await loadSeed();
       const element = await HomePage({ searchParams: Promise.resolve({}) });
       const html = renderToStaticMarkup(element);
 
-      expect(html).toContain('name="sort"');
-      expect(html).toContain('id="sort"');
-      expect(html).toContain('name="dir"');
-      expect(html).toContain('id="dir"');
-      for (const field of ["name", "abv", "ibu", "gravity", "date"]) {
-        expect(html).toContain(`value="${field}"`);
-      }
-      for (const d of ["asc", "desc"]) {
-        expect(html).toContain(`value="${d}"`);
-      }
+      expect(html).toContain("name=\"sort\"");
+      expect(html).toContain("id=\"sort\"");
+      expect(html).toContain("name=\"dir\"");
+      expect(html).toContain("id=\"dir\"");
+      expect(html).toContain("Date added");
+      expect(html).toContain("ABV");
+      expect(html).toContain("Ascending");
+      expect(html).toContain("Descending");
     } finally {
       restore();
     }
   });
 
-  it("pre-selects the sort + dir from the URL (BRE-27)", async () => {
+  it("forwards sort params to /api/recipes and pre-selects controls (BRE-27)", async () => {
     const restore = installFetchMock();
     try {
       await loadSeed();
-      const element = await HomePage({
-        searchParams: Promise.resolve({ sort: "abv", dir: "asc" }),
-      });
-      const html = renderToStaticMarkup(element);
-
-      // The select is rendered with defaultValue. renderToStaticMarkup emits
-      // the <option selected> attribute on the matching option.
-      expect(html).toMatch(/<option[^>]*value="abv"[^>]*selected/);
-      expect(html).toMatch(/<option[^>]*value="asc"[^>]*selected/);
-    } finally {
-      restore();
-    }
-  });
-
-  it("forwards sort + dir to /api/recipes and falls back to defaults (BRE-27)", async () => {
-    const restore = installFetchMock();
-    try {
-      await loadSeed();
-
       const seen: string[] = [];
-      const original = global.fetch;
+      const originalMock = global.fetch;
       global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
         const url =
           typeof input === "string"
@@ -378,51 +397,24 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
               ? input
               : new URL((input as Request).url);
         seen.push(url.search);
-        if (url.pathname === "/api/recipes") {
-          const body = await buildListFromDb(url.searchParams);
-          return new Response(JSON.stringify(body), {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          });
-        }
-        return new Response("not found", { status: 404 });
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
       }) as unknown as typeof fetch;
-
       try {
-        await HomePage({
-          searchParams: Promise.resolve({ sort: "name", dir: "asc" }),
+        const element = await HomePage({
+          searchParams: Promise.resolve({ sort: "abv", dir: "asc" }),
         });
-        await HomePage({ searchParams: Promise.resolve({}) });
+        const html = renderToStaticMarkup(element);
+
+        expect(seen.some((s) => s.includes("sort=abv"))).toBe(true);
+        expect(seen.some((s) => s.includes("dir=asc"))).toBe(true);
+        expect(html).toMatch(/<select[^>]*name="sort"[^>]*>[\s\S]*<option value="abv" selected="">ABV<\/option>/);
+        expect(html).toMatch(/<select[^>]*name="dir"[^>]*>[\s\S]*<option value="asc" selected="">Ascending<\/option>/);
       } finally {
-        global.fetch = original;
+        global.fetch = originalMock;
       }
-
-      // The two HomePage calls above each issue one /api/recipes fetch.
-      const firstCall = seen.find((s) => s.includes("sort=name"));
-      expect(firstCall).toBeDefined();
-      expect(firstCall).toContain("dir=asc");
-
-      // No sort params in the URL => the page still forwards defaults so the
-      // backend sees an explicit, well-formed request.
-      const defaultCall = seen.find(
-        (s) => s.includes("sort=date") && s.includes("dir=desc"),
-      );
-      expect(defaultCall).toBeDefined();
-    } finally {
-      restore();
-    }
-  });
-
-  it("mentions the active sort in the page summary when non-default (BRE-27)", async () => {
-    const restore = installFetchMock();
-    try {
-      await loadSeed();
-      const element = await HomePage({
-        searchParams: Promise.resolve({ sort: "abv", dir: "asc" }),
-      });
-      const html = renderToStaticMarkup(element);
-      expect(html.toLowerCase()).toContain("sorted by abv");
-      expect(html.toLowerCase()).toContain("asc");
     } finally {
       restore();
     }

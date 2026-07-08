@@ -95,9 +95,9 @@ describe("buildRecipeWhere", () => {
     expect(or).toHaveLength(7);
     expect(or.slice(0, 4)).toEqual([
       { title: { contains: "ipa" } },
+      { author: { contains: "ipa" } },
       { description: { contains: "ipa" } },
       { notes: { contains: "ipa" } },
-      { styleName: { contains: "ipa" } },
     ]);
     expect(or[4]).toEqual({
       fermentables: { some: { name: { contains: "Cascade" } } },
@@ -123,6 +123,31 @@ describe("buildRecipeWhere", () => {
         yeasts: { some: { name: { contains: "50\\% Wheat" } } },
       },
     ]);
+  });
+
+  it("escapes LIKE wildcards in q", () => {
+    const out = where({ q: "100% wheat" });
+    expect(out.OR).toEqual([
+      { title: { contains: "100\\% wheat" } },
+      { author: { contains: "100\\% wheat" } },
+      { description: { contains: "100\\% wheat" } },
+      { notes: { contains: "100\\% wheat" } },
+    ]);
+  });
+
+  it("trims whitespace around q before compiling", () => {
+    const out = where({ q: "  ipa  " });
+    expect(out.OR).toEqual([
+      { title: { contains: "ipa" } },
+      { author: { contains: "ipa" } },
+      { description: { contains: "ipa" } },
+      { notes: { contains: "ipa" } },
+    ]);
+  });
+
+  it("ignores q when blank", () => {
+    expect(where({ q: "" })).toEqual({});
+    expect(where({ q: "   " })).toEqual({});
   });
 
   it("supports style name substring matching", () => {
