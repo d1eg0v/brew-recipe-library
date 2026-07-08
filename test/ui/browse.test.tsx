@@ -205,4 +205,59 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       restore();
     }
   });
+
+  it("renders a full-text search input (BRE-25)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      // Search input is part of the filter form, with id/name=q.
+      expect(html).toContain("name=\"q\"");
+      expect(html).toContain("id=\"q\"");
+      // Empty default value (no q in URL).
+      expect(html).toMatch(/<input[^>]*name="q"[^>]*value=""/);
+      // Placeholder hints at the four searched fields.
+      expect(html).toMatch(/Search title, author, description, notes/);
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards q to /api/recipes and pre-fills the input", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        // Empty result so we just exercise the wiring, not the rendering.
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({ q: "sessionable" }),
+        });
+        const html = renderToStaticMarkup(element);
+        expect(seen.some((s) => s.includes("q=sessionable"))).toBe(true);
+        // Input echoes the query so the user sees what they searched for.
+        expect(html).toMatch(/<input[^>]*name="q"[^>]*value="sessionable"/);
+      } finally {
+        global.fetch = originalMock;
+      }
+    } finally {
+      restore();
+    }
+  });
 });

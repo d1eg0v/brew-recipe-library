@@ -26,15 +26,20 @@ export const dynamic = "force-dynamic";
 const CATEGORIES = RECIPE_CATEGORIES;
 
 interface BrowseSearchParams {
+  q?: string;
   category?: string;
   style?: string;
 }
 
 async function fetchRecipes(
   base: string,
+  params: BrowseSearchParams,
 ): Promise<RecipeListResponse> {
   const url = new URL("/api/recipes", base);
-  url.searchParams.set("limit", "200");
+  if (params.q) url.searchParams.set("q", params.q);
+  if (params.category) url.searchParams.set("category", params.category);
+  if (params.style) url.searchParams.set("style", params.style);
+  url.searchParams.set("limit", "100");
 
   try {
     const res = await fetch(url.toString(), { cache: "no-store" });
@@ -54,6 +59,19 @@ function matchesFilters(
   params: BrowseSearchParams,
 ): boolean {
   if (params.category && recipe.category !== params.category) return false;
+  if (params.q) {
+    const q = params.q.toLowerCase();
+    const hay = [
+      recipe.title,
+      recipe.styleName ?? "",
+      recipe.bjcpCategory ?? "",
+      recipe.description ?? "",
+      recipe.author ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
   if (params.style) {
     const q = params.style.toLowerCase();
     const hay = [
@@ -77,7 +95,7 @@ export default async function HomePage({
 }) {
   const params = await searchParams;
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const response = await fetchRecipes(base);
+  const response = await fetchRecipes(base, params);
   const all = response.data;
 
   const counts = CATEGORIES.reduce<Record<string, number>>((acc, c) => {
@@ -86,7 +104,7 @@ export default async function HomePage({
   }, {});
 
   const filtered = all.filter((r) => matchesFilters(r, params));
-  const isFiltered = Boolean(params.category || params.style);
+  const isFiltered = Boolean(params.q || params.category || params.style);
 
   return (
     <div>
@@ -141,14 +159,16 @@ export default async function HomePage({
                 </svg>
               </span>
               <input
-                name="style"
+                id="q"
+                name="q"
                 type="search"
-                defaultValue={params.style ?? ""}
-                placeholder="Search by style, name, or ingredient…"
-                aria-label="Search recipes by style, name, or ingredient"
+                defaultValue={params.q ?? ""}
+                placeholder="Search title, author, description, notes"
+                aria-label="Search recipes by title, author, description, or notes"
                 className="field field-mono w-full rounded-r-none border-r-0 sm:pl-9"
                 style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
               />
+              <input type="hidden" name="style" value={params.style ?? ""} />
             </div>
             {/* Keep a category control in the form (progressive: chips below
                 are the primary nav, but this keeps the query shareable). */}
@@ -187,6 +207,7 @@ export default async function HomePage({
         <CategoryChips
           counts={counts}
           active={params.category ?? ""}
+          q={params.q}
           style={params.style}
         />
 
@@ -224,18 +245,27 @@ export default async function HomePage({
 function CategoryChips({
   counts,
   active,
+  q,
   style,
 }: {
   counts: Record<string, number>;
   active: string;
+  q?: string;
   style?: string;
 }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const styleSuffix = style ? `&style=${encodeURIComponent(style)}` : "";
+  const querySuffix = (category?: string): string => {
+    const sp = new URLSearchParams();
+    if (category) sp.set("category", category);
+    if (q) sp.set("q", q);
+    if (style) sp.set("style", style);
+    const qs = sp.toString();
+    return qs ? `?${qs}` : "";
+  };
   return (
     <nav aria-label="Filter by category" className="flex flex-wrap gap-2">
       <Link
-        href={style ? `/?style=${encodeURIComponent(style)}` : "/"}
+        href={`/${querySuffix()}`}
         className="chip"
         data-active={active === "" ? "true" : "false"}
       >
@@ -248,7 +278,7 @@ function CategoryChips({
         return (
           <Link
             key={c}
-            href={`/?category=${c}${styleSuffix}`}
+            href={`/${querySuffix(c)}`}
             className="chip"
             data-active={active === c ? "true" : "false"}
           >
