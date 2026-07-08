@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   attenuationFromYeasts,
+  brixToGravity,
   estimateAbv,
   estimateFg,
+  estimateHighGravityAbv,
   estimateOg,
   totalGravityPoints,
 } from "./gravity";
@@ -87,5 +89,21 @@ describe("estimateAbv", () => {
 
   it("is zero when nothing fermented", () => {
     expect(estimateAbv(1.05, 1.05)).toBe(0);
+  });
+});
+
+describe("estimateHighGravityAbv", () => {
+  it("uses the nonlinear high-gravity formula for strong mead and wine", () => {
+    expect(estimateHighGravityAbv(1.11, 0.998)).toBe(16.11);
+  });
+});
+
+describe("brixToGravity", () => {
+  it("converts refractometer Brix readings to specific gravity", () => {
+    expect(brixToGravity(24)).toBe(1.101);
+  });
+
+  it("rejects negative readings", () => {
+    expect(() => brixToGravity(-1)).toThrow(/brix/);
   });
 });

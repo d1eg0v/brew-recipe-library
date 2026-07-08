@@ -480,7 +480,7 @@ function TargetsSection({
       <p className="text-xs text-[var(--muted-foreground)]">
         Optional. Leave blank to let the live preview fill in the values for you.
       </p>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <TargetInput
           label="OG"
           fieldPath="targetOg"
@@ -515,6 +515,17 @@ function TargetsSection({
           placeholder={
             live.abv != null ? `${live.abv.toFixed(1)}` : "auto"
           }
+        />
+        <TargetInput
+          label="pH"
+          fieldPath="targetPh"
+          error={errors["targetPh"]}
+          value={state.targetPh}
+          onChange={(v) => update("targetPh", v)}
+          step={0.01}
+          min={2}
+          max={7}
+          placeholder="target"
         />
         <TargetInput
           label="IBU"
@@ -750,7 +761,7 @@ function HopsSection({
       emptyHint="No hops added."
       rows={rows}
       renderRow={(row) => (
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-3 items-start">
+        <div className="grid grid-cols-2 md:grid-cols-8 gap-3 items-start">
           <Field
             label="Name"
             required
@@ -1011,6 +1022,25 @@ function YeastsSection({
             />
           </Field>
           <Field
+            label="ABV tol. %"
+            error={errors[`yeasts.${rowIndex(rows, row.key)}.abvTolerancePct`]}
+            fieldPath={`yeasts.${rowIndex(rows, row.key)}.abvTolerancePct`}
+          >
+            <input
+              type="number"
+              value={numValue(row.abvTolerancePct)}
+              onChange={(e) => {
+                const v = e.target.value.trim() === "" ? null : Number.parseFloat(e.target.value);
+                onChange(row.key, "abvTolerancePct", Number.isFinite(v as number) ? v : null);
+              }}
+              min={0}
+              max={100}
+              step={0.1}
+              className={inputClass}
+              data-field-path={`yeasts.${rowIndex(rows, row.key)}.abvTolerancePct`}
+            />
+          </Field>
+          <Field
             label="Temp °C (min–max)"
             error={
               errors[`yeasts.${rowIndex(rows, row.key)}.temperatureCMin`] ??
@@ -1049,7 +1079,7 @@ function YeastsSection({
             label="Notes"
             error={errors[`yeasts.${rowIndex(rows, row.key)}.notes`]}
             fieldPath={`yeasts.${rowIndex(rows, row.key)}.notes`}
-            className="md:col-span-6"
+            className="md:col-span-7"
           >
             <input
               type="text"
@@ -1714,6 +1744,7 @@ function fromRecipeDetail(d: RecipeDetail): RecipeFormState {
     efficiencyPct: d.efficiencyPct ?? null,
     targetOg: d.targetOg ?? null,
     targetFg: d.targetFg ?? null,
+    targetPh: d.targetPh ?? null,
     targetAbv: d.targetAbv ?? null,
     targetIbu: d.targetIbu ?? null,
     targetSrm: d.targetSrm ?? null,
@@ -1745,6 +1776,7 @@ function fromRecipeDetail(d: RecipeDetail): RecipeFormState {
       type: (y.type as YeastRowState["type"]) ?? "",
       form: (y.form as YeastRowState["form"]) ?? "",
       attenuationPct: y.attenuationPct ?? null,
+      abvTolerancePct: y.abvTolerancePct ?? null,
       temperatureCMin: y.temperatureCMin ?? null,
       temperatureCMax: y.temperatureCMax ?? null,
       notes: y.notes ?? "",
