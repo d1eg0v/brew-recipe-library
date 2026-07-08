@@ -474,6 +474,58 @@ export const primingSugarQuerySchema = z
 
 export type PrimingSugarQuery = z.infer<typeof primingSugarQuerySchema>;
 
+// -----------------------------------------------------------------------------
+// Strike-water / mash-infusion calculator — query params for GET /api/strike-water.
+// All physical quantities are metric (kg, °C, L); imperial display happens in
+// the presentation layer.
+// -----------------------------------------------------------------------------
+
+/** Sensible bounds on water-to-grain ratio (L/kg). Kept in sync with the
+ *  brewing constants `MIN_WATER_TO_GRAIN_RATIO` / `MAX_WATER_TO_GRAIN_RATIO`
+ *  in `@/lib/brewing/mash`. Mirrored here so the Zod schema stays
+ *  self-contained. */
+const STRIKE_WATER_MIN_RATIO_L_PER_KG = 1.5;
+const STRIKE_WATER_MAX_RATIO_L_PER_KG = 6.0;
+
+/** Query params for `GET /api/strike-water`. */
+export const strikeWaterQuerySchema = z
+  .object({
+    /** Total grain mass in kg. Coerced from string when needed. */
+    grainKg: z.coerce.number().finite().positive().optional(),
+    /** Target mash temperature in °C. Typical 60–72 °C. */
+    targetMashTempC: z.coerce.number().finite().gte(40).lte(80),
+    /** Current grain temperature in °C. Typical 5–30 °C. */
+    grainTempC: z.coerce.number().finite().gte(-10).lte(40),
+    /** Water-to-grain ratio (L/kg). Default 3.0 in the calc layer. */
+    waterToGrainRatioLPerKg: z.coerce
+      .number()
+      .finite()
+      .gte(STRIKE_WATER_MIN_RATIO_L_PER_KG)
+      .lte(STRIKE_WATER_MAX_RATIO_L_PER_KG)
+      .optional(),
+    /** Optional recipe id — when present, the route looks up the grain-bill
+     *  total to pre-fill `grainKg`. */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+    /** Display unit system. "metric" returns L and °C; "imperial" adds qt/gal
+     *  and °F parallels. */
+    units: z
+      .string()
+      .refine(
+        (v) => (UNIT_SYSTEMS as readonly string[]).includes(v),
+        { message: `must be one of: ${UNIT_SYSTEMS.join(", ")}` },
+      )
+      .optional(),
+  })
+  .refine(
+    (q) => q.recipeId != null || q.grainKg != null,
+    {
+      message: "either recipeId or grainKg is required",
+      path: ["grainKg"],
+    },
+  );
+
+export type StrikeWaterQuery = z.infer<typeof strikeWaterQuerySchema>;
+
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;
