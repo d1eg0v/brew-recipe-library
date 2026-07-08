@@ -506,6 +506,70 @@ export const primingSugarQuerySchema = z
 
 export type PrimingSugarQuery = z.infer<typeof primingSugarQuerySchema>;
 
+// -----------------------------------------------------------------------------
+// Quick ABV-from-OG/FG calculator (BRE-35) — query params for GET /api/abv.
+//
+// The brewer's measured readings are gravity (dimensionless), so there are
+// no metric/imperial conversions here — the same numbers work in either
+// unit system. The optional `recipeId` is for pre-filling the inputs from
+// a recipe's target OG/FG, matching the pre-fill pattern used by
+// `primingSugarQuerySchema` and `strikeWaterQuerySchema`.
+// -----------------------------------------------------------------------------
+
+const abvFormulaField = z
+  .string()
+  .refine(
+    (v) => v === "auto" || v === "linear" || v === "highGravity",
+    { message: "must be one of: auto, linear, highGravity" },
+  )
+  .optional();
+
+/** Query params for `GET /api/abv`. */
+export const abvQuerySchema = z
+  .object({
+    /** Measured original gravity. Coerced from string when needed. */
+    measuredOg: z.coerce.number().finite().gte(0.95).lte(1.2).optional(),
+    /** Measured final gravity. Coerced from string when needed. */
+    measuredFg: z.coerce.number().finite().gte(0.95).lte(1.2).optional(),
+    /**
+     * Formula override. "auto" (default) picks the high-gravity correction
+     * at OG ≥ 1.07; "linear" always uses the standard (OG - FG) × 131.25;
+     * "highGravity" always uses the Daniels/Papazian nonlinear form.
+     */
+    formula: abvFormulaField,
+    /**
+     * Optional recipe id — when present, the route looks up the recipe's
+     * targetOg / targetFg to pre-fill `measuredOg` / `measuredFg`. A
+     * caller-provided value always wins over the recipe target.
+     */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+  })
+  .refine(
+    (q) =>
+      q.recipeId != null ||
+      (q.measuredOg != null && q.measuredFg != null),
+    {
+      message:
+        "either recipeId or both measuredOg and measuredFg are required",
+      path: ["measuredOg"],
+    },
+  )
+  .refine(
+    // Cross-field OG/FG check is enforced by the pure calc; we still reject
+    // the obvious mis-entry here so the caller gets a useful error rather
+    // than a generic 500 from the validator.
+    (q) =>
+      q.measuredOg == null ||
+      q.measuredFg == null ||
+      q.measuredOg >= q.measuredFg,
+    {
+      message: "measuredOg must be greater than or equal to measuredFg",
+      path: ["measuredOg"],
+    },
+  );
+
+export type AbvQuery = z.infer<typeof abvQuerySchema>;
+
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;

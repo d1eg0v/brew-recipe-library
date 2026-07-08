@@ -292,3 +292,45 @@ export interface PrimingSugarResponse {
     recipe?: { id: string; title: string; batchSizeLiters: number } | null;
   };
 }
+
+// ---------------------------------------------------------------------------
+// Quick ABV-from-OG/FG calculator (BRE-35).
+// ---------------------------------------------------------------------------
+
+/** Which formula the ABV calc used. Matches `AbvFormula` in `@/lib/brewing/abv`. */
+export type AbvFormula = "linear" | "highGravity";
+
+/** Server-derived result of the ABV calculation. */
+export interface MeasuredAbvResult {
+  /** Alcohol by volume, percent. */
+  abvPct: number;
+  /** Apparent attenuation, percent (0–100). */
+  apparentAttenuationPct: number;
+  /** Gravity points dropped during fermentation (OG − FG, in points × 1000). */
+  gravityPointsDropped: number;
+  /** Which formula was used. */
+  formulaUsed: AbvFormula;
+  /** True when the high-gravity formula was used (either forced or auto-picked). */
+  isHighGravity: boolean;
+  input: {
+    measuredOg: number;
+    measuredFg: number;
+    formula: AbvFormula;
+  };
+}
+
+/** `GET /api/abv` response shape. */
+export interface MeasuredAbvResponse {
+  data: {
+    result: MeasuredAbvResult;
+    /** Echoed source — "standalone" when no recipe was involved. */
+    source: "standalone" | "recipe";
+    /** Optional pre-fill context (the recipe that fed OG/FG). */
+    recipe?: {
+      id: string;
+      title: string;
+      targetOg: number | null;
+      targetFg: number | null;
+    } | null;
+  };
+}
