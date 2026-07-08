@@ -8,6 +8,12 @@ export type RecipeCategory = "beer" | "mead" | "wine" | "cider" | "other";
 
 export type UnitSystem = "metric" | "imperial";
 
+/** A tag row attached to a recipe (BRE-29). */
+export interface TagSummary {
+  id: string;
+  name: string;
+}
+
 /** Minimal recipe row used by the browse list view. */
 export interface RecipeListItem {
   id: string;
@@ -23,6 +29,10 @@ export interface RecipeListItem {
   targetOg: number | null;
   targetFg: number | null;
   description: string | null;
+  /** Sorted, normalised tag names. Empty array when the recipe has none. */
+  tags: string[];
+  /** Per-tag ids (parallel to `tags`). */
+  tagDetails: TagSummary[];
   updatedAt: string;
 }
 
@@ -131,6 +141,10 @@ export interface RecipeDetail {
   mashSteps: MashStepRow[];
   processSteps: ProcessStepRow[];
   additions: AdditionRow[];
+  /** Sorted, normalised tag names. Empty array when the recipe has none. */
+  tags: string[];
+  /** Per-tag ids (parallel to `tags`). */
+  tagDetails: TagSummary[];
   createdAt: string;
   updatedAt: string;
 }

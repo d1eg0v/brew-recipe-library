@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import TagEditor from "@/components/recipe/TagEditor";
 import {
   ArrowGlyph,
   CategoryGlyph,
@@ -260,6 +261,7 @@ export default function RecipeDetailClient({
 
       <div className="mt-8 space-y-6">
         <RecipeActions recipeId={recipe.id} recipeTitle={recipe.title} />
+        <TagsSection recipe={recipe} />
 
         <Controls
           batchSize={batchSize}
@@ -314,6 +316,26 @@ export default function RecipeDetailClient({
         )}
       </div>
     </div>
+  );
+}
+
+function TagsSection({ recipe }: { recipe: RecipeDetail }) {
+  const tags = recipe.tags ?? [];
+  return (
+    <section className="section" aria-labelledby="tags-heading">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 id="tags-heading" className="section-title mb-0">
+          Tags
+          <span className="count">{tags.length}</span>
+        </h2>
+        {tags.length > 0 && (
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Click a tag to filter the library
+          </p>
+        )}
+      </div>
+      <TagEditor recipeId={recipe.id} initialTags={tags} />
+    </section>
   );
 }
 

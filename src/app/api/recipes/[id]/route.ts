@@ -34,6 +34,7 @@ const RECIPE_INCLUDE = {
   mashSteps: { orderBy: { position: "asc" as const } },
   processSteps: { orderBy: { position: "asc" as const } },
   additions: { orderBy: { position: "asc" as const } },
+  recipeTags: { include: { tag: true } },
 };
 
 async function loadRecipe(id: string) {

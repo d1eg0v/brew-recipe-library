@@ -53,14 +53,44 @@ model Recipe {
   yeasts       Yeast[]
   mashSteps    MashStep[] // grain-based recipes only; empty for mead & extract/juice recipes
   processSteps ProcessStep[] // generic fermentation/racking/backsweetening steps (all categories)
-  additions    Addition[] // nutrients, acid blend, campden, pectic enzyme, tannin, etc.
+  additions    Addition[] // nutrients, acid blend, campden, pectic enzyme, etc.
   batches      Batch[] // logged actual brews of this recipe (brew-day history)
+  recipeTags   RecipeTag[] // freeform labels (BRE-29); join through Tag
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([styleName])
   @@index([bjcpCategory])
+}
+
+/// Freeform label for a recipe ("session", "competition", "summer", ...).
+/// Independent of the fixed `Recipe.category`. Names are stored normalised
+/// (trimmed, lower-case) so equality and uniqueness are case-insensitive at the
+/// application layer. A recipe can have many tags; a tag can be applied to many
+/// recipes — the join table is `RecipeTag` (BRE-29).
+model Tag {
+  id        String   @id @default(cuid())
+  /// Normalised tag name. Always trimmed + lower-case on write. The DB unique
+  /// constraint prevents duplicates; the UI surfaces the original casing.
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  recipeTags RecipeTag[]
+}
+
+/// Many-to-many join between `Recipe` and `Tag`. Cascade-deletes with either
+/// parent so we never leave orphan rows.
+model RecipeTag {
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+  tag      Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId    String
+
+  createdAt DateTime @default(now())
+
+  @@id([recipeId, tagId])
+  @@index([tagId])
 }
 
 /// A fermentable sugar source contributing gravity and (for beer) colour.

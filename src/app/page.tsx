@@ -3,6 +3,7 @@ import Link from "next/link";
 import BatchSizeStat from "@/components/BatchSizeStat";
 import CategoryBadge from "@/components/CategoryBadge";
 import SrmSwatch from "@/components/SrmSwatch";
+import TagChip from "@/components/TagChip";
 import {
   ArrowGlyph,
   CategoryGlyph,
@@ -51,6 +52,7 @@ interface BrowseSearchParams {
   q?: string;
   category?: string;
   style?: string;
+  tag?: string;
   abvMin?: string;
   abvMax?: string;
   ibuMin?: string;
@@ -83,6 +85,7 @@ async function fetchRecipes(
   if (params.q) url.searchParams.set("q", params.q);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.style) url.searchParams.set("style", params.style);
+  if (params.tag) url.searchParams.set("tag", params.tag);
   if (params.abvMin) url.searchParams.set("abvMin", params.abvMin);
   if (params.abvMax) url.searchParams.set("abvMax", params.abvMax);
   if (params.ibuMin) url.searchParams.set("ibuMin", params.ibuMin);
@@ -139,6 +142,10 @@ function matchesFilters(
       .toLowerCase();
     if (!hay.includes(q)) return false;
   }
+  if (params.tag) {
+    const tag = params.tag.toLowerCase();
+    if (!recipe.tags.some((t) => t.toLowerCase() === tag)) return false;
+  }
   if (!matchesRange(recipe.targetAbv, params.abvMin, params.abvMax)) return false;
   if (!matchesRange(recipe.targetIbu, params.ibuMin, params.ibuMax)) return false;
   if (!matchesRange(recipe.targetSrm, params.srmMin, params.srmMax)) return false;
@@ -180,7 +187,7 @@ function hasRangeFilter(p: BrowseSearchParams): boolean {
 }
 
 function hasAnyFilter(p: BrowseSearchParams): boolean {
-  return Boolean(p.q || p.category || p.style || hasRangeFilter(p));
+  return Boolean(p.q || p.category || p.style || p.tag || hasRangeFilter(p));
 }
 
 function hasAnySort(p: BrowseSearchParams): boolean {
@@ -270,6 +277,7 @@ export default async function HomePage({
                 style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
               />
               <input type="hidden" name="style" value={params.style ?? ""} />
+              <input type="hidden" name="tag" value={params.tag ?? ""} />
               <HiddenRangeInputs params={params} />
               <input type="hidden" name="sort" value={parseSort(params)} />
               <input type="hidden" name="dir" value={parseDir(params)} />
@@ -313,6 +321,7 @@ export default async function HomePage({
           active={params.category ?? ""}
           params={params}
         />
+        <TagFilter params={params} />
         <RangeFilters params={params} />
         <SortControls params={params} />
 
@@ -362,6 +371,7 @@ function CategoryChips({
     if (category) sp.set("category", category);
     if (params.q) sp.set("q", params.q);
     if (params.style) sp.set("style", params.style);
+    if (params.tag) sp.set("tag", params.tag);
     for (const key of RANGE_PARAM_KEYS) {
       const value = params[key];
       if (value) sp.set(key, value);
@@ -424,6 +434,42 @@ function HiddenRangeInputs({ params }: { params: BrowseSearchParams }) {
   );
 }
 
+function TagFilter({ params }: { params: BrowseSearchParams }) {
+  return (
+    <form method="get" action="/" className="section" aria-label="Filter by tag">
+      <input type="hidden" name="q" value={params.q ?? ""} />
+      <input type="hidden" name="category" value={params.category ?? ""} />
+      <input type="hidden" name="style" value={params.style ?? ""} />
+      <HiddenRangeInputs params={params} />
+      <input type="hidden" name="sort" value={parseSort(params)} />
+      <input type="hidden" name="dir" value={parseDir(params)} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="flex-1">
+          <span className="label-eyebrow mb-1.5 block">Tag</span>
+          <input
+            id="tag"
+            name="tag"
+            type="text"
+            defaultValue={params.tag ?? ""}
+            placeholder="e.g. session, competition"
+            className="field field-mono"
+          />
+        </label>
+        <div className="flex gap-2">
+          <button type="submit" className="btn btn-primary btn-sm">
+            Apply
+          </button>
+          {params.tag && (
+            <Link href="/" className="btn btn-ghost btn-sm no-underline">
+              Clear
+            </Link>
+          )}
+        </div>
+      </div>
+    </form>
+  );
+}
+
 function RangeFilters({ params }: { params: BrowseSearchParams }) {
   return (
     <form
@@ -435,6 +481,7 @@ function RangeFilters({ params }: { params: BrowseSearchParams }) {
       <input type="hidden" name="q" value={params.q ?? ""} />
       <input type="hidden" name="category" value={params.category ?? ""} />
       <input type="hidden" name="style" value={params.style ?? ""} />
+      <input type="hidden" name="tag" value={params.tag ?? ""} />
       <input type="hidden" name="sort" value={parseSort(params)} />
       <input type="hidden" name="dir" value={parseDir(params)} />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -494,6 +541,7 @@ function SortControls({ params }: { params: BrowseSearchParams }) {
       <input type="hidden" name="q" value={params.q ?? ""} />
       <input type="hidden" name="category" value={params.category ?? ""} />
       <input type="hidden" name="style" value={params.style ?? ""} />
+      <input type="hidden" name="tag" value={params.tag ?? ""} />
       <HiddenRangeInputs params={params} />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="section-title mb-0 text-base">Sort</h2>
@@ -588,6 +636,7 @@ function RangeControl({
 function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
   const accent = categoryAccent(recipe.category, recipe.targetSrm);
   const href = `/recipes/${recipe.id}`;
+  const tags = recipe.tags ?? [];
   return (
     <Link
       href={href}
@@ -630,6 +679,13 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
         <p className="mt-2.5 text-sm leading-relaxed text-[var(--muted-foreground)] line-clamp-2">
           {recipe.description}
         </p>
+      )}
+      {tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <TagChip key={tag} name={tag} asLink size="sm" />
+          ))}
+        </div>
       )}
 
       <div className="mt-auto pt-4">

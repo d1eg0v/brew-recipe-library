@@ -8,6 +8,7 @@
 // fine here.
 
 import type { Prisma } from "@/generated/prisma/client";
+import { normalizeTagName } from "@/lib/tags";
 
 import type {
   RecipeListQuery,
@@ -35,6 +36,7 @@ function escapeLike(input: string): string {
  *  - `style`     — case-insensitive substring over styleName
  *  - `bjcpCategory` — exact match
  *  - `ingredient` — substring match across any fermentable/hop/yeast name
+ *  - `tag`       — exact normalised tag match
  *  - `abvMin`/`abvMax` — bounds on `targetAbv`
  *  - `ibuMin`/`ibuMax` — bounds on `targetIbu`
  *  - `srmMin`/`srmMax` — bounds on `targetSrm`
@@ -77,6 +79,13 @@ export function buildRecipeWhere(q: RecipeListQuery) {
       { hops: { some: { name: { contains: safe } } } },
       { yeasts: { some: { name: { contains: safe } } } },
     ];
+  }
+
+  if (q.tag && q.tag.trim().length > 0) {
+    const norm = normalizeTagName(q.tag);
+    if (norm) {
+      where.recipeTags = { some: { tag: { name: norm } } };
+    }
   }
 
   applyRange(where, "targetAbv", q.abvMin, q.abvMax);

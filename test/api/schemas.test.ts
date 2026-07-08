@@ -12,6 +12,9 @@ import {
   recipePatchSchema,
   recipeListQuerySchema,
   recipeDetailQuerySchema,
+  recipeTagAddSchema,
+  recipeTagsReplaceSchema,
+  tagListQuerySchema,
 } from "@/lib/api/schemas";
 
 const baseRecipe = {
@@ -281,6 +284,88 @@ describe("recipeDetailQuerySchema", () => {
   it("rejects unknown units", () => {
     const r = recipeDetailQuerySchema.safeParse({ units: "kelvin" });
     expect(r.success).toBe(false);
+  });
+});
+
+// BRE-29: tags are accepted on the recipe body and the dedicated tag endpoints.
+describe("tags (BRE-29)", () => {
+  it("recipeCreateSchema defaults tags to []", () => {
+    const r = recipeCreateSchema.safeParse({
+      title: "Tagged",
+      batchSizeLiters: 20,
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.tags).toEqual([]);
+  });
+
+  it("recipeCreateSchema accepts an explicit tags array", () => {
+    const r = recipeCreateSchema.safeParse({
+      title: "Tagged",
+      batchSizeLiters: 20,
+      tags: ["Session", "Summer", "session"],
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      // Normalisation happens in the mapper, not the schema. The schema just
+      // validates the surface shape and bounds.
+      expect(r.data.tags).toEqual(["Session", "Summer", "session"]);
+    }
+  });
+
+  it("recipeCreateSchema rejects empty-string tag entries", () => {
+    const r = recipeCreateSchema.safeParse({
+      title: "Tagged",
+      batchSizeLiters: 20,
+      tags: ["ok", ""],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("recipeCreateSchema rejects an over-50 tags array", () => {
+    const tags = Array.from({ length: 51 }, (_, i) => `tag${i}`);
+    const r = recipeCreateSchema.safeParse({
+      title: "Tagged",
+      batchSizeLiters: 20,
+      tags,
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("recipePatchSchema accepts a tags array (full-replace semantics)", () => {
+    const r = recipePatchSchema.safeParse({ tags: ["session"] });
+    expect(r.success).toBe(true);
+  });
+
+  it("recipeTagAddSchema normalises the name to lower-case trimmed form", () => {
+    const r = recipeTagAddSchema.safeParse({ name: "  Summer  " });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.name).toBe("summer");
+  });
+
+  it("recipeTagAddSchema rejects an empty name", () => {
+    const r = recipeTagAddSchema.safeParse({ name: "   " });
+    expect(r.success).toBe(false);
+  });
+
+  it("recipeTagsReplaceSchema requires a tags array", () => {
+    const empty = recipeTagsReplaceSchema.safeParse({ tags: [] });
+    expect(empty.success).toBe(true);
+    const missing = recipeTagsReplaceSchema.safeParse({});
+    expect(missing.success).toBe(false);
+  });
+
+  it("tagListQuerySchema coerces limit and minCount", () => {
+    const r = tagListQuerySchema.safeParse({
+      limit: "50",
+      minCount: "2",
+      q: "summer",
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.limit).toBe(50);
+      expect(r.data.minCount).toBe(2);
+      expect(r.data.q).toBe("summer");
+    }
   });
 });
 

@@ -1,4 +1,4 @@
-// `GET  /api/recipes` — paginated list with filters (category, style, ABV/IBU/SRM/OG ranges, ingredient, full-text) and sort
+// `GET  /api/recipes` — paginated list with filters (category, style, ABV/IBU/SRM/OG ranges, ingredient, full-text, tag) and sort
 // `POST /api/recipes` — create a new recipe
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -25,6 +25,10 @@ import { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
 
+const RECIPE_LIST_INCLUDE = {
+  recipeTags: { include: { tag: true } },
+};
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const parsed = recipeListQuerySchema.safeParse({
@@ -33,6 +37,7 @@ export async function GET(request: NextRequest) {
     style: url.searchParams.get("style") ?? undefined,
     bjcpCategory: url.searchParams.get("bjcpCategory") ?? undefined,
     ingredient: url.searchParams.get("ingredient") ?? undefined,
+    tag: url.searchParams.get("tag") ?? undefined,
     abvMin: url.searchParams.get("abvMin") ?? undefined,
     abvMax: url.searchParams.get("abvMax") ?? undefined,
     ibuMin: url.searchParams.get("ibuMin") ?? undefined,
@@ -61,10 +66,11 @@ export async function GET(request: NextRequest) {
         orderBy,
         skip: q.offset,
         take: q.limit,
+        include: RECIPE_LIST_INCLUDE,
       }),
     ]);
     return NextResponse.json({
-      data: recipes,
+      data: recipes.map((r) => presentRecipe(r)),
       total,
       limit: q.limit,
       offset: q.offset,
@@ -91,6 +97,7 @@ export async function POST(request: NextRequest) {
         mashSteps: { orderBy: { position: "asc" } },
         processSteps: { orderBy: { position: "asc" } },
         additions: { orderBy: { position: "asc" } },
+        recipeTags: { include: { tag: true } },
       },
     });
     return NextResponse.json(
