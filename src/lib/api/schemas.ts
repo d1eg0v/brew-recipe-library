@@ -363,6 +363,58 @@ export const batchPatchSchema = z
 export type BatchCreateBody = z.infer<typeof batchCreateSchema>;
 export type BatchPatchBody = z.infer<typeof batchPatchSchema>;
 
+// -----------------------------------------------------------------------------
+// Priming-sugar (carbonation) calculator — query params for GET /api/priming-sugar.
+// All physical quantities are metric (litres, °C); imperial display happens in
+// the presentation layer.
+// -----------------------------------------------------------------------------
+
+/** Sugar types supported by the priming-sugar calculator. */
+export const PRIMING_SUGAR_TYPES = [
+  "cornSugar",
+  "tableSugar",
+  "dme",
+] as const;
+export type PrimingSugarType = (typeof PRIMING_SUGAR_TYPES)[number];
+
+/** Query params for `GET /api/priming-sugar`. */
+export const primingSugarQuerySchema = z
+  .object({
+    /** Batch volume at bottling, in litres. Coerced from string when needed. */
+    volumeLiters: z.coerce.number().finite().positive().optional(),
+    /** Target CO2 in volumes. Typical: 1.0–1.5 for low, 2.0–2.5 for ales, 2.5–3.5 for Belgian. */
+    targetVolumes: z.coerce.number().finite().gte(0).lte(6),
+    /** Conditioning temperature in °C. Typical: 0–25 °C. */
+    temperatureC: z.coerce.number().finite().gte(-20).lte(60),
+    /** Which sugar to dose with. */
+    sugarType: z
+      .string()
+      .refine(
+        (v) => (PRIMING_SUGAR_TYPES as readonly string[]).includes(v),
+        { message: `must be one of: ${PRIMING_SUGAR_TYPES.join(", ")}` },
+      ),
+    /** Optional recipe id — when present, the route looks up the batch size
+     *  to pre-fill the volume. */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+    /** Display unit system. "metric" returns g; "imperial" returns g + oz. */
+    units: z
+      .string()
+      .refine(
+        (v) => (UNIT_SYSTEMS as readonly string[]).includes(v),
+        { message: `must be one of: ${UNIT_SYSTEMS.join(", ")}` },
+      )
+      .optional(),
+  })
+  .refine(
+    (q) => q.recipeId != null || q.volumeLiters != null,
+    {
+      message: "either recipeId or volumeLiters is required",
+      path: ["volumeLiters"],
+    },
+  );
+
+export type PrimingSugarQuery = z.infer<typeof primingSugarQuerySchema>;
+
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;

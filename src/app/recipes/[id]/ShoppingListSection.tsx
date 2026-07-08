@@ -12,6 +12,7 @@ import type {
   ShoppingListItem,
   UnitSystem,
 } from "@/lib/ui/types";
+import { BasketGlyph, PrintGlyph } from "@/components/icons";
 
 interface ShoppingListSectionProps {
   shoppingList: ShoppingList | null;
@@ -36,21 +37,28 @@ export default function ShoppingListSection({
   if (error) {
     return (
       <section
-        className="rounded-lg border border-red-300 bg-red-50 p-5 text-sm text-red-900 print:hidden"
+        className="section no-print"
         data-testid="shopping-list-error"
+        role="alert"
       >
-        Couldn&apos;t reload shopping list: {error}
+        <div className="section-title">
+          <BasketGlyph className="h-5 w-5 text-[var(--accent)]" />
+          Shopping list
+        </div>
+        <p className="text-sm text-[var(--error-fg)]">
+          Couldn&apos;t reload shopping list: {error}
+        </p>
       </section>
     );
   }
   if (!shoppingList) {
     return (
-      <section
-        className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 print:hidden"
-        data-testid="shopping-list-empty"
-      >
-        <h2 className="text-base font-semibold mb-2">Shopping list</h2>
-        <p className="text-sm text-[var(--muted-foreground)]">
+      <section className="section no-print" data-testid="shopping-list-empty">
+        <div className="section-title">
+          <BasketGlyph className="h-5 w-5 text-[var(--accent)]" />
+          Shopping list
+        </div>
+        <p className="text-sm italic text-[var(--muted-foreground)]">
           No shopping list available for this recipe yet.
         </p>
       </section>
@@ -71,33 +79,31 @@ export default function ShoppingListSection({
   }
 
   return (
-    <section
-      className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 space-y-4 print:border-black print:bg-white print:rounded-none"
-      aria-label="Shopping list"
-      data-testid="shopping-list"
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-3 print:hidden">
-        <h2 className="text-base font-semibold">
-          Shopping list{" "}
-          <span className="text-sm font-normal text-[var(--muted-foreground)]">
-            ({shoppingList.counts.total} item
-            {shoppingList.counts.total === 1 ? "" : "s"})
-          </span>
-        </h2>
+    <section className="section no-print" aria-label="Shopping list" data-testid="shopping-list">
+      <div className="section-title">
+        <BasketGlyph className="h-5 w-5 text-[var(--accent)]" />
+        Shopping list
+        <span className="count">
+          {shoppingList.counts.total} item{shoppingList.counts.total === 1 ? "" : "s"}
+        </span>
         <button
           type="button"
+          aria-label="Print shopping list"
           onClick={() => {
             if (typeof window !== "undefined") window.print();
           }}
-          className="px-3 py-2 rounded-md border border-[var(--border)] text-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline btn-sm ml-auto no-print"
         >
-          Print shopping list
+          <PrintGlyph className="h-4 w-4" />
+          Print
         </button>
       </div>
 
       {/* Print-only header (hidden on screen). */}
-      <header className="hidden print:block mb-2">
-        <h2 className="text-lg font-semibold">Shopping list — {recipeTitle}</h2>
+      <header className="mb-3 hidden print:block">
+        <h2 className="font-display text-lg font-semibold">
+          Shopping list — {recipeTitle}
+        </h2>
         <p className="text-sm text-black">
           Batch: {fmtBatchSize(shoppingList.recipeBatchSizeLiters, null, units)} ·{" "}
           {shoppingList.counts.total} item
@@ -107,60 +113,53 @@ export default function ShoppingListSection({
 
       {shoppingList.counts.total === 0 ? (
         <p
-          className="text-sm text-[var(--muted-foreground)] print:text-black"
+          className="text-sm italic text-[var(--muted-foreground)] print:text-black"
           data-testid="shopping-list-no-items"
         >
           Nothing to buy — this recipe has no ingredients listed.
         </p>
       ) : (
-        CATEGORY_ORDER.filter((cat) => grouped[cat].length > 0).map((cat) => (
-          <div key={cat} className="space-y-2" data-testid={`shopping-list-cat-${cat}`}>
-            <h3 className="text-xs uppercase tracking-wide text-[var(--muted-foreground)] font-medium print:text-black">
-              {shoppingCategoryLabel(cat)}{" "}
-              <span className="text-[var(--muted-foreground)] print:text-black">
-                ({grouped[cat].length})
-              </span>
-            </h3>
-            <table className="w-full text-sm print:text-black">
-              <thead>
-                <tr>
-                  <th className="text-left pb-1 font-medium text-[var(--muted-foreground)] print:text-black">
-                    Item
-                  </th>
-                  <th className="text-right pb-1 font-medium text-[var(--muted-foreground)] w-32 print:text-black">
-                    Amount
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {grouped[cat].map((item, idx) => (
-                  <tr
-                    key={`${cat}-${item.name}-${item.detail}-${idx}`}
-                    className="border-t border-[var(--border)] print:border-black"
-                  >
-                    <td className="py-1.5 pr-3">
-                      <span className="font-medium">{item.name}</span>
-                      {item.detail ? (
-                        <span className="ml-2 text-xs uppercase tracking-wide text-[var(--muted-foreground)] print:text-black">
-                          {detailLabel(cat, item.detail)}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="py-1.5 pr-3 text-right font-mono">
-                      {fmtShoppingAmount(
-                        item.amount,
-                        item.unit,
-                        units,
-                        item.imperialAmount ?? null,
-                        item.imperialUnit ?? null,
-                      )}
-                    </td>
+        <div className="grid gap-5 sm:grid-cols-2">
+          {CATEGORY_ORDER.filter((cat) => grouped[cat].length > 0).map((cat) => (
+            <div key={cat} data-testid={`shopping-list-cat-${cat}`}>
+              <div className="eyebrow-rule mb-2">
+                {shoppingCategoryLabel(cat)}
+                <span className="chip-count font-mono">{grouped[cat].length}</span>
+              </div>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th className="text-right">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))
+                </thead>
+                <tbody>
+                  {grouped[cat].map((item, idx) => (
+                    <tr key={`${cat}-${item.name}-${item.detail}-${idx}`}>
+                      <td>
+                        <span className="font-medium">{item.name}</span>
+                        {item.detail ? (
+                          <span className="ml-2 text-[0.7rem] uppercase tracking-wide text-[var(--muted-foreground)]">
+                            {detailLabel(cat, item.detail)}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="num text-right">
+                        {fmtShoppingAmount(
+                          item.amount,
+                          item.unit,
+                          units,
+                          item.imperialAmount ?? null,
+                          item.imperialUnit ?? null,
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
       )}
     </section>
   );

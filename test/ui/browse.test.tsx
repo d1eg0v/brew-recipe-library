@@ -162,6 +162,17 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       // Filter form is present.
       expect(html).toContain("name=\"category\"");
       expect(html).toContain("name=\"style\"");
+
+      // SRM swatch is rendered for beer cards (BRE-45). Pull a beer
+      // recipe with a non-null targetSrm and assert the swatch aria label
+      // appears in the HTML.
+      const beer = await db.prisma.recipe.findFirst({
+        where: { category: "beer", targetSrm: { not: null } },
+        select: { targetSrm: true },
+      });
+      if (beer?.targetSrm != null) {
+        expect(html).toContain(`aria-label="SRM ${beer.targetSrm.toFixed(1)}"`);
+      }
     } finally {
       restore();
     }
