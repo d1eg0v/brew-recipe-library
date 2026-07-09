@@ -91,6 +91,12 @@ export default function RootLayout({
                   ABV
                 </Link>
                 <Link
+                  href="/pitch-rate"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  Pitch rate
+                </Link>
+                <Link
                   href="/strike-water"
                   className="btn btn-ghost btn-sm hidden sm:inline-flex"
                 >
