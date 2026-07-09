@@ -91,6 +91,12 @@ export default function RootLayout({
                   ABV
                 </Link>
                 <Link
+                  href="/strike-water"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  Strike water
+                </Link>
+                <Link
                   href="/recipes/new"
                   className="btn btn-outline btn-sm no-underline"
                 >

@@ -596,6 +596,13 @@ function Controls({
         >
           Calculate ABV →
         </Link>
+        <Link
+          href={`/strike-water?recipeId=${recipe.id}&units=${units}`}
+          className="text-[var(--accent)] underline"
+          data-testid="strike-water-link"
+        >
+          Calculate strike water →
+        </Link>
         {loading && <span className="italic">updating…</span>}
       </div>
     </section>

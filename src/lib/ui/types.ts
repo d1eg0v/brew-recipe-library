@@ -294,6 +294,43 @@ export interface PrimingSugarResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Strike-water / mash-infusion calculator (BRE-34).
+// ---------------------------------------------------------------------------
+
+/** Server-derived result of the strike-water calculation. */
+export interface StrikeWaterResult {
+  volumeLiters: number;
+  strikeTempC: number;
+  waterToGrainRatioLPerKg: number;
+  input: {
+    grainKg: number;
+    targetMashTempC: number;
+    grainTempC: number;
+    waterToGrainRatioLPerKg: number;
+  };
+}
+
+/** `GET /api/strike-water` response shape. */
+export interface StrikeWaterResponse {
+  data: {
+    result: StrikeWaterResult;
+    /** Imperial parallel when `?units=imperial` was requested. */
+    imperial?: {
+      volumeGallons: number;
+      strikeTempF: number;
+    } | null;
+    /** Echoed source — "standalone" when no recipe was involved. */
+    source: "standalone" | "recipe";
+    /** Optional pre-fill context (the recipe that fed the grain mass). */
+    recipe?: {
+      id: string;
+      title: string;
+      grainKg: number;
+    } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Quick ABV-from-OG/FG calculator (BRE-35).
 // ---------------------------------------------------------------------------
 
