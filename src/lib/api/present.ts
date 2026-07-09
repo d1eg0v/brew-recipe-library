@@ -150,6 +150,9 @@ export function presentRecipe<T extends RecipeView>(
       : null;
 
   let next: Record<string, unknown> = { ...recipe };
+  if (typeof next.beverageType !== "string" && typeof next.category === "string") {
+    next.beverageType = next.category;
+  }
 
   if (factor != null && factor !== 1) {
     next = scaleAmountFields(next, factor);

@@ -20,6 +20,7 @@ export interface RecipeListItem {
   title: string;
   author: string | null;
   category: string;
+  beverageType?: string | null;
   styleName: string | null;
   bjcpCategory: string | null;
   batchSizeLiters: number;
@@ -28,6 +29,7 @@ export interface RecipeListItem {
   targetSrm: number | null;
   targetOg: number | null;
   targetFg: number | null;
+  targetPh: number | null;
   description: string | null;
   /** Sorted, normalised tag names. Empty array when the recipe has none. */
   tags: string[];
@@ -73,6 +75,7 @@ export interface YeastRow {
   type: string | null;
   form: string | null;
   attenuationPct: number | null;
+  abvTolerancePct: number | null;
   temperatureCMin: number | null;
   temperatureCMax: number | null;
   temperatureFMin?: number | null;
@@ -124,6 +127,7 @@ export interface RecipeDetail {
   description: string | null;
   notes: string | null;
   category: string;
+  beverageType?: string | null;
   styleName: string | null;
   bjcpCategory: string | null;
   batchSizeLiters: number;
@@ -132,6 +136,7 @@ export interface RecipeDetail {
   efficiencyPct: number;
   targetOg: number | null;
   targetFg: number | null;
+  targetPh: number | null;
   targetAbv: number | null;
   targetIbu: number | null;
   targetSrm: number | null;
@@ -167,6 +172,21 @@ export interface RecipeListResponse {
 
 export interface RecipeDetailResponse {
   data: RecipeDetail;
+}
+
+export interface BatchLogRow {
+  id: string;
+  recipeId: string;
+  batchId: string | null;
+  logDate: string;
+  type: string;
+  gravity: number | null;
+  ph: number | null;
+  temperatureC: number | null;
+  volumeLiters: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** One row of the shopping list as returned by `GET /api/recipes/[id]/shopping-list`. */
@@ -306,6 +326,48 @@ export interface StrikeWaterResponse {
       id: string;
       title: string;
       grainKg: number;
+    } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Quick ABV-from-OG/FG calculator (BRE-35).
+// ---------------------------------------------------------------------------
+
+/** Which formula the ABV calc used. Matches `AbvFormula` in `@/lib/brewing/abv`. */
+export type AbvFormula = "linear" | "highGravity";
+
+/** Server-derived result of the ABV calculation. */
+export interface MeasuredAbvResult {
+  /** Alcohol by volume, percent. */
+  abvPct: number;
+  /** Apparent attenuation, percent (0–100). */
+  apparentAttenuationPct: number;
+  /** Gravity points dropped during fermentation (OG − FG, in points × 1000). */
+  gravityPointsDropped: number;
+  /** Which formula was used. */
+  formulaUsed: AbvFormula;
+  /** True when the high-gravity formula was used (either forced or auto-picked). */
+  isHighGravity: boolean;
+  input: {
+    measuredOg: number;
+    measuredFg: number;
+    formula: AbvFormula;
+  };
+}
+
+/** `GET /api/abv` response shape. */
+export interface MeasuredAbvResponse {
+  data: {
+    result: MeasuredAbvResult;
+    /** Echoed source — "standalone" when no recipe was involved. */
+    source: "standalone" | "recipe";
+    /** Optional pre-fill context (the recipe that fed OG/FG). */
+    recipe?: {
+      id: string;
+      title: string;
+      targetOg: number | null;
+      targetFg: number | null;
     } | null;
   };
 }

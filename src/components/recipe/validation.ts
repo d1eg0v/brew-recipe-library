@@ -93,6 +93,9 @@ function yeastToBody(r: YeastRowState) {
   if (r.attenuationPct != null) {
     out.attenuationPct = roundNumber(r.attenuationPct);
   }
+  if (r.abvTolerancePct != null) {
+    out.abvTolerancePct = roundNumber(r.abvTolerancePct);
+  }
   if (r.temperatureCMin != null) {
     out.temperatureCMin = roundNumber(r.temperatureCMin);
   }
@@ -174,6 +177,8 @@ export function toCreateBody(state: RecipeFormState): RecipeCreateBody {
   if (og != null) body.targetOg = og;
   const fg = numberOrUndefinedRounded(state.targetFg);
   if (fg != null) body.targetFg = fg;
+  const ph = numberOrUndefinedRounded(state.targetPh);
+  if (ph != null) body.targetPh = ph;
   const abv = numberOrUndefinedRounded(state.targetAbv);
   if (abv != null) body.targetAbv = abv;
   const ibu = numberOrUndefinedRounded(state.targetIbu);

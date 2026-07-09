@@ -430,6 +430,13 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
 
           <div className="ml-auto flex gap-2">
             <Link
+              href={`/recipes/compare?a=${recipe.id}`}
+              className="btn btn-ghost no-underline"
+              data-testid="compare-link"
+            >
+              Compare with…
+            </Link>
+            <Link
               href={`/recipes/${recipe.id}/edit`}
               className="btn btn-outline no-underline"
             >
@@ -583,6 +590,13 @@ function Controls({
           Calculate priming sugar →
         </Link>
         <Link
+          href={`/abv?recipeId=${recipe.id}`}
+          className="text-[var(--accent)] underline"
+          data-testid="abv-link"
+        >
+          Calculate ABV →
+        </Link>
+        <Link
           href={`/strike-water?recipeId=${recipe.id}&units=${units}`}
           className="text-[var(--accent)] underline"
           data-testid="strike-water-link"
@@ -642,6 +656,11 @@ function Targets({ recipe }: { recipe: RecipeDetail }) {
     value: recipe.targetAbv != null ? fmtPercent(recipe.targetAbv, 1) : "—",
     ratio: recipe.targetAbv != null ? clamp(recipe.targetAbv / 15) : 0,
   });
+  cells.push({
+    label: "pH",
+    value: recipe.targetPh != null ? fmtNumber(recipe.targetPh, 2) : "—",
+    ratio: recipe.targetPh != null ? clamp((7 - recipe.targetPh) / 5) : 0,
+  });
   if (recipe.category === "beer") {
     cells.push({
       label: "IBU",
@@ -656,7 +675,7 @@ function Targets({ recipe }: { recipe: RecipeDetail }) {
     });
   }
   const cols =
-    cells.length === 5 ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-3";
+    cells.length === 6 ? "sm:grid-cols-3 lg:grid-cols-6" : "sm:grid-cols-4";
   return (
     <section className="section">
       <div className="section-title">
@@ -795,7 +814,7 @@ function Yeasts({
       {recipe.yeasts.length === 0 ? (
         <Empty>None listed.</Empty>
       ) : (
-        <Table headers={["Name", "Lab / code", "Type", "Form", "Attenuation", "Temperature", "Notes"]}>
+        <Table headers={["Name", "Lab / code", "Type", "Form", "Attenuation", "ABV tolerance", "Temperature", "Notes"]}>
           {recipe.yeasts.map((y) => (
             <tr key={y.id}>
               <td className="font-medium">{y.name}</td>
@@ -806,6 +825,9 @@ function Yeasts({
               <td>{titleCase(y.form)}</td>
               <td className="num">
                 {y.attenuationPct != null ? fmtPercent(y.attenuationPct, 0) : "—"}
+              </td>
+              <td className="num">
+                {y.abvTolerancePct != null ? fmtPercent(y.abvTolerancePct, 1) : "—"}
               </td>
               <td className="num">
                 {fmtTempRange(y.temperatureCMin, y.temperatureCMax, units)}

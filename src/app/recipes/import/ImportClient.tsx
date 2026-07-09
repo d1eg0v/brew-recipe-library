@@ -10,6 +10,12 @@ export default function ImportPage() {
     | { kind: "error"; message: string }
   >({ kind: "idle" });
   const [fileName, setFileName] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<
+    | { kind: "idle" }
+    | { kind: "loading" }
+    | { kind: "ok"; inserted: number; skipped: number; loaded: number }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
 
   const handleFile = useCallback(async (file: File | null) => {
     if (!file) return;
@@ -48,15 +54,43 @@ export default function ImportPage() {
     }
   }, []);
 
+  const handleBaselineSync = useCallback(async () => {
+    setSyncStatus({ kind: "loading" });
+    try {
+      const res = await fetch("/api/recipes/import/baseline", { method: "POST" });
+      const body = (await res.json()) as
+        | { data?: { inserted: number; skipped: number; loaded: number } }
+        | { error?: { message: string } };
+      if (!res.ok) {
+        setSyncStatus({
+          kind: "error",
+          message:
+            (body as { error?: { message?: string } }).error?.message ??
+            `Baseline sync failed (HTTP ${res.status})`,
+        });
+        return;
+      }
+      const data = (body as { data?: { inserted: number; skipped: number; loaded: number } }).data;
+      if (!data) {
+        setSyncStatus({ kind: "error", message: "Server returned no sync report" });
+        return;
+      }
+      setSyncStatus({ kind: "ok", ...data });
+    } catch (err) {
+      setSyncStatus({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Baseline sync failed",
+      });
+    }
+  }, []);
+
   return (
     <div className="space-y-6 max-w-2xl">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Import BeerXML</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Import data</h1>
         <p className="text-[var(--muted-foreground)]">
-          Upload a BeerXML 1.0 file (e.g. from BeerSmith, Brewfather, or another
-          homebrew tool) to create a new recipe. The parser accepts the
-          standard recipe schema; non-beer categories round-trip as best as
-          the format allows.
+          Upload a BeerXML 1.0 file or sync the curated FermentDB baseline
+          recipes for beer, mead, wine, and cider.
         </p>
       </header>
 
@@ -95,6 +129,36 @@ export default function ImportPage() {
           Imported <strong>{status.title}</strong>. Redirecting…
         </div>
       )}
+
+      <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 space-y-3">
+        <div>
+          <h2 className="text-base font-semibold">Baseline sync</h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Adds missing curated FermentDB seed recipes without deleting your
+            existing library.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => void handleBaselineSync()}
+          disabled={syncStatus.kind === "loading"}
+        >
+          {syncStatus.kind === "loading" ? "Syncing…" : "Sync baseline"}
+        </button>
+        {syncStatus.kind === "error" && (
+          <div className="p-3 rounded-md border border-[var(--error-border)] bg-[var(--error-bg)] text-[var(--error-fg)] text-sm">
+            {syncStatus.message}
+          </div>
+        )}
+        {syncStatus.kind === "ok" && (
+          <div className="p-3 rounded-md border border-[var(--border)] bg-[var(--muted)] text-sm">
+            Synced {syncStatus.inserted} new recipe
+            {syncStatus.inserted === 1 ? "" : "s"}; {syncStatus.skipped} already
+            present from {syncStatus.loaded} baseline entries.
+          </div>
+        )}
+      </section>
     </div>
   );
 }

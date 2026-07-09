@@ -80,6 +80,12 @@ const nameField = z.string().trim().min(1).max(200);
 const notesField = z.string().trim().max(10_000).optional();
 const temperatureField = z.number().finite().gte(-50).lte(150); // °C; bounded guard
 const percentageField = z.number().finite().gte(0).lte(100);
+const beverageTypeField = z
+  .string()
+  .refine(
+    (v) => (RECIPE_CATEGORIES as readonly string[]).includes(v),
+    { message: `must be one of: ${RECIPE_CATEGORIES.join(", ")}` },
+  );
 
 /**
  * One freeform tag name as accepted on the wire (BRE-29). Validates shape only;
@@ -177,6 +183,7 @@ const yeastInputSchema = z.object({
     )
     .optional(),
   attenuationPct: percentageField.optional(),
+  abvTolerancePct: percentageField.optional(),
   temperatureCMin: temperatureField.optional(),
   temperatureCMax: temperatureField.optional(),
   notes: notesField,
@@ -238,13 +245,8 @@ export const recipeBodySchema = z
     author: z.string().trim().max(200).optional(),
     description: z.string().trim().max(5000).optional(),
     notes: z.string().trim().max(10_000).optional(),
-    category: z
-      .string()
-      .refine(
-        (v) => (RECIPE_CATEGORIES as readonly string[]).includes(v),
-        { message: `must be one of: ${RECIPE_CATEGORIES.join(", ")}` },
-      )
-      .optional(),
+    category: beverageTypeField.optional(),
+    beverageType: beverageTypeField.optional(),
     styleName: z.string().trim().max(200).optional(),
     bjcpCategory: z.string().trim().max(20).optional(),
     batchSizeLiters: positiveNumber,
@@ -252,6 +254,7 @@ export const recipeBodySchema = z
     efficiencyPct: percentageField.optional(),
     targetOg: z.number().finite().gte(0.95).lte(1.2).optional(),
     targetFg: z.number().finite().gte(0.95).lte(1.2).optional(),
+    targetPh: z.number().finite().gte(2).lte(7).optional(),
     targetAbv: z.number().finite().gte(0).lte(25).optional(),
     targetIbu: z.number().finite().gte(0).lte(200).optional(),
     targetSrm: z.number().finite().gte(0).lte(80).optional(),
@@ -278,13 +281,8 @@ export const recipePatchSchema = z
     author: z.string().trim().max(200).optional(),
     description: z.string().trim().max(5000).optional(),
     notes: z.string().trim().max(10_000).optional(),
-    category: z
-      .string()
-      .refine(
-        (v) => (RECIPE_CATEGORIES as readonly string[]).includes(v),
-        { message: `must be one of: ${RECIPE_CATEGORIES.join(", ")}` },
-      )
-      .optional(),
+    category: beverageTypeField.optional(),
+    beverageType: beverageTypeField.optional(),
     styleName: z.string().trim().max(200).optional(),
     bjcpCategory: z.string().trim().max(20).optional(),
     batchSizeLiters: positiveNumber.optional(),
@@ -292,6 +290,7 @@ export const recipePatchSchema = z
     efficiencyPct: percentageField.optional(),
     targetOg: z.number().finite().gte(0.95).lte(1.2).optional(),
     targetFg: z.number().finite().gte(0.95).lte(1.2).optional().nullable(),
+    targetPh: z.number().finite().gte(2).lte(7).optional().nullable(),
     targetAbv: z.number().finite().gte(0).lte(25).optional(),
     targetIbu: z.number().finite().gte(0).lte(200).optional(),
     targetSrm: z.number().finite().gte(0).lte(80).optional(),
@@ -419,6 +418,39 @@ export const batchPatchSchema = z
   })
   .strict();
 
+export const BATCH_LOG_TYPES = [
+  "note",
+  "gravity",
+  "ph",
+  "temperature",
+  "racking",
+  "addition",
+  "tasting",
+  "other",
+] as const;
+
+const batchLogTypeField = z
+  .string()
+  .refine(
+    (v) => (BATCH_LOG_TYPES as readonly string[]).includes(v),
+    { message: `must be one of: ${BATCH_LOG_TYPES.join(", ")}` },
+  );
+
+export const batchLogCreateSchema = z
+  .object({
+    batchId: z.string().optional(),
+    logDate: brewDateField.optional(),
+    type: batchLogTypeField.default("note"),
+    gravity: z.number().finite().gte(0.95).lte(1.2).optional(),
+    ph: z.number().finite().gte(2).lte(7).optional(),
+    temperatureC: temperatureField.optional(),
+    volumeLiters: batchVolumeField.optional(),
+    notes: z.string().trim().max(10_000).optional(),
+  })
+  .strict();
+
+export const batchLogPatchSchema = batchLogCreateSchema.partial().strict();
+
 export type BatchCreateBody = z.infer<typeof batchCreateSchema>;
 export type BatchPatchBody = z.infer<typeof batchPatchSchema>;
 
@@ -526,11 +558,77 @@ export const strikeWaterQuerySchema = z
 
 export type StrikeWaterQuery = z.infer<typeof strikeWaterQuerySchema>;
 
+// -----------------------------------------------------------------------------
+// Quick ABV-from-OG/FG calculator (BRE-35) — query params for GET /api/abv.
+//
+// The brewer's measured readings are gravity (dimensionless), so there are
+// no metric/imperial conversions here — the same numbers work in either
+// unit system. The optional `recipeId` is for pre-filling the inputs from
+// a recipe's target OG/FG, matching the pre-fill pattern used by
+// `primingSugarQuerySchema` and `strikeWaterQuerySchema`.
+// -----------------------------------------------------------------------------
+
+const abvFormulaField = z
+  .string()
+  .refine(
+    (v) => v === "auto" || v === "linear" || v === "highGravity",
+    { message: "must be one of: auto, linear, highGravity" },
+  )
+  .optional();
+
+/** Query params for `GET /api/abv`. */
+export const abvQuerySchema = z
+  .object({
+    /** Measured original gravity. Coerced from string when needed. */
+    measuredOg: z.coerce.number().finite().gte(0.95).lte(1.2).optional(),
+    /** Measured final gravity. Coerced from string when needed. */
+    measuredFg: z.coerce.number().finite().gte(0.95).lte(1.2).optional(),
+    /**
+     * Formula override. "auto" (default) picks the high-gravity correction
+     * at OG ≥ 1.07; "linear" always uses the standard (OG - FG) × 131.25;
+     * "highGravity" always uses the Daniels/Papazian nonlinear form.
+     */
+    formula: abvFormulaField,
+    /**
+     * Optional recipe id — when present, the route looks up the recipe's
+     * targetOg / targetFg to pre-fill `measuredOg` / `measuredFg`. A
+     * caller-provided value always wins over the recipe target.
+     */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+  })
+  .refine(
+    (q) =>
+      q.recipeId != null ||
+      (q.measuredOg != null && q.measuredFg != null),
+    {
+      message:
+        "either recipeId or both measuredOg and measuredFg are required",
+      path: ["measuredOg"],
+    },
+  )
+  .refine(
+    // Cross-field OG/FG check is enforced by the pure calc; we still reject
+    // the obvious mis-entry here so the caller gets a useful error rather
+    // than a generic 500 from the validator.
+    (q) =>
+      q.measuredOg == null ||
+      q.measuredFg == null ||
+      q.measuredOg >= q.measuredFg,
+    {
+      message: "measuredOg must be greater than or equal to measuredFg",
+      path: ["measuredOg"],
+    },
+  );
+
+export type AbvQuery = z.infer<typeof abvQuerySchema>;
+
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;
 export type RecipeListQuery = z.infer<typeof recipeListQuerySchema>;
 export type RecipeDetailQuery = z.infer<typeof recipeDetailQuerySchema>;
+export type BatchLogCreateBody = z.infer<typeof batchLogCreateSchema>;
+export type BatchLogPatchBody = z.infer<typeof batchLogPatchSchema>;
 
 // -----------------------------------------------------------------------------
 // Tag schemas (BRE-29) — freeform recipe labels.

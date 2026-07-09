@@ -76,23 +76,26 @@ physical quantities are stored in **metric SI units** (kg, litres, grams,
 Celsius); imperial conversion happens in app code, never in the DB. SQLite has no
 enums, so categorical fields are `String` with allowed values documented inline.
 
-- **Recipe** — title, author, description/notes, `category`
+- **Recipe** — title, author, description/notes, `category` plus FermentDB
+  `beverageType` / `beverage_type`
   (`beer | mead | wine | cider | other`), `styleName`, `bjcpCategory`,
   `batchSizeLiters`, `boilTimeMinutes`, `efficiencyPct`, and targets
-  `targetOg`/`targetFg`/`targetAbv`/`targetIbu`/`targetSrm`.
+  `targetOg`/`targetFg`/`targetPh`/`targetAbv`/`targetIbu`/`targetSrm`.
 - **Fermentable** — grain/extract/sugar/adjunct/honey/juice/concentrate/fruit/must.
   Either `amountKg` (solids) or `amountLiters` (liquids); `colorLovibond`,
   `potentialPpg`.
 - **Hop** — `name`, `amountGrams`, `alphaAcidPct`, `timeMinutes`, `use`
   (boil/firstWort/whirlpool/dryHop/mash), `form`.
 - **Yeast** — `name`, `laboratory`, `productId`, `type`, `form`,
-  `attenuationPct`, temperature range.
+  `attenuationPct`, `abvTolerancePct`, temperature range.
 - **MashStep** — `name`, `type` (infusion/temperature/decoction), `stepTempC`,
   `stepTimeMinutes`, `infuseAmountLiters`, ordered by `position`.
 - **ProcessStep** — generic fermentation/racking/backsweetening/stabilizing/
   aging/bottling step that applies across all categories.
 - **Addition** — non-fermentable, non-hop, non-yeast input (yeast nutrient, acid
   blend, pectic enzyme, campden/potassium metabisulfite, tannin).
+- **BatchLog** — dynamic fermentation timeline entries for gravity, pH,
+  temperature, racking, additions, tasting notes, and other active-batch events.
 
 Fermentables, Hops, Yeasts, MashSteps, ProcessSteps, and Additions each belong
 to a Recipe (`onDelete: Cascade`) and carry a `position` field for stable
@@ -111,6 +114,8 @@ The layer exposes:
 | `estimateOg(ferm, batchL, effPct)`      | Original gravity from grain bill         |
 | `estimateFg(og, attPct)`                | Final gravity from OG + attenuation      |
 | `estimateAbv(og, fg)`                   | ABV %                                     |
+| `estimateHighGravityAbv(og, fg)`        | Nonlinear ABV for strong mead/wine         |
+| `brixToGravity(brix)`                   | Refractometer Brix to specific gravity    |
 | `estimateIbu(hops, batchL, og)`         | IBU (Tinseth)                              |
 | `estimateSrm(ferm, batchL)`             | SRM (Morey)                                |
 | `computeTargets(input)`                 | OG / FG / ABV / IBU / SRM in one pass    |
@@ -134,6 +139,24 @@ added to the response when callers ask for them.
 | `PATCH` | `/api/recipes/[id]`                  | Partial update (any scalar or child list)                           |
 | `DELETE`| `/api/recipes/[id]`                  | Delete the recipe                                                   |
 | `POST`  | `/api/recipes/[id]/clone`            | Deep-copy a recipe with `(copy)` appended to the title              |
+| `GET`   | `/api/recipes/[id]/logs`             | List dynamic FermentDB batch log entries                            |
+| `POST`  | `/api/recipes/[id]/logs`             | Add a gravity/pH/temp/note log entry                                |
+| `POST`  | `/api/recipes/import/baseline`       | Add missing curated baseline recipes without wiping user data       |
+
+### Ingestion scripts
+
+FermentDB ingestion helpers live under [`scripts/`](scripts):
+
+```bash
+# Normalize the existing seed file
+python3 scripts/ingest.py prisma/seed/recipes.json --output /tmp/fermentdb.json
+
+# Normalize a BeerJSON-style recipes[] document
+python3 scripts/ingest.py beerjson.json --format beerjson
+
+# Discover CSV/JSON/ZIP links from a dataset page for curator review
+python3 scripts/ingest.py --scrape-url 'https://example.com/dataset-page'
+```
 
 ### Examples
 

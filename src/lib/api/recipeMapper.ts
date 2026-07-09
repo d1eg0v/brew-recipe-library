@@ -34,6 +34,14 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
   return out as T;
 }
 
+function syncBeverageFields(data: Record<string, unknown>): void {
+  const beverageType = data.beverageType ?? data.category;
+  if (typeof beverageType === "string" && beverageType.length > 0) {
+    data.category = beverageType;
+    data.beverageType = beverageType;
+  }
+}
+
 /** Build the `create` payload for a child list under a new recipe. */
 function childCreateMany<T extends Record<string, unknown>>(
   items: Child<T>[] | undefined,
@@ -86,6 +94,7 @@ export function recipeToCreateInput(body: RecipeCreateBody | RecipeReplaceBody) 
     processSteps: { create: childCreateMany(processSteps) },
     additions: { create: childCreateMany(additions) },
   });
+  syncBeverageFields(out);
   const tagPayload = buildTagPayload(tags);
   if (tagPayload) out.recipeTags = tagPayload;
   return out;
@@ -109,6 +118,7 @@ export function recipePatchToUpdateInput(body: RecipePatchBody) {
   } = body;
 
   const data: Record<string, unknown> = stripUndefined(scalars);
+  syncBeverageFields(data);
   if (fermentables !== undefined) {
     data.fermentables = {
       deleteMany: {},

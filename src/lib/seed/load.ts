@@ -23,6 +23,7 @@ function stripIds(input: unknown): unknown {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
       if (k === "id") continue;
+      if (v === null) continue;
       out[k] = stripIds(v);
     }
     return out;
@@ -38,6 +39,11 @@ function stripIds(input: unknown): unknown {
  */
 export function normalizeSeedRecipe(input: Record<string, unknown>): RecipeCreateBody {
   const stripped = stripIds(input) as Record<string, unknown>;
+  const beverageType = stripped.beverageType ?? stripped.category;
+  if (typeof beverageType === "string" && beverageType.length > 0) {
+    stripped.category = beverageType;
+    stripped.beverageType = beverageType;
+  }
   return stripped as unknown as RecipeCreateBody;
 }
 
