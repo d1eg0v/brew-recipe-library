@@ -26,6 +26,7 @@ export * from "./priming";
 export * from "./pitchRate";
 export * from "./abv";
 export * from "./mash";
+export * from "./bjcp";
 
 /**
  * Compute the full target set (OG/FG/ABV/IBU/SRM) for a recipe in one call.
