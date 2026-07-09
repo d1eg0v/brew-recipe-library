@@ -217,6 +217,29 @@ export function PrintGlyph({ className, ...rest }: IconProps) {
   );
 }
 
+/** BRE-43 — generic share / network glyph (three nodes + two links). */
+export function ShareGlyph({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} {...rest}>
+      <circle cx="6" cy="12" r="2" />
+      <circle cx="18" cy="6" r="2" />
+      <circle cx="18" cy="18" r="2" />
+      <path d="m7.6 11.1 9-4.4" />
+      <path d="m7.6 12.9 9 4.4" />
+    </svg>
+  );
+}
+
+/** Copy-to-clipboard glyph (BRE-43). */
+export function ClipboardGlyph({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} {...rest}>
+      <rect x="8" y="4" width="8" height="4" rx="1" />
+      <path d="M16 6h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2" />
+    </svg>
+  );
+}
+
 /** Map a recipe category to its glyph. */
 export function categoryGlyph(category: string | null | undefined) {
   switch (category) {
