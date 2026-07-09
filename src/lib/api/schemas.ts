@@ -663,3 +663,108 @@ export const tagListQuerySchema = z.object({
   limit: z.coerce.number().int().gte(1).lte(500).default(200),
 });
 export type TagListQuery = z.infer<typeof tagListQuerySchema>;
+
+// -----------------------------------------------------------------------------
+// Inventory schemas (BRE-40) — track on-hand grain/hop/yeast stock so the
+// shopping list can cross-reference what still needs buying. The category
+// union mirrors the shopping-list categories so an inventory row can match a
+// shopping-list row directly. Normalised key fields are derived at write time
+// so the API never accepts them from the client.
+// -----------------------------------------------------------------------------
+
+/** Inventory item categories (BRE-40). Same shape as shopping-list `category`. */
+export const INVENTORY_CATEGORIES = [
+  "fermentables",
+  "hops",
+  "yeast",
+  "additions",
+] as const;
+export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number];
+
+const inventoryCategoryField = z
+  .string()
+  .refine(
+    (v) => (INVENTORY_CATEGORIES as readonly string[]).includes(v),
+    { message: `must be one of: ${INVENTORY_CATEGORIES.join(", ")}` },
+  );
+
+const inventoryNameField = z.string().trim().min(1).max(200);
+const inventoryUnitField = z.string().trim().max(50);
+const inventoryDetailField = z.string().trim().max(100);
+const inventoryNotesField = z.string().trim().max(10_000).optional();
+
+/** Optional variant of `inventoryUnitField` with empty-string default. The
+ *  PATCH schema uses the required variant above because there we need to
+ *  distinguish "field omitted from body" (undefined → reject) from "field
+ *  explicitly set to empty string" (legitimate, e.g. clearing a unit). */
+const inventoryUnitFieldOptional = inventoryUnitField.optional().default("");
+const inventoryDetailFieldOptional = inventoryDetailField.optional().default("");
+
+/**
+ * Normalise a free-text field for the unique key on the inventory row.
+ * Trimmed + lowercased — matches the convention the shopping-list builder
+ * already uses for its bucket keys, so an inventory row matches the same
+ * shopping-list row regardless of who created it.
+ */
+function normaliseForKey(s: string | null | undefined): string {
+  return (s ?? "").trim().toLowerCase();
+}
+
+/** Body for `POST /api/inventory` (create one row). */
+export const inventoryCreateSchema = z
+  .object({
+    category: inventoryCategoryField,
+    name: inventoryNameField,
+    detail: inventoryDetailFieldOptional,
+    unit: inventoryUnitFieldOptional,
+    amountOnHand: nonNegativeNumber,
+    notes: inventoryNotesField,
+  })
+  .strict()
+  .transform((v) => ({
+    category: v.category,
+    name: v.name.trim(),
+    nameNormalized: normaliseForKey(v.name),
+    detail: v.detail,
+    detailNormalized: normaliseForKey(v.detail),
+    unit: v.unit,
+    unitNormalized: normaliseForKey(v.unit),
+    amountOnHand: v.amountOnHand,
+    notes: v.notes,
+  }));
+
+/** Body for `PATCH /api/inventory/[id]` (partial update). Any subset of the
+ *  editable fields is accepted. At least one field is required so empty PATCH
+ *  bodies fail fast instead of writing nothing. */
+export const inventoryPatchSchema = z
+  .object({
+    name: inventoryNameField.optional(),
+    detail: inventoryDetailField.optional(),
+    unit: inventoryUnitField.optional(),
+    amountOnHand: nonNegativeNumber.optional(),
+    notes: inventoryNotesField.nullable(),
+  })
+  .strict()
+  .refine(
+    (v) =>
+      v.name !== undefined ||
+      v.detail !== undefined ||
+      v.unit !== undefined ||
+      v.amountOnHand !== undefined ||
+      v.notes !== undefined,
+    { message: "at least one field must be provided" },
+  );
+
+/** Query params for `GET /api/inventory` — filter by category. */
+export const inventoryListQuerySchema = z.object({
+  category: inventoryCategoryField.optional(),
+});
+
+/** Query param for `GET /api/recipes/[id]/shopping-list` — when true, the
+ *  response includes a `crossReference` block with on-hand inventory data
+ *  layered on top of every shopping-list row. */
+export const RECIPE_SHOPPING_LIST_INCLUDE_INVENTORY = ["true", "1", "yes"] as const;
+
+export type InventoryCreateBody = z.infer<typeof inventoryCreateSchema>;
+export type InventoryPatchBody = z.infer<typeof inventoryPatchSchema>;
+export type InventoryListQuery = z.infer<typeof inventoryListQuerySchema>;

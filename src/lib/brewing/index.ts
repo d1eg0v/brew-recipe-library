@@ -25,6 +25,7 @@ export * from "./checklist";
 export * from "./priming";
 export * from "./abv";
 export * from "./mash";
+export * from "./inventory";
 
 /**
  * Compute the full target set (OG/FG/ABV/IBU/SRM) for a recipe in one call.
