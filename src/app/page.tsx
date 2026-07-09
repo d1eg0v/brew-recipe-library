@@ -4,6 +4,9 @@ import BatchSizeStat from "@/components/BatchSizeStat";
 import CategoryBadge from "@/components/CategoryBadge";
 import SrmSwatch from "@/components/SrmSwatch";
 import TagChip from "@/components/TagChip";
+import BrowseFavoritesGrid from "@/components/recipe/BrowseFavoritesGrid";
+import FavoritesFilter from "@/components/recipe/FavoritesFilter";
+import RecipeCardFavorite from "@/components/recipe/RecipeCardFavorite";
 import {
   ArrowGlyph,
   CategoryGlyph,
@@ -63,6 +66,13 @@ interface BrowseSearchParams {
   ogMax?: string;
   sort?: string;
   dir?: string;
+  /**
+   * "1" toggles the client-side favorites-only filter (BRE-46). The server
+   * still returns the full filtered set; the client wrapper hides
+   * non-favorites using the local `localStorage` set. Kept on the URL so
+   * a shared link or a refresh restores the same view.
+   */
+  favorites?: string;
 }
 
 function parseSort(p: BrowseSearchParams): RecipeSortField {
@@ -97,6 +107,9 @@ async function fetchRecipes(
   url.searchParams.set("sort", parseSort(params));
   url.searchParams.set("dir", parseDir(params));
   url.searchParams.set("limit", "100");
+  // `favorites` is a client-only filter; don't forward it to the server. The
+  // server would happily ignore it, but trimming it keeps URLs and debug
+  // logs tidy. See `BrowseFavoritesGrid` for the client-side handling.
 
   try {
     const res = await fetch(url.toString(), { cache: "no-store" });
@@ -187,7 +200,45 @@ function hasRangeFilter(p: BrowseSearchParams): boolean {
 }
 
 function hasAnyFilter(p: BrowseSearchParams): boolean {
-  return Boolean(p.q || p.category || p.style || p.tag || hasRangeFilter(p));
+  return Boolean(
+    p.q ||
+      p.category ||
+      p.style ||
+      p.tag ||
+      hasRangeFilter(p) ||
+      isFavoritesFilterOn(p),
+  );
+}
+
+/** True when `?favorites=1` is set on the URL. The filter is otherwise
+ *  client-side; this is the only place the server cares. */
+function isFavoritesFilterOn(p: BrowseSearchParams): boolean {
+  return p.favorites === "1";
+}
+
+/**
+ * Build the URL for the favorites filter chip (BRE-46). Preserves every
+ * other search param so toggling `?favorites=1` doesn't drop the user's
+ * category, tag, range, or sort selection.
+ */
+function favoritesHref(p: BrowseSearchParams): string {
+  const sp = new URLSearchParams();
+  if (p.q) sp.set("q", p.q);
+  if (p.category) sp.set("category", p.category);
+  if (p.style) sp.set("style", p.style);
+  if (p.tag) sp.set("tag", p.tag);
+  for (const key of RANGE_PARAM_KEYS) {
+    const value = p[key];
+    if (value) sp.set(key, value);
+  }
+  if (isFavoritesFilterOn(p)) sp.delete("favorites");
+  else sp.set("favorites", "1");
+  if (hasAnySort(p)) {
+    sp.set("sort", parseSort(p));
+    sp.set("dir", parseDir(p));
+  }
+  const qs = sp.toString();
+  return qs ? `/?${qs}` : "/";
 }
 
 function hasAnySort(p: BrowseSearchParams): boolean {
@@ -322,6 +373,10 @@ export default async function HomePage({
           params={params}
         />
         <TagFilter params={params} />
+        <FavoritesFilter
+          href={favoritesHref(params)}
+          active={isFavoritesFilterOn(params)}
+        />
         <RangeFilters params={params} />
         <SortControls params={params} />
 
@@ -343,13 +398,17 @@ export default async function HomePage({
         {filtered.length === 0 ? (
           <EmptyState filtered={isFiltered} />
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <BrowseFavoritesGrid
+            filterActive={isFavoritesFilterOn(params)}
+            recipeIds={filtered.map((r) => r.id)}
+            recipeCount={filtered.length}
+          >
             {filtered.map((r) => (
               <li key={r.id}>
                 <RecipeCard recipe={r} />
               </li>
             ))}
-          </ul>
+          </BrowseFavoritesGrid>
         )}
       </div>
     </div>
@@ -376,6 +435,9 @@ function CategoryChips({
       const value = params[key];
       if (value) sp.set(key, value);
     }
+    // Carry the favorites filter across category clicks (BRE-46) so the
+    // chip nav doesn't reset a layered filter the user just set.
+    if (isFavoritesFilterOn(params)) sp.set("favorites", "1");
     if (hasAnySort(params)) {
       sp.set("sort", parseSort(params));
       sp.set("dir", parseDir(params));
@@ -659,6 +721,9 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
             <SrmSwatch srm={recipe.targetSrm} size="md" />
           )}
           <CategoryBadge category={recipe.category} />
+          {/* BRE-46: per-card favorite toggle. Sits inside the wrapping <Link>
+              but stops propagation so clicking the star doesn't navigate. */}
+          <RecipeCardFavorite recipeId={recipe.id} recipeTitle={recipe.title} />
         </div>
       </div>
 
