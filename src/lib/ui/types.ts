@@ -152,6 +152,52 @@ export interface RecipeDetail {
   tagDetails: TagSummary[];
   createdAt: string;
   updatedAt: string;
+  /** BRE-44: BJCP style-guideline comparison block. Null when the recipe
+   *  has no `bjcpCategory` or the code doesn't match a seeded style. */
+  style: RecipeStyleComparison | null;
+}
+
+/** Per-metric comparison result echoed from the API (BRE-44). Mirrors
+ *  `StyleMetricResult` from `@/lib/brewing/bjcp` so the client can stay
+ *  strict without importing the brewing module. */
+export interface StyleMetricResult {
+  status: "inRange" | "below" | "above" | "noData" | "noRange";
+  value: number | null;
+  min: number | null;
+  max: number | null;
+}
+
+/** Full BRE-44 style comparison block. */
+export interface RecipeStyleComparison {
+  style: BjcpStyleSummary | null;
+  comparison: StyleComparisonBlock | null;
+}
+
+export interface BjcpStyleSummary {
+  code: string;
+  name: string;
+  category: string;
+  ogMin: number | null;
+  ogMax: number | null;
+  fgMin: number | null;
+  fgMax: number | null;
+  ibuMin: number | null;
+  ibuMax: number | null;
+  srmMin: number | null;
+  srmMax: number | null;
+  abvMin: number | null;
+  abvMax: number | null;
+}
+
+export interface StyleComparisonBlock {
+  og: StyleMetricResult;
+  fg: StyleMetricResult;
+  ibu: StyleMetricResult;
+  srm: StyleMetricResult;
+  abv: StyleMetricResult;
+  hasAnyRange: boolean;
+  allInRange: boolean | null;
+  outOfRangeCount: number | null;
 }
 
 /** Calculated targets derived from a recipe on the server. */
