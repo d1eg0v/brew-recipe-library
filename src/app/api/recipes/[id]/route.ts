@@ -77,8 +77,16 @@ export async function GET(
     const recipe = await loadRecipe(id);
     if (!recipe) return notFound();
     const units = (parsedQuery.data.units ?? "metric") as "metric" | "imperial";
+    // BRE-43: thread the request origin so the presenter can include a
+    // `shareUrl` when the recipe is shareable. The raw `shareToken` is
+    // stripped by the presenter — only the dedicated share endpoints expose it.
+    const headerOrigin = request.headers.get("origin");
+    const origin =
+      headerOrigin ??
+      process.env.NEXT_PUBLIC_BASE_URL ??
+      `${url.protocol}//${url.host}`;
     return NextResponse.json({
-      data: presentRecipe(recipe, { batchSize, units }),
+      data: presentRecipe(recipe, { batchSize, units, origin }),
     });
   } catch (err) {
     console.error("GET /api/recipes/[id] failed:", err);

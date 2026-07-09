@@ -52,6 +52,8 @@ function makeRecipe(overrides: Partial<RecipeDetail> = {}): RecipeDetail {
     additions: [
       { id: "a1", name: "Irish moss", amount: 1, unit: "tsp", purpose: "clarifier", timing: "at 15 min", notes: null, position: 0 },
     ],
+    shareable: false,
+    shareUrl: null,
     createdAt: "2025-01-01T00:00:00Z",
     updatedAt: "2025-01-01T00:00:00Z",
     ...overrides,

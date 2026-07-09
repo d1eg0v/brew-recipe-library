@@ -15,6 +15,7 @@ import {
   NoteGlyph,
   PencilGlyph,
   ScaleGlyph,
+  ShareGlyph,
   YeastGlyph,
 } from "@/components/icons";
 import { litersToGallons } from "@/lib/brewing/units";
@@ -59,6 +60,7 @@ import {
 
 import BatchHistorySection from "./BatchHistorySection";
 import RecipeActions from "./RecipeActions";
+import ShareLink from "@/components/recipe/ShareLink";
 import ShoppingListSection from "./ShoppingListSection";
 
 interface RecipeDetailClientProps {
@@ -68,6 +70,14 @@ interface RecipeDetailClientProps {
   initialShoppingList?: ShoppingList;
   initialBatches?: BatchSummary[];
   initialBatchesError?: string | null;
+  /**
+   * BRE-43 — when true, render the public share-link view: hide all
+   * owner-only controls (edit, duplicate, delete, tag edits, batch log,
+   * shopping list, breaker-sheet print, compare). All other sections
+   * (header, targets, ingredients, mash/process steps, additions, notes)
+   * render normally so a brewer can review the recipe end to end.
+   */
+  readOnly?: boolean;
 }
 
 export default function RecipeDetailClient({
@@ -77,6 +87,7 @@ export default function RecipeDetailClient({
   initialShoppingList,
   initialBatches,
   initialBatchesError,
+  readOnly = false,
 }: RecipeDetailClientProps) {
   const [recipe, setRecipe] = useState<RecipeDetail>(initialRecipe);
   const [units, setUnits] = useState<UnitSystem>(initialUnits ?? "metric");
@@ -248,7 +259,7 @@ export default function RecipeDetailClient({
 
   return (
     <div>
-      <Header recipe={recipe} />
+      <Header recipe={recipe} readOnly={readOnly} />
 
       {error && (
         <div
@@ -260,8 +271,15 @@ export default function RecipeDetailClient({
       )}
 
       <div className="mt-8 space-y-6">
-        <RecipeActions recipeId={recipe.id} recipeTitle={recipe.title} />
-        <TagsSection recipe={recipe} />
+        {!readOnly && (
+          <RecipeActions recipeId={recipe.id} recipeTitle={recipe.title} />
+        )}
+        {!readOnly && <ShareLink recipe={recipe} />}
+        {readOnly ? (
+          <ShareReadOnlyTags tags={recipe.tags ?? []} />
+        ) : (
+          <TagsSection recipe={recipe} />
+        )}
 
         <Controls
           batchSize={batchSize}
@@ -274,6 +292,7 @@ export default function RecipeDetailClient({
           originalBatchLiters={originalBatchLiters}
           currentBatchLiters={Number.isFinite(currentBatch) ? currentBatch : null}
           recipe={recipe}
+          readOnly={readOnly}
         />
 
         <Targets recipe={recipe} />
@@ -289,19 +308,23 @@ export default function RecipeDetailClient({
         )}
         {recipe.additions.length > 0 && <Additions recipe={recipe} />}
 
-        <BatchHistorySection
-          recipeId={recipe.id}
-          batches={batches}
-          units={units}
-          error={batchesError}
-        />
+        {!readOnly && (
+          <BatchHistorySection
+            recipeId={recipe.id}
+            batches={batches}
+            units={units}
+            error={batchesError}
+          />
+        )}
 
-        <ShoppingListSection
-          shoppingList={shoppingList}
-          units={units}
-          error={shoppingListError}
-          recipeTitle={recipe.title}
-        />
+        {!readOnly && (
+          <ShoppingListSection
+            shoppingList={shoppingList}
+            units={units}
+            error={shoppingListError}
+            recipeTitle={recipe.title}
+          />
+        )}
 
         {recipe.notes && (
           <section className="section">
@@ -339,7 +362,40 @@ function TagsSection({ recipe }: { recipe: RecipeDetail }) {
   );
 }
 
-function Header({ recipe }: { recipe: RecipeDetail }) {
+/** Read-only tag chips — used by the public share view. Skips edit controls
+ *  and "filter the library" hints because the public visitor cannot add or
+ *  remove tags. */
+export function ReadOnlyTags({ tags }: { tags: string[] }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {tags.map((t) => (
+        <span
+          key={t}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)]"
+        >
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Section wrapper for the read-only tag chips so the header layout matches
+ *  the editable `TagsSection`. */
+function ShareReadOnlyTags({ tags }: { tags: string[] }) {
+  return (
+    <section className="section" aria-labelledby="share-tags-heading">
+      <h2 id="share-tags-heading" className="section-title">
+        Tags
+        <span className="count">{tags.length}</span>
+      </h2>
+      <ReadOnlyTags tags={tags} />
+    </section>
+  );
+}
+
+function Header({ recipe, readOnly }: { recipe: RecipeDetail; readOnly: boolean }) {
   const accent = categoryAccent(recipe.category, recipe.targetSrm);
   const srmHex = srmToHex(recipe.category === "beer" ? recipe.targetSrm : null);
   const srmInk = inkOn(srmHex);
@@ -358,21 +414,30 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
       <div className="relative mx-auto max-w-6xl px-6 py-10">
         <nav className="mb-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
-            >
-              <ArrowGlyph className="h-3.5 w-3.5 rotate-180" />
-              All recipes
-            </Link>
-            <Link
-              href={`/recipes/${recipe.id}/print`}
-              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
-              data-testid="print-sheet-link"
-            >
-              Print brew sheet
-              <ArrowGlyph className="h-3.5 w-3.5" />
-            </Link>
+            {readOnly ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3 py-1 text-xs font-medium text-[var(--accent)]">
+                <ShareGlyph className="h-3.5 w-3.5" />
+                Shared recipe · read-only
+              </span>
+            ) : (
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
+              >
+                <ArrowGlyph className="h-3.5 w-3.5 rotate-180" />
+                All recipes
+              </Link>
+            )}
+            {!readOnly && (
+              <Link
+                href={`/recipes/${recipe.id}/print`}
+                className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
+                data-testid="print-sheet-link"
+              >
+                Print brew sheet
+                <ArrowGlyph className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
         </nav>
 
@@ -429,20 +494,24 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
           </div>
 
           <div className="ml-auto flex gap-2">
-            <Link
-              href={`/recipes/compare?a=${recipe.id}`}
-              className="btn btn-ghost no-underline"
-              data-testid="compare-link"
-            >
-              Compare with…
-            </Link>
-            <Link
-              href={`/recipes/${recipe.id}/edit`}
-              className="btn btn-outline no-underline"
-            >
-              <PencilGlyph className="h-4 w-4" />
-              Edit
-            </Link>
+            {!readOnly && (
+              <>
+                <Link
+                  href={`/recipes/compare?a=${recipe.id}`}
+                  className="btn btn-ghost no-underline"
+                  data-testid="compare-link"
+                >
+                  Compare with…
+                </Link>
+                <Link
+                  href={`/recipes/${recipe.id}/edit`}
+                  className="btn btn-outline no-underline"
+                >
+                  <PencilGlyph className="h-4 w-4" />
+                  Edit
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -467,6 +536,7 @@ function Controls({
   originalBatchLiters,
   currentBatchLiters,
   recipe,
+  readOnly = false,
 }: {
   batchSize: string;
   onBatchSizeChange: (s: string) => void;
@@ -478,6 +548,7 @@ function Controls({
   originalBatchLiters: number;
   currentBatchLiters: number | null;
   recipe: RecipeDetail;
+  readOnly?: boolean;
 }) {
   return (
     <section className="section">
@@ -486,58 +557,60 @@ function Controls({
         Scale &amp; units
       </div>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[2fr_1fr] md:items-end">
-        <div>
-          <label htmlFor="batch-size" className="label-eyebrow block mb-1.5">
-            Target batch size ({units === "imperial" ? "gallons" : "litres"})
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <input
-              id="batch-size"
-              type="number"
-              min="0.1"
-              step="0.1"
-              value={batchSize}
-              onChange={(e) => onBatchSizeChange(e.target.value)}
-              className="field field-mono flex-1 min-w-[8rem]"
-            />
-            {isScaled && (
-              <button
-                type="button"
-                onClick={onResetBatchSize}
-                className="btn btn-outline btn-sm"
-              >
-                Reset ·{" "}
-                {fmtBatchSize(
-                  originalBatchLiters,
-                  recipe.batchSizeGallons ?? null,
-                  units,
-                )}
-              </button>
+        {!readOnly && (
+          <div>
+            <label htmlFor="batch-size" className="label-eyebrow block mb-1.5">
+              Target batch size ({units === "imperial" ? "gallons" : "litres"})
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <input
+                id="batch-size"
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={batchSize}
+                onChange={(e) => onBatchSizeChange(e.target.value)}
+                className="field field-mono flex-1 min-w-[8rem]"
+              />
+              {isScaled && (
+                <button
+                  type="button"
+                  onClick={onResetBatchSize}
+                  className="btn btn-outline btn-sm"
+                >
+                  Reset ·{" "}
+                  {fmtBatchSize(
+                    originalBatchLiters,
+                    recipe.batchSizeGallons ?? null,
+                    units,
+                  )}
+                </button>
+              )}
+            </div>
+            {isScaled && currentBatchLiters != null && (
+              <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+                Scaled to{" "}
+                <span className="font-mono text-[var(--foreground)]">
+                  {fmtBatchSize(
+                    currentBatchLiters,
+                    litersToGallons(currentBatchLiters),
+                    units,
+                  )}
+                </span>{" "}
+                (from{" "}
+                <span className="font-mono">
+                  {fmtBatchSize(
+                    originalBatchLiters,
+                    recipe.batchSizeGallons ?? null,
+                    units,
+                  )}
+                </span>
+                ). Targets are not rescaled.
+              </p>
             )}
           </div>
-          {isScaled && currentBatchLiters != null && (
-            <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-              Scaled to{" "}
-              <span className="font-mono text-[var(--foreground)]">
-                {fmtBatchSize(
-                  currentBatchLiters,
-                  litersToGallons(currentBatchLiters),
-                  units,
-                )}
-              </span>{" "}
-              (from{" "}
-              <span className="font-mono">
-                {fmtBatchSize(
-                  originalBatchLiters,
-                  recipe.batchSizeGallons ?? null,
-                  units,
-                )}
-              </span>
-              ). Targets are not rescaled.
-            </p>
-          )}
-        </div>
-        <div className="md:justify-self-end">
+        )}
+        <div className={readOnly ? "md:justify-self-end" : "md:justify-self-end"}>
           <span className="label-eyebrow block mb-1.5">Units</span>
           <div
             className="inline-flex rounded-lg border border-[var(--border-strong)] bg-[var(--background)] p-0.5"
@@ -582,28 +655,32 @@ function Controls({
             {fmtNumber(recipe.efficiencyPct, 0)}%
           </span>
         </span>
-        <Link
-          href={`/priming-sugar?recipeId=${recipe.id}&units=${units}`}
-          className="text-[var(--accent)] underline"
-          data-testid="priming-sugar-link"
-        >
-          Calculate priming sugar →
-        </Link>
-        <Link
-          href={`/abv?recipeId=${recipe.id}`}
-          className="text-[var(--accent)] underline"
-          data-testid="abv-link"
-        >
-          Calculate ABV →
-        </Link>
-        <Link
-          href={`/strike-water?recipeId=${recipe.id}&units=${units}`}
-          className="text-[var(--accent)] underline"
-          data-testid="strike-water-link"
-        >
-          Calculate strike water →
-        </Link>
-        {loading && <span className="italic">updating…</span>}
+        {!readOnly && (
+          <>
+            <Link
+              href={`/priming-sugar?recipeId=${recipe.id}&units=${units}`}
+              className="text-[var(--accent)] underline"
+              data-testid="priming-sugar-link"
+            >
+              Calculate priming sugar →
+            </Link>
+            <Link
+              href={`/abv?recipeId=${recipe.id}`}
+              className="text-[var(--accent)] underline"
+              data-testid="abv-link"
+            >
+              Calculate ABV →
+            </Link>
+            <Link
+              href={`/strike-water?recipeId=${recipe.id}&units=${units}`}
+              className="text-[var(--accent)] underline"
+              data-testid="strike-water-link"
+            >
+              Calculate strike water →
+            </Link>
+            {loading && <span className="italic">updating…</span>}
+          </>
+        )}
       </div>
     </section>
   );
