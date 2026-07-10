@@ -236,6 +236,50 @@ model Batch {
   @@index([recipeId])
 }
 
+/// BJCP style-guideline range (BRE-44).
+///
+/// Each row holds the canonical vital-statistics range for a single BJCP
+/// sub-category (e.g. "21A" = American IPA). Recipe.bjcpCategory holds the
+/// code; the API/presentation layer joins it against this table to flag
+/// in/out-of-range values on the detail page.
+///
+/// `category` mirrors the Recipe-level "beer" | "mead" | "cider" | "wine"
+/// vocabulary so the seed loader can sanity-check cross-references. Numeric
+/// bounds are nullable: mead/cider have no IBU/SRM, so the comparison layer
+/// must treat a null bound on either side as "no guideline for this metric"
+/// and skip the comparison.
+model BjcpStyle {
+  id       String @id @default(cuid())
+  /// BJCP sub-category code, e.g. "21A", "M1A", "C1".
+  code     String  @unique
+  /// Human-readable style name, e.g. "American IPA".
+  name     String
+  /// beer | mead | cider | wine — mirrors the `Recipe.category` vocabulary.
+  category String  @default("beer")
+
+  /// Original gravity range (specific gravity, e.g. 1.056–1.070).
+  ogMin  Float?
+  ogMax  Float?
+  /// Final gravity range.
+  fgMin  Float?
+  fgMax  Float?
+  /// IBU range (beer only; null on both sides for mead/cider/wine).
+  ibuMin Float?
+  ibuMax Float?
+  /// SRM colour range (beer only).
+  srmMin Float?
+  srmMax Float?
+  /// ABV percent range.
+  abvMin Float?
+  abvMax Float?
+
+  /// Free-form provenance note (BJCP edition / source). Not user-facing.
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 /// A dynamic timeline log entry for a batch. Logs are intentionally flexible so
 /// active fermentations can record gravity, pH, temperature, racking, nutrient,
 /// tasting, and other events without schema churn.
@@ -252,6 +296,7 @@ model BatchLog {
   ph            Float?
   temperatureC  Float?
   volumeLiters  Float?
+  rating        Int?     @map("rating") // 1-5; only meaningful when type = "tasting"
   notes         String?
 
   createdAt DateTime @default(now())

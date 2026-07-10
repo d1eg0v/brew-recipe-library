@@ -644,6 +644,135 @@ describe("GET /api/recipes/[id]", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  // BRE-44: BJCP style-guideline comparison
+  async function seedAmericanIpaStyle() {
+    await db.prisma.bjcpStyle.upsert({
+      where: { code: "21A" },
+      create: {
+        code: "21A",
+        name: "American IPA",
+        category: "beer",
+        ogMin: 1.06,
+        ogMax: 1.07,
+        fgMin: 1.01,
+        fgMax: 1.015,
+        ibuMin: 50,
+        ibuMax: 70,
+        srmMin: 6,
+        srmMax: 14,
+        abvMin: 5.5,
+        abvMax: 7.5,
+      },
+      update: {},
+    });
+  }
+
+  it("attaches a style block when bjcpCategory matches a seeded row", async () => {
+    const { id } = await createFixture();
+    await seedAmericanIpaStyle();
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(id),
+    );
+    expect(res.status).toBe(200);
+    const body = await readJson<{
+      data: {
+        style: {
+          style: { code: string; name: string } | null;
+          comparison: {
+            og: { status: string; value: number | null };
+            ibu: { status: string };
+            allInRange: boolean | null;
+            outOfRangeCount: number | null;
+          } | null;
+        };
+      };
+    }>(res);
+    expect(body.data.style).not.toBeNull();
+    expect(body.data.style?.style?.code).toBe("21A");
+    expect(body.data.style?.comparison).not.toBeNull();
+    // The fixture values (OG 1.06, IBU 60) sit inside the 21A range.
+    expect(body.data.style?.comparison?.og.status).toBe("inRange");
+    expect(body.data.style?.comparison?.ibu.status).toBe("inRange");
+    expect(body.data.style?.comparison?.allInRange).toBe(true);
+    expect(body.data.style?.comparison?.outOfRangeCount).toBe(0);
+  });
+
+  it("flags out-of-range metrics with status=below/above", async () => {
+    // Recipe with an OG far below the 21A range, and an IBU far above.
+    const create = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Weird IPA",
+          bjcpCategory: "21A",
+          targetOg: 1.04,
+          targetIbu: 120,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const { data: created } = await readJson<CreatedResponse>(create);
+    await seedAmericanIpaStyle();
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${created.id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(created.id),
+    );
+    const body = await readJson<{
+      data: {
+        style: {
+          comparison: {
+            og: { status: string };
+            ibu: { status: string };
+            allInRange: boolean | null;
+            outOfRangeCount: number | null;
+          } | null;
+        };
+      };
+    }>(res);
+    expect(body.data.style?.comparison?.og.status).toBe("below");
+    expect(body.data.style?.comparison?.ibu.status).toBe("above");
+    expect(body.data.style?.comparison?.allInRange).toBe(false);
+    expect(body.data.style?.comparison?.outOfRangeCount).toBe(2);
+  });
+
+  it("returns style=null when bjcpCategory is null", async () => {
+    // Create a recipe directly via Prisma to bypass the create schema's
+    // non-null bjcpCategory constraint. We're testing GET's response
+    // shape, not the create path.
+    const created = await db.prisma.recipe.create({
+      data: {
+        title: "No Style",
+        category: "beer",
+        bjcpCategory: null,
+        batchSizeLiters: 20,
+        boilTimeMinutes: 60,
+        efficiencyPct: 75,
+      },
+    });
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${created.id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(created.id),
+    );
+    const body = await readJson<{ data: { style: unknown } }>(res);
+    expect(body.data.style).toBeNull();
+  });
+
+  it("returns style=null when bjcpCategory is set but unknown", async () => {
+    const create = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Unknown Style", bjcpCategory: "ZZZ" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const { data: created } = await readJson<CreatedResponse>(create);
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${created.id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(created.id),
+    );
+    const body = await readJson<{ data: { style: unknown } }>(res);
+    expect(body.data.style).toBeNull();
+  });
 });
 
 describe("PUT /api/recipes/[id]", () => {
