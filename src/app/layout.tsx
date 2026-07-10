@@ -110,6 +110,12 @@ export default function RootLayout({
                   Strike water
                 </Link>
                 <Link
+                  href="/inventory"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  Inventory
+                </Link>
+                <Link
                   href="/recipes/new"
                   className="btn btn-primary btn-sm no-underline"
                 >

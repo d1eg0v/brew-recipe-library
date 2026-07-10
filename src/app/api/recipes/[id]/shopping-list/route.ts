@@ -5,6 +5,13 @@
 // helper used by `GET /api/recipes/[id]`), then runs the pure builder from
 // `@/lib/brewing/shoppingList`. Imperial fields are layered on per-row after
 // building so the response shape mirrors the recipe detail endpoint.
+//
+// When `?includeInventory=true` is set, the response also carries a
+// `crossReference` block that layers the brewer's on-hand inventory onto
+// every shopping-list row (BRE-40). The block is computed by
+// `crossReferenceShoppingList` in `@/lib/brewing/inventory`, which is a
+// pure function over (shopping-list items, inventory rows) — the route is
+// just plumbing.
 
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -20,6 +27,10 @@ import {
   buildShoppingList,
   type ShoppingListItem,
 } from "@/lib/brewing/shoppingList";
+import {
+  crossReferenceShoppingList,
+  type InventoryRow,
+} from "@/lib/brewing/inventory";
 import {
   gramsToOunces,
   kgToPounds,
@@ -102,6 +113,17 @@ function withImperial(
   return item as UiShoppingListItem;
 }
 
+/** Truthy string flags accepted by the route — keeps the contract simple
+ *  without dragging Zod into a one-off query param. */
+const TRUTHY_QUERY_FLAGS = ["true", "1", "yes"] as const;
+
+function isTruthy(raw: string | null): boolean {
+  if (raw == null) return false;
+  return (TRUTHY_QUERY_FLAGS as readonly string[]).includes(
+    raw.toLowerCase(),
+  );
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
@@ -121,6 +143,8 @@ export async function GET(
       : typeof parsedQuery.data.batchSize === "string"
         ? Number.parseFloat(parsedQuery.data.batchSize)
         : parsedQuery.data.batchSize;
+
+  const includeInventory = isTruthy(url.searchParams.get("includeInventory"));
 
   try {
     const recipe = await prisma.recipe.findUnique({
@@ -161,10 +185,32 @@ export async function GET(
       })),
     });
 
-    const data = {
+    const items = list.items.map((item) => withImperial(item, units));
+    const data: Record<string, unknown> = {
       ...list,
-      items: list.items.map((item) => withImperial(item, units)),
+      items,
     };
+
+    if (includeInventory) {
+      // Pull every inventory row once — the dataset is small (a brewer's
+      // pantry) and the cross-reference is in-memory, so this stays a single
+      // round trip. The unique index on the table guarantees a 1:1 match per
+      // (category, name, detail, unit), but the calc still tolerates multiple
+      // matches in case the index is bypassed.
+      const inventoryRows = await prisma.inventoryItem.findMany();
+      const inventory: InventoryRow[] = inventoryRows.map((r) => ({
+        id: r.id,
+        category: r.category as InventoryRow["category"],
+        name: r.name,
+        detail: r.detail,
+        unit: r.unit,
+        amountOnHand: r.amountOnHand,
+      }));
+      data.crossReference = crossReferenceShoppingList(
+        list.items,
+        inventory,
+      );
+    }
 
     return NextResponse.json({ data });
   } catch (err) {

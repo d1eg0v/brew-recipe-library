@@ -50,7 +50,9 @@ import type {
   RecipeDetailResponse,
   RecipeStyleComparison,
   ShoppingList,
+  ShoppingListCrossReference,
   ShoppingListResponse,
+  ShoppingListResponseWithInventory,
   StyleComparisonBlock,
   StyleMetricResult,
   UnitSystem,
@@ -70,6 +72,7 @@ interface RecipeDetailClientProps {
   initialUnits?: UnitSystem;
   initialBatchSize?: number;
   initialShoppingList?: ShoppingList;
+  initialCrossReference?: ShoppingListCrossReference | null;
   initialBatches?: BatchSummary[];
   initialBatchesError?: string | null;
 }
@@ -79,6 +82,7 @@ export default function RecipeDetailClient({
   initialUnits,
   initialBatchSize,
   initialShoppingList,
+  initialCrossReference,
   initialBatches,
   initialBatchesError,
 }: RecipeDetailClientProps) {
@@ -89,6 +93,9 @@ export default function RecipeDetailClient({
   );
   const [shoppingList, setShoppingList] = useState<ShoppingList | null>(
     initialShoppingList ?? null,
+  );
+  const [crossReference, setCrossReference] = useState<ShoppingListCrossReference | null>(
+    initialCrossReference ?? null,
   );
   const [batches, setBatches] = useState<BatchSummary[]>(
     initialBatches ?? [],
@@ -107,16 +114,23 @@ export default function RecipeDetailClient({
   const fetchShoppingList = useCallback(
     async (newBatchSize: number, newUnits: UnitSystem): Promise<void> => {
       try {
-        const url = buildShoppingListUrl("", recipe.id, {
+        // BRE-40: ask the route for the cross-reference so the UI can show
+        // what the brewer still needs to buy.
+        const baseUrl = buildShoppingListUrl("", recipe.id, {
           batchSize: newBatchSize,
           units: newUnits,
         });
-        const res = await fetch(url, { cache: "no-store" });
+        const url = new URL(baseUrl, "http://localhost");
+        url.searchParams.set("includeInventory", "true");
+        const res = await fetch(url.pathname + (url.search || ""), {
+          cache: "no-store",
+        });
         if (!res.ok) {
           throw new Error(`shopping-list request failed: ${res.status}`);
         }
-        const body = (await res.json()) as ShoppingListResponse;
+        const body = (await res.json()) as ShoppingListResponseWithInventory;
         setShoppingList(body.data);
+        setCrossReference(body.data?.crossReference ?? null);
         setShoppingListError(null);
       } catch (err) {
         console.error("shopping-list refetch error", err);
@@ -305,6 +319,7 @@ export default function RecipeDetailClient({
           units={units}
           error={shoppingListError}
           recipeTitle={recipe.title}
+          crossReference={crossReference}
         />
 
         {recipe.notes && (

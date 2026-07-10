@@ -236,6 +236,47 @@ model Batch {
   @@index([recipeId])
 }
 
+/// On-hand pantry inventory of brewing ingredients (BRE-40). Used to cross-
+/// reference the recipe shopping list and surface what still needs buying.
+/// Keyed on (category, normalisedName, normalisedDetail, normalisedUnit) so the
+/// UI can match one inventory row to one shopping-list row — the same
+/// name+detail+unit rules the shopping-list builder uses to bucket ingredients.
+model InventoryItem {
+  id String @id @default(cuid())
+
+  // fermentable | hop | yeast | addition
+  category        String
+  /// Display name as the brewer typed it. The canonical matching key is the
+  /// lower-cased trimmed value, stored separately to keep the unique index
+  /// case-insensitive without sacrificing the original casing in the UI.
+  name            String
+  /// Lower-cased trimmed name. Used for equality + unique index.
+  nameNormalized  String
+  /// Sub-bucket key matching the shopping-list `detail` field: hop use
+  /// ("boil", "dryHop"), yeast form ("dry", "liquid"), addition unit ("tsp"),
+  /// or "" for fermentables / un-sub-bucketed rows.
+  detail          String  @default("")
+  /// Lower-cased trimmed detail. Used for equality + unique index.
+  detailNormalized String @default("")
+  /// Display unit ("kg", "g", "L", "packets", "tsp", "tablet", …). Matches the
+  /// shopping-list row's `unit` for direct cross-reference.
+  unit            String  @default("")
+  /// Lower-cased trimmed unit. Used for equality + unique index.
+  unitNormalized  String  @default("")
+  /// Quantity on hand in `unit`. Stored as metric / canonical quantity for
+  /// metric units (kg, g, L) and as the same scale for free-text units
+  /// (e.g. packets, tsp) — there is no implicit imperial conversion in the DB.
+  amountOnHand    Float
+  /// Free-text brewer note (lot number, supplier, expiry, …).
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, nameNormalized, detailNormalized, unitNormalized])
+  @@index([category])
+}
+
 /// BJCP style-guideline range (BRE-44).
 ///
 /// Each row holds the canonical vital-statistics range for a single BJCP
@@ -278,6 +319,7 @@ model BjcpStyle {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
 }
 
 /// A dynamic timeline log entry for a batch. Logs are intentionally flexible so

@@ -26,6 +26,7 @@ export * from "./priming";
 export * from "./pitchRate";
 export * from "./abv";
 export * from "./mash";
+export * from "./inventory";
 export * from "./bjcp";
 
 /**

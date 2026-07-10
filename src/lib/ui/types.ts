@@ -417,7 +417,6 @@ export interface PitchRateResponse {
 
 // ---------------------------------------------------------------------------
 // Quick ABV-from-OG/FG calculator (BRE-35).
-// ---------------------------------------------------------------------------
 
 /** Which formula the ABV calc used. Matches `AbvFormula` in `@/lib/brewing/abv`. */
 export type AbvFormula = "linear" | "highGravity";
@@ -454,5 +453,74 @@ export interface MeasuredAbvResponse {
       targetOg: number | null;
       targetFg: number | null;
     } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Inventory / pantry (BRE-40).
+// ---------------------------------------------------------------------------
+
+/** Mirrors the Prisma `InventoryItem` model categories. */
+export type InventoryCategory = "fermentables" | "hops" | "yeast" | "additions";
+
+/** Cross-reference status for one shopping-list row vs. on-hand inventory. */
+export type InventoryStatus = "full" | "partial" | "missing";
+
+/** One pantry row as returned by `GET /api/inventory`. */
+export interface InventoryItemView {
+  id: string;
+  category: InventoryCategory;
+  name: string;
+  detail: string;
+  unit: string;
+  amountOnHand: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** `GET /api/inventory` response shape. */
+export interface InventoryListResponse {
+  data: InventoryItemView[];
+}
+
+/** `POST /api/inventory` and `PATCH /api/inventory/[id]` response shape. */
+export interface InventoryItemResponse {
+  data: InventoryItemView;
+}
+
+/** A shopping-list row layered with on-hand inventory data (BRE-40). */
+export interface ShoppingListItemWithInventory extends ShoppingListItem {
+  /** Quantity on hand for this row (0 when none is recorded). */
+  onHand: number;
+  /** How much still needs buying: max(0, required − onHand). */
+  stillNeed: number;
+  /** "full" when onHand >= required; "partial" when 0 < onHand < required; "missing" when onHand == 0. */
+  status: InventoryStatus;
+  /** Inventory row id(s) that contributed to `onHand`. Empty when no row hit. */
+  matchedInventoryIds: string[];
+}
+
+/** Cross-reference block returned by
+ *  `GET /api/recipes/[id]/shopping-list?includeInventory=true`. */
+export interface ShoppingListCrossReference {
+  rows: ShoppingListItemWithInventory[];
+  counts: {
+    total: number;
+    full: number;
+    partial: number;
+    missing: number;
+    /** Number of rows that still require a purchase (partial + missing). */
+    toBuy: number;
+  };
+}
+
+/** Shopping-list response shape when `?includeInventory=true` was set. The
+ *  `crossReference` field is additive — it's `undefined` when the query
+ *  param is absent, so existing clients that only read `data.items` and
+ *  `data.counts` keep working unchanged. */
+export interface ShoppingListResponseWithInventory extends ShoppingListResponse {
+  data: ShoppingList & {
+    crossReference?: ShoppingListCrossReference;
   };
 }
