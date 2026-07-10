@@ -151,6 +151,11 @@ export interface RecipeDetail {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  /** BRE-43: `true` when the recipe has an active share token. */
+  shareable: boolean;
+  /** BRE-43: absolute public URL of the shareable view, or `null`. Only set
+   *  when the API was called with an `origin` and the recipe is shareable. */
+  shareUrl: string | null;
   averageRating: number | null;
   createdAt: string;
   updatedAt: string;

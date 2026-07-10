@@ -79,6 +79,15 @@ export async function GET(
     if (!recipe) return notFound();
     const units = (parsedQueryResult.data.units ?? "metric") as "metric" | "imperial";
 
+    // BRE-43: thread the request origin so the presenter can include a
+    // `shareUrl` when the recipe is shareable. The raw `shareToken` is
+    // stripped by the presenter — only the dedicated share endpoints expose it.
+    const headerOrigin = request.headers.get("origin");
+    const origin =
+      headerOrigin ??
+      process.env.NEXT_PUBLIC_BASE_URL ??
+      `${url.protocol}//${url.host}`;
+
     // BRE-44: look up the BJCP style row by `recipe.bjcpCategory` and attach
     // a per-metric comparison block. A null category or unknown code yields
     // a null style block (the UI hides the panel in that case).
@@ -87,7 +96,7 @@ export async function GET(
           where: { code: recipe.bjcpCategory },
         })
       : null;
-    const presented = presentRecipe(recipe, { batchSize, units });
+    const presented = presentRecipe(recipe, { batchSize, units, origin });
     const style = styleRow
       ? presentStyleComparison(
           {

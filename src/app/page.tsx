@@ -12,7 +12,7 @@ import {
   CategoryGlyph,
   PencilGlyph,
   PlusGlyph,
-  StarGlyph,
+  RatingStarGlyph,
 } from "@/components/icons";
 import {
   categoryAccent,
@@ -793,7 +793,7 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
         {recipe.averageRating != null && (
           <div className="mt-2 flex items-center gap-0.5" aria-label={`Rated ${recipe.averageRating} out of 5`}>
             {[1, 2, 3, 4, 5].map((star) => (
-              <StarGlyph
+              <RatingStarGlyph
                 key={star}
                 className={`h-3.5 w-3.5 ${star <= Math.round(recipe.averageRating!) ? 'text-amber-500' : 'text-[var(--muted-foreground)] opacity-25'}`}
               />

@@ -60,6 +60,12 @@ model Recipe {
   batchLogs    BatchLog[] // flexible FermentDB timeline events across active batches
   recipeTags   RecipeTag[] // freeform labels (BRE-29); join through Tag
 
+  // BRE-43: opaque, unguessable URL token for the public read-only share link.
+  // null = not currently shareable; setting it issues a /share/[token] URL and
+  // clearing it revokes the URL. Unique so two recipes can never collide on
+  // the same token.
+  shareToken   String?  @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
