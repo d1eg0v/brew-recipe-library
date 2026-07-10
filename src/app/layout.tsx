@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UnitToggle from "@/components/UnitToggle";
+import { FAVORITES_BOOT_SCRIPT } from "@/lib/favorites/bootScript";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme/bootScript";
 import { UNIT_BOOT_SCRIPT } from "@/lib/units/bootScript";
 import { HopMark } from "@/components/icons";
@@ -46,6 +47,12 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: UNIT_BOOT_SCRIPT }} />
+        {/* BRE-46: prime `data-favorites-count` from localStorage before paint
+            so the server-rendered card grid matches the user's stored set
+            on first paint. */}
+        <script
+          dangerouslySetInnerHTML={{ __html: FAVORITES_BOOT_SCRIPT }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
         <header className="site-header sticky top-0 z-30">
@@ -91,6 +98,18 @@ export default function RootLayout({
                   ABV
                 </Link>
                 <Link
+                  href="/water-chemistry"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  Water chem
+                </Link>
+                <Link
+                  href="/recipes/new"
+                  className="btn btn-outline btn-sm no-underline"
+                >
+                  + New
+                </Link>
+                <Link
                   href="/pitch-rate"
                   className="btn btn-ghost btn-sm hidden sm:inline-flex"
                 >
@@ -101,6 +120,12 @@ export default function RootLayout({
                   className="btn btn-ghost btn-sm hidden sm:inline-flex"
                 >
                   Strike water
+                </Link>
+                <Link
+                  href="/inventory"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  Inventory
                 </Link>
                 <Link
                   href="/recipes/new"

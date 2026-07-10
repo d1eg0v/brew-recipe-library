@@ -7,7 +7,8 @@ import type {
   RecipeDetail,
   RecipeDetailResponse,
   ShoppingList,
-  ShoppingListResponse,
+  ShoppingListCrossReference,
+  ShoppingListResponseWithInventory,
   UnitSystem,
 } from "@/lib/ui/types";
 
@@ -48,7 +49,7 @@ async function fetchRecipe(
 async function fetchShoppingList(
   id: string,
   options: FetchOptions = {},
-): Promise<ShoppingList | null> {
+): Promise<{ list: ShoppingList | null; crossReference: ShoppingListCrossReference | null }> {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const url = new URL(`/api/recipes/${id}/shopping-list`, base);
   if (options.batchSize != null && Number.isFinite(options.batchSize)) {
@@ -57,14 +58,19 @@ async function fetchShoppingList(
   if (options.units) {
     url.searchParams.set("units", options.units);
   }
+  // BRE-40: ask the route to layer the on-hand pantry onto the response.
+  url.searchParams.set("includeInventory", "true");
   try {
     const res = await fetch(url.toString(), { cache: "no-store" });
-    if (res.status === 404) return null;
-    if (!res.ok) return null;
-    const body = (await res.json()) as ShoppingListResponse;
-    return body.data ?? null;
+    if (res.status === 404) return { list: null, crossReference: null };
+    if (!res.ok) return { list: null, crossReference: null };
+    const body = (await res.json()) as ShoppingListResponseWithInventory;
+    return {
+      list: body.data ?? null,
+      crossReference: body.data?.crossReference ?? null,
+    };
   } catch {
-    return null;
+    return { list: null, crossReference: null };
   }
 }
 
@@ -130,10 +136,11 @@ export default async function RecipePage({
   if (!recipe) {
     notFound();
   }
-  const initialShoppingList = await fetchShoppingList(id, {
-    batchSize: initialBatchSize,
-    units: initialUnits,
-  });
+  const { list: initialShoppingList, crossReference: initialCrossReference } =
+    await fetchShoppingList(id, {
+      batchSize: initialBatchSize,
+      units: initialUnits,
+    });
   const { batches: initialBatches, error: initialBatchesError } =
     await fetchBatches(id);
 
@@ -143,6 +150,7 @@ export default async function RecipePage({
       initialBatchSize={initialBatchSize}
       initialUnits={initialUnits}
       initialShoppingList={initialShoppingList ?? undefined}
+      initialCrossReference={initialCrossReference}
       initialBatches={initialBatches}
       initialBatchesError={initialBatchesError}
     />

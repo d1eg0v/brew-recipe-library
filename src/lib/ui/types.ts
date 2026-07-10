@@ -35,6 +35,7 @@ export interface RecipeListItem {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  averageRating: number | null;
   updatedAt: string;
 }
 
@@ -150,8 +151,60 @@ export interface RecipeDetail {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  /** BRE-43: `true` when the recipe has an active share token. */
+  shareable: boolean;
+  /** BRE-43: absolute public URL of the shareable view, or `null`. Only set
+   *  when the API was called with an `origin` and the recipe is shareable. */
+  shareUrl: string | null;
+  averageRating: number | null;
   createdAt: string;
   updatedAt: string;
+  /** BRE-44: BJCP style-guideline comparison block. Null when the recipe
+   *  has no `bjcpCategory` or the code doesn't match a seeded style. */
+  style: RecipeStyleComparison | null;
+}
+
+/** Per-metric comparison result echoed from the API (BRE-44). Mirrors
+ *  `StyleMetricResult` from `@/lib/brewing/bjcp` so the client can stay
+ *  strict without importing the brewing module. */
+export interface StyleMetricResult {
+  status: "inRange" | "below" | "above" | "noData" | "noRange";
+  value: number | null;
+  min: number | null;
+  max: number | null;
+}
+
+/** Full BRE-44 style comparison block. */
+export interface RecipeStyleComparison {
+  style: BjcpStyleSummary | null;
+  comparison: StyleComparisonBlock | null;
+}
+
+export interface BjcpStyleSummary {
+  code: string;
+  name: string;
+  category: string;
+  ogMin: number | null;
+  ogMax: number | null;
+  fgMin: number | null;
+  fgMax: number | null;
+  ibuMin: number | null;
+  ibuMax: number | null;
+  srmMin: number | null;
+  srmMax: number | null;
+  abvMin: number | null;
+  abvMax: number | null;
+}
+
+export interface StyleComparisonBlock {
+  og: StyleMetricResult;
+  fg: StyleMetricResult;
+  ibu: StyleMetricResult;
+  srm: StyleMetricResult;
+  abv: StyleMetricResult;
+  hasAnyRange: boolean;
+  allInRange: boolean | null;
+  outOfRangeCount: number | null;
 }
 
 /** Calculated targets derived from a recipe on the server. */
@@ -314,14 +367,11 @@ export interface StrikeWaterResult {
 export interface StrikeWaterResponse {
   data: {
     result: StrikeWaterResult;
-    /** Imperial parallel when `?units=imperial` was requested. */
     imperial?: {
       volumeGallons: number;
       strikeTempF: number;
     } | null;
-    /** Echoed source — "standalone" when no recipe was involved. */
     source: "standalone" | "recipe";
-    /** Optional pre-fill context (the recipe that fed the grain mass). */
     recipe?: {
       id: string;
       title: string;
@@ -334,13 +384,9 @@ export interface StrikeWaterResponse {
 // Yeast pitch-rate / starter calculator (BRE-33).
 // ---------------------------------------------------------------------------
 
-/** Beer type for pitch-rate calculation. */
 export type PitchRateBeerType = "ale" | "lager";
-
-/** Yeast form for pitch-rate calculation. */
 export type PitchRateYeastForm = "dry" | "liquid";
 
-/** Server-derived result of the pitch-rate calculation. */
 export interface PitchRateResult {
   recommendedCells: number;
   viableCellsPerPack: number;
@@ -360,7 +406,6 @@ export interface PitchRateResult {
   };
 }
 
-/** `GET /api/pitch-rate` response shape. */
 export interface PitchRateResponse {
   data: {
     result: PitchRateResult;
@@ -369,22 +414,14 @@ export interface PitchRateResponse {
 
 // ---------------------------------------------------------------------------
 // Quick ABV-from-OG/FG calculator (BRE-35).
-// ---------------------------------------------------------------------------
 
-/** Which formula the ABV calc used. Matches `AbvFormula` in `@/lib/brewing/abv`. */
 export type AbvFormula = "linear" | "highGravity";
 
-/** Server-derived result of the ABV calculation. */
 export interface MeasuredAbvResult {
-  /** Alcohol by volume, percent. */
   abvPct: number;
-  /** Apparent attenuation, percent (0–100). */
   apparentAttenuationPct: number;
-  /** Gravity points dropped during fermentation (OG − FG, in points × 1000). */
   gravityPointsDropped: number;
-  /** Which formula was used. */
   formulaUsed: AbvFormula;
-  /** True when the high-gravity formula was used (either forced or auto-picked). */
   isHighGravity: boolean;
   input: {
     measuredOg: number;
@@ -393,18 +430,132 @@ export interface MeasuredAbvResult {
   };
 }
 
-/** `GET /api/abv` response shape. */
 export interface MeasuredAbvResponse {
   data: {
     result: MeasuredAbvResult;
-    /** Echoed source — "standalone" when no recipe was involved. */
     source: "standalone" | "recipe";
-    /** Optional pre-fill context (the recipe that fed OG/FG). */
     recipe?: {
       id: string;
       title: string;
       targetOg: number | null;
       targetFg: number | null;
     } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Inventory / pantry (BRE-40).
+// ---------------------------------------------------------------------------
+
+export type InventoryCategory = "fermentables" | "hops" | "yeast" | "additions";
+export type InventoryStatus = "full" | "partial" | "missing";
+
+export interface InventoryItemView {
+  id: string;
+  category: InventoryCategory;
+  name: string;
+  detail: string;
+  unit: string;
+  amountOnHand: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryListResponse {
+  data: InventoryItemView[];
+}
+
+export interface InventoryItemResponse {
+  data: InventoryItemView;
+}
+
+export interface ShoppingListItemWithInventory extends ShoppingListItem {
+  onHand: number;
+  stillNeed: number;
+  status: InventoryStatus;
+  matchedInventoryIds: string[];
+}
+
+export interface ShoppingListCrossReference {
+  rows: ShoppingListItemWithInventory[];
+  counts: {
+    total: number;
+    full: number;
+    partial: number;
+    missing: number;
+    toBuy: number;
+  };
+}
+
+export interface ShoppingListResponseWithInventory extends ShoppingListResponse {
+  data: ShoppingList & {
+    crossReference?: ShoppingListCrossReference;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Water chemistry calculator (BRE-31).
+// ---------------------------------------------------------------------------
+
+export type SaltType =
+  | "gypsum"
+  | "calciumChloride"
+  | "epsomSalt"
+  | "canningSalt"
+  | "bakingSoda"
+  | "chalk";
+
+export interface SaltAdditionInput {
+  saltType: SaltType;
+  grams: number;
+}
+
+export interface WaterProfileResult {
+  calcium: number;
+  magnesium: number;
+  sodium: number;
+  sulfate: number;
+  chloride: number;
+  bicarbonate: number;
+}
+
+export interface SaltContributionResult {
+  saltType: SaltType;
+  grams: number;
+  label: string;
+  formula: string;
+  calcium: number;
+  magnesium: number;
+  sodium: number;
+  sulfate: number;
+  chloride: number;
+  bicarbonate: number;
+}
+
+export interface WaterChemistryResult {
+  resultingProfile: WaterProfileResult;
+  contributions: SaltContributionResult[];
+  alkalinityAsCaCO3: number;
+  residualAlkalinity: number;
+  estimatedMashPh: number;
+  sulfateChlorideRatio: number | null;
+}
+
+export interface NamedProfile {
+  name: string;
+  description: string;
+  calcium: number;
+  magnesium: number;
+  sodium: number;
+  sulfate: number;
+  chloride: number;
+  bicarbonate: number;
+}
+
+export interface WaterChemistryResponse {
+  data: {
+    result: WaterChemistryResult;
+    profiles: NamedProfile[];
   };
 }

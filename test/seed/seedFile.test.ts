@@ -55,4 +55,37 @@ describe("seedFromFile", () => {
     expect(second.loaded).toBe(report.loaded);
     expect((await db.prisma.recipe.count())).toBe(second.inserted);
   });
+
+  // BRE-44: BJCP style ranges are also seeded.
+  it("upserts BJCP style ranges alongside recipes", async () => {
+    await db.prisma.bjcpStyle.deleteMany();
+    const seedPath = path.resolve(
+      process.cwd(),
+      "prisma/seed/recipes.json",
+    );
+    const bjcpPath = path.resolve(
+      process.cwd(),
+      "prisma/seed/bjcp.json",
+    );
+    const report = await seedFromFile(seedPath, bjcpPath);
+    expect(report.bjcpUpserted).toBeGreaterThan(0);
+    expect(report.bjcpSource).toBe(bjcpPath);
+
+    const codes = (
+      await db.prisma.bjcpStyle.findMany({ select: { code: true } })
+    ).map((r) => r.code);
+    // The seed covers all the categories the recipe seed references.
+    expect(codes).toEqual(expect.arrayContaining(["21A", "M1A", "C1"]));
+
+    // The mead rows have null IBU/SRM bounds — the loader keeps them.
+    const mead = await db.prisma.bjcpStyle.findUnique({
+      where: { code: "M1A" },
+    });
+    expect(mead).not.toBeNull();
+    expect(mead?.ibuMin).toBeNull();
+    expect(mead?.ibuMax).toBeNull();
+    expect(mead?.srmMin).toBeNull();
+    expect(mead?.srmMax).toBeNull();
+    expect(mead?.abvMin).toBe(3.5);
+  });
 });

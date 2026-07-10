@@ -11,6 +11,7 @@ import {
   litersToGallons,
   roundTo,
 } from "@/lib/brewing/units";
+import { buildShareUrl } from "@/lib/share/shareToken";
 import { tagsFromRecipeTags, type RecipeTagLinkRow } from "./presentTags";
 import type { UnitSystem } from "./schemas";
 
@@ -116,10 +117,15 @@ function convertChildren<T extends Record<string, unknown>>(
  *  - `batchSize` (litres) — when set, re-scales all ingredient amounts.
  *  - `units` — "metric" (default) or "imperial"; the source values stay in
  *    metric (canonical), and imperial-valued fields are *added* alongside.
+ *  - `origin` — when set, and the recipe has a share token, the presented
+ *    payload gets a `shareable: true` flag and an absolute `shareUrl`. When
+ *    omitted, only the flag is included (useful for tests / server components
+ *    that already know their origin).
  */
 export interface PresentOptions {
   batchSize?: number;
   units?: UnitSystem;
+  origin?: string | null;
 }
 
 /** A loose "any recipe" view so we can return DB rows or scaled copies. */
@@ -132,6 +138,10 @@ export interface RecipeView {
   processSteps?: Record<string, unknown>[];
   additions?: Record<string, unknown>[];
   recipeTags?: RecipeTagLinkRow[];
+  /** BRE-43: opaque share token. Read by the presentation layer to compute
+   *  the public share link; stripped from the output payload so it is only
+   *  surfaced through the dedicated share endpoints. */
+  shareToken?: string | null;
   [k: string]: unknown;
 }
 
@@ -208,6 +218,50 @@ export function presentRecipe<T extends RecipeView>(
   next.tags = tags.map((t) => t.name);
   next.tagDetails = tags.map((t) => ({ id: t.id, name: t.name }));
   delete next.recipeTags;
+
+  // BRE-43: shape share-link state. Expose the boolean flag unconditionally so
+  // the client can render the share section without a second round trip, but
+  // only compute the absolute shareUrl when we have an `origin` to anchor it
+  // to. We never expose the raw shareToken — only the URL — so the secret is
+  // gated to the dedicated share endpoints.
+  const shareToken =
+    typeof next.shareToken === "string" ? (next.shareToken as string) : null;
+  const shareable = shareToken != null && shareToken.length > 0;
+  if (shareable) {
+    next.shareable = true;
+    next.shareUrl =
+      options.origin && options.origin.length > 0
+        ? buildShareUrl(shareToken, options.origin)
+        : buildShareUrl(shareToken, null);
+  } else {
+    next.shareable = false;
+    next.shareUrl = null;
+  }
+  delete next.shareToken;
+
+  // Average rating (BRE-39): compute mean of non-null tasting ratings across
+  // all batches, if the recipe includes batch+batchLog data (detail queries).
+  const batches = (recipe as Record<string, unknown>).batches as
+    | Array<Record<string, unknown>>
+    | undefined;
+  if (batches) {
+    const ratings: number[] = [];
+    for (const b of batches) {
+      const logs = b.logs as Array<Record<string, unknown>> | undefined;
+      if (!logs) continue;
+      for (const l of logs) {
+        if (l.type === "tasting" && typeof l.rating === "number") {
+          ratings.push(l.rating);
+        }
+      }
+    }
+    next.averageRating =
+      ratings.length > 0
+        ? roundTo(ratings.reduce((a, b) => a + b, 0) / ratings.length, 1)
+        : null;
+  } else {
+    next.averageRating = null;
+  }
 
   return next as T;
 }

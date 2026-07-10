@@ -77,6 +77,15 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
   if (category) where.category = category;
   const style = query.get("style");
   if (style) where.styleName = { contains: style };
+  const ingredient = query.get("ingredient");
+  if (ingredient && ingredient.trim().length > 0) {
+    const needle = ingredient.trim();
+    where.OR = [
+      { fermentables: { some: { name: { contains: needle } } } },
+      { hops: { some: { name: { contains: needle } } } },
+      { yeasts: { some: { name: { contains: needle } } } },
+    ];
+  }
 
   // Synchronous-ish Prisma call (Prisma 7 returns a thenable).
   return db.prisma.recipe
@@ -172,6 +181,7 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       // Filter form is present.
       expect(html).toContain("name=\"category\"");
       expect(html).toContain("name=\"style\"");
+      expect(html).toContain("name=\"ingredient\"");
 
       // SRM swatch is rendered for beer cards (BRE-45). Pull a beer
       // recipe with a non-null targetSrm and assert the swatch aria label

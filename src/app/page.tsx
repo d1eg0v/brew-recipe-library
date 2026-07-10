@@ -4,11 +4,15 @@ import BatchSizeStat from "@/components/BatchSizeStat";
 import CategoryBadge from "@/components/CategoryBadge";
 import SrmSwatch from "@/components/SrmSwatch";
 import TagChip from "@/components/TagChip";
+import BrowseFavoritesGrid from "@/components/recipe/BrowseFavoritesGrid";
+import FavoritesFilter from "@/components/recipe/FavoritesFilter";
+import RecipeCardFavorite from "@/components/recipe/RecipeCardFavorite";
 import {
   ArrowGlyph,
   CategoryGlyph,
   PencilGlyph,
   PlusGlyph,
+  RatingStarGlyph,
 } from "@/components/icons";
 import {
   categoryAccent,
@@ -38,6 +42,7 @@ const SORT_FIELD_LABELS: Record<RecipeSortField, string> = {
   ibu: "IBU",
   gravity: "Gravity (OG)",
   date: "Date added",
+  rating: "Rating",
 };
 
 const SORT_DIR_LABELS: Record<RecipeSortDir, string> = {
@@ -52,6 +57,7 @@ interface BrowseSearchParams {
   q?: string;
   category?: string;
   style?: string;
+  ingredient?: string;
   tag?: string;
   ingredient?: string;
   abvMin?: string;
@@ -64,6 +70,13 @@ interface BrowseSearchParams {
   ogMax?: string;
   sort?: string;
   dir?: string;
+  /**
+   * "1" toggles the client-side favorites-only filter (BRE-46). The server
+   * still returns the full filtered set; the client wrapper hides
+   * non-favorites using the local `localStorage` set. Kept on the URL so
+   * a shared link or a refresh restores the same view.
+   */
+  favorites?: string;
 }
 
 function parseSort(p: BrowseSearchParams): RecipeSortField {
@@ -86,6 +99,7 @@ async function fetchRecipes(
   if (params.q) url.searchParams.set("q", params.q);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.style) url.searchParams.set("style", params.style);
+  if (params.ingredient) url.searchParams.set("ingredient", params.ingredient);
   if (params.tag) url.searchParams.set("tag", params.tag);
   if (params.ingredient) url.searchParams.set("ingredient", params.ingredient);
   if (params.abvMin) url.searchParams.set("abvMin", params.abvMin);
@@ -99,6 +113,9 @@ async function fetchRecipes(
   url.searchParams.set("sort", parseSort(params));
   url.searchParams.set("dir", parseDir(params));
   url.searchParams.set("limit", "100");
+  // `favorites` is a client-only filter; don't forward it to the server. The
+  // server would happily ignore it, but trimming it keeps URLs and debug
+  // logs tidy. See `BrowseFavoritesGrid` for the client-side handling.
 
   try {
     const res = await fetch(url.toString(), { cache: "no-store" });
@@ -276,6 +293,7 @@ export default async function HomePage({
                 style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
               />
               <input type="hidden" name="style" value={params.style ?? ""} />
+              <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
               <input type="hidden" name="tag" value={params.tag ?? ""} />
               <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
               <HiddenRangeInputs params={params} />
@@ -359,13 +377,17 @@ export default async function HomePage({
         {filtered.length === 0 ? (
           <EmptyState filtered={isFiltered} />
         ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <BrowseFavoritesGrid
+            filterActive={isFavoritesFilterOn(params)}
+            recipeIds={filtered.map((r) => r.id)}
+            recipeCount={filtered.length}
+          >
             {filtered.map((r) => (
               <li key={r.id}>
                 <RecipeCard recipe={r} />
               </li>
             ))}
-          </ul>
+          </BrowseFavoritesGrid>
         )}
       </div>
     </div>
@@ -387,12 +409,16 @@ function CategoryChips({
     if (category) sp.set("category", category);
     if (params.q) sp.set("q", params.q);
     if (params.style) sp.set("style", params.style);
+    if (params.ingredient) sp.set("ingredient", params.ingredient);
     if (params.tag) sp.set("tag", params.tag);
     if (params.ingredient) sp.set("ingredient", params.ingredient);
     for (const key of RANGE_PARAM_KEYS) {
       const value = params[key];
       if (value) sp.set(key, value);
     }
+    // Carry the favorites filter across category clicks (BRE-46) so the
+    // chip nav doesn't reset a layered filter the user just set.
+    if (isFavoritesFilterOn(params)) sp.set("favorites", "1");
     if (hasAnySort(params)) {
       sp.set("sort", parseSort(params));
       sp.set("dir", parseDir(params));
@@ -716,6 +742,9 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
             <SrmSwatch srm={recipe.targetSrm} size="md" />
           )}
           <CategoryBadge category={recipe.category} />
+          {/* BRE-46: per-card favorite toggle. Sits inside the wrapping <Link>
+              but stops propagation so clicking the star doesn't navigate. */}
+          <RecipeCardFavorite recipeId={recipe.id} recipeTitle={recipe.title} />
         </div>
       </div>
 
@@ -761,6 +790,17 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
             value={recipe.targetOg != null ? recipe.targetOg.toFixed(3) : "—"}
           />
         </dl>
+        {recipe.averageRating != null && (
+          <div className="mt-2 flex items-center gap-0.5" aria-label={`Rated ${recipe.averageRating} out of 5`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <RatingStarGlyph
+                key={star}
+                className={`h-3.5 w-3.5 ${star <= Math.round(recipe.averageRating!) ? 'text-amber-500' : 'text-[var(--muted-foreground)] opacity-25'}`}
+              />
+            ))}
+            <span className="ml-1 text-xs text-[var(--muted-foreground)]">{recipe.averageRating.toFixed(1)}</span>
+          </div>
+        )}
         <div className="mt-3 flex items-center justify-between text-xs">
           <span className="inline-flex items-center gap-1 text-[var(--accent)] font-semibold">
             Open recipe

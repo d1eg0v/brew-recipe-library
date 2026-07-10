@@ -14,6 +14,7 @@ import {
   validationError,
 } from "@/lib/api/errors";
 import { presentRecipe } from "@/lib/api/present";
+import { presentStyleComparison } from "@/lib/api/presentStyle";
 import {
   recipePatchToUpdateInput,
   recipeToCreateInput,
@@ -60,11 +61,11 @@ export async function GET(
   const { id } = await context.params;
   const url = new URL(request.url);
   const batchSizeRaw = url.searchParams.get("batchSize");
-  const parsedQuery = recipeDetailQuerySchema.safeParse({
+  const parsedQueryResult = recipeDetailQuerySchema.safeParse({
     batchSize: batchSizeRaw ?? undefined,
     units: url.searchParams.get("units") ?? undefined,
   });
-  if (!parsedQuery.success) return validationError(parsedQuery.error);
+  if (!parsedQueryResult.success) return validationError(parsedQueryResult.error);
 
   let batchSize: number | undefined;
   try {
@@ -76,9 +77,41 @@ export async function GET(
   try {
     const recipe = await loadRecipe(id);
     if (!recipe) return notFound();
-    const units = (parsedQuery.data.units ?? "metric") as "metric" | "imperial";
+    const units = (parsedQueryResult.data.units ?? "metric") as "metric" | "imperial";
+
+    // BRE-43: thread the request origin so the presenter can include a
+    // `shareUrl` when the recipe is shareable. The raw `shareToken` is
+    // stripped by the presenter — only the dedicated share endpoints expose it.
+    const headerOrigin = request.headers.get("origin");
+    const origin =
+      headerOrigin ??
+      process.env.NEXT_PUBLIC_BASE_URL ??
+      `${url.protocol}//${url.host}`;
+
+    // BRE-44: look up the BJCP style row by `recipe.bjcpCategory` and attach
+    // a per-metric comparison block. A null category or unknown code yields
+    // a null style block (the UI hides the panel in that case).
+    const styleRow = recipe.bjcpCategory
+      ? await prisma.bjcpStyle.findUnique({
+          where: { code: recipe.bjcpCategory },
+        })
+      : null;
+    const presented = presentRecipe(recipe, { batchSize, units, origin });
+    const style = styleRow
+      ? presentStyleComparison(
+          {
+            targetOg: recipe.targetOg,
+            targetFg: recipe.targetFg,
+            targetIbu: recipe.targetIbu,
+            targetSrm: recipe.targetSrm,
+            targetAbv: recipe.targetAbv,
+          },
+          styleRow,
+        )
+      : null;
+
     return NextResponse.json({
-      data: presentRecipe(recipe, { batchSize, units }),
+      data: { ...presented, style },
     });
   } catch (err) {
     console.error("GET /api/recipes/[id] failed:", err);
