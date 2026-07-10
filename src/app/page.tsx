@@ -209,6 +209,10 @@ function hasAnyFilter(p: BrowseSearchParams): boolean {
   return Boolean(p.q || p.category || p.style || p.tag || p.ingredient || hasRangeFilter(p));
 }
 
+function isFavoritesFilterOn(p: BrowseSearchParams): boolean {
+  return p.favorites === "1";
+}
+
 function hasAnySort(p: BrowseSearchParams): boolean {
   return parseSort(p) !== DEFAULT_SORT || parseDir(p) !== DEFAULT_DIR;
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import Link from "next/link";
+import Script from "next/script";
 import "./globals.css";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import UnitToggle from "@/components/UnitToggle";
@@ -41,16 +42,27 @@ export default function RootLayout({
       lang="en"
       data-theme="light"
       data-units="metric"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: UNIT_BOOT_SCRIPT }} />
+        <Script
+          id="theme-boot"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
+        />
+        <Script
+          id="units-boot"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: UNIT_BOOT_SCRIPT }}
+        />
         {/* BRE-46: prime `data-favorites-count` from localStorage before paint
             so the server-rendered card grid matches the user's stored set
             on first paint. */}
-        <script
+        <Script
+          id="favorites-boot"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: FAVORITES_BOOT_SCRIPT }}
         />
       </head>
