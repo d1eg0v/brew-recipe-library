@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import FavoriteButton from "@/components/recipe/FavoriteButton";
 import TagEditor from "@/components/recipe/TagEditor";
 import {
   ArrowGlyph,
@@ -48,8 +49,11 @@ import type {
   BatchSummary,
   RecipeDetail,
   RecipeDetailResponse,
+  RecipeStyleComparison,
   ShoppingList,
   ShoppingListResponse,
+  StyleComparisonBlock,
+  StyleMetricResult,
   UnitSystem,
 } from "@/lib/ui/types";
 import {
@@ -295,7 +299,7 @@ export default function RecipeDetailClient({
           readOnly={readOnly}
         />
 
-        <Targets recipe={recipe} />
+        <Targets recipe={recipe} style={recipe.style ?? null} />
 
         <Fermentables recipe={recipe} units={units} />
         <Hops recipe={recipe} units={units} />
@@ -503,6 +507,10 @@ function Header({ recipe, readOnly }: { recipe: RecipeDetail; readOnly: boolean 
                 >
                   Compare with…
                 </Link>
+                <FavoriteButton
+                  recipeId={recipe.id}
+                  recipeTitle={recipe.title}
+                />
                 <Link
                   href={`/recipes/${recipe.id}/edit`}
                   className="btn btn-outline no-underline"
@@ -711,95 +719,314 @@ function UnitButton({
   );
 }
 
-function Targets({ recipe }: { recipe: RecipeDetail }) {
+function Targets({
+  recipe,
+  style,
+}: {
+  recipe: RecipeDetail;
+  style: RecipeStyleComparison | null;
+}) {
+  const comparison = style?.comparison ?? null;
+  const styleInfo = style?.style ?? null;
   const cells: Array<{
     label: string;
     value: string;
     ratio?: number;
     accent?: string;
-  }> = [];
-  cells.push({
-    label: "OG",
-    value: recipe.targetOg != null ? fmtGravity(recipe.targetOg) : "—",
-    ratio: recipe.targetOg != null ? clamp((recipe.targetOg - 1.0) / 0.12) : 0,
-  });
-  cells.push({
-    label: "FG",
-    value: recipe.targetFg != null ? fmtGravity(recipe.targetFg) : "—",
-    ratio: recipe.targetFg != null ? clamp((recipe.targetFg - 1.0) / 0.06) : 0,
-  });
-  cells.push({
-    label: "ABV",
-    value: recipe.targetAbv != null ? fmtPercent(recipe.targetAbv, 1) : "—",
-    ratio: recipe.targetAbv != null ? clamp(recipe.targetAbv / 15) : 0,
-  });
-  cells.push({
-    label: "pH",
-    value: recipe.targetPh != null ? fmtNumber(recipe.targetPh, 2) : "—",
-    ratio: recipe.targetPh != null ? clamp((7 - recipe.targetPh) / 5) : 0,
-  });
+    metric: StyleMetricResult | null;
+    format: (m: StyleMetricResult) => string;
+  }> = [
+    {
+      label: "OG",
+      value: recipe.targetOg != null ? fmtGravity(recipe.targetOg) : "—",
+      ratio: recipe.targetOg != null ? clamp((recipe.targetOg - 1.0) / 0.12) : 0,
+      metric: comparison?.og ?? null,
+      format: formatRangeGravity,
+    },
+    {
+      label: "FG",
+      value: recipe.targetFg != null ? fmtGravity(recipe.targetFg) : "—",
+      ratio: recipe.targetFg != null ? clamp((recipe.targetFg - 1.0) / 0.06) : 0,
+      metric: comparison?.fg ?? null,
+      format: formatRangeGravity,
+    },
+    {
+      label: "ABV",
+      value: recipe.targetAbv != null ? fmtPercent(recipe.targetAbv, 1) : "—",
+      ratio: recipe.targetAbv != null ? clamp(recipe.targetAbv / 15) : 0,
+      metric: comparison?.abv ?? null,
+      format: formatRangeAbv,
+    },
+    {
+      label: "pH",
+      value: recipe.targetPh != null ? fmtNumber(recipe.targetPh, 2) : "—",
+      ratio: recipe.targetPh != null ? clamp((7 - recipe.targetPh) / 5) : 0,
+      metric: null,
+      format: () => "",
+    },
+  ];
   if (recipe.category === "beer") {
     cells.push({
       label: "IBU",
       value: recipe.targetIbu != null ? fmtNumber(recipe.targetIbu, 0) : "—",
       ratio: recipe.targetIbu != null ? clamp(recipe.targetIbu / 80) : 0,
+      metric: comparison?.ibu ?? null,
+      format: formatRangeIbu,
     });
     cells.push({
       label: "SRM",
       value: recipe.targetSrm != null ? fmtNumber(recipe.targetSrm, 1) : "—",
       ratio: recipe.targetSrm != null ? clamp(recipe.targetSrm / 40) : 0,
       accent: srmToHex(recipe.targetSrm),
+      metric: comparison?.srm ?? null,
+      format: formatRangeSrm,
     });
   }
   const cols =
     cells.length === 6 ? "sm:grid-cols-3 lg:grid-cols-6" : "sm:grid-cols-4";
   return (
-    <section className="section">
+    <section className="section" aria-labelledby="vitals-heading">
       <div className="section-title">
         <FlaskGlyph className="h-5 w-5 text-[var(--accent)]" />
         Vital measurements
+        <span className="count">{cells.length}</span>
+        {styleInfo && comparison && comparison.hasAnyRange && (
+          <StyleBadge comparison={comparison} />
+        )}
       </div>
+      {styleInfo && comparison && comparison.hasAnyRange && (
+        <p
+          className="mb-3 text-xs text-[var(--muted-foreground)]"
+          data-testid="bjcp-style-line"
+        >
+          Compared against{" "}
+          <span className="font-mono text-[var(--foreground)]">
+            {styleInfo.code} · {styleInfo.name}
+          </span>
+        </p>
+      )}
       <div className={`vitals grid-cols-2 ${cols}`}>
         {cells.map((c) => (
-          <div
+          <VitalCell
             key={c.label}
-            className="vital"
-            style={
-              c.accent
-                ? {
-                    borderColor: "color-mix(in srgb, " + c.accent + " 45%, var(--border))",
-                  }
-                : undefined
-            }
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="vital-label">{c.label}</span>
-              {c.accent && (
-                <span
-                  className="h-4 w-4 rounded-full border border-[var(--border-strong)]"
-                  style={{ background: c.accent }}
-                  aria-hidden
-                />
-              )}
-            </div>
-            <div className="vital-value">{c.value}</div>
-            {c.ratio != null && (
-              <div className="vital-bar" aria-hidden>
-                <span
-                  style={{
-                    width: `${Math.max(6, Math.min(100, c.ratio * 100))}%`,
-                    background: c.accent
-                      ? c.accent
-                      : undefined,
-                  }}
-                />
-              </div>
-            )}
-          </div>
+            label={c.label}
+            value={c.value}
+            ratio={c.ratio}
+            accent={c.accent}
+            metric={c.metric}
+            rangeLabel={c.metric ? c.format(c.metric) : ""}
+          />
         ))}
       </div>
     </section>
   );
+}
+
+function VitalCell({
+  label,
+  value,
+  ratio,
+  accent,
+  metric,
+  rangeLabel,
+}: {
+  label: string;
+  value: string;
+  ratio?: number;
+  accent?: string;
+  metric: StyleMetricResult | null;
+  rangeLabel: string;
+}) {
+  return (
+    <div
+      className="vital"
+      data-testid={`vital-${label.toLowerCase()}`}
+      data-bjcp={metric ? metric.status : undefined}
+      style={
+        accent
+          ? {
+              borderColor:
+                "color-mix(in srgb, " + accent + " 45%, var(--border))",
+            }
+          : undefined
+      }
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="vital-label">{label}</span>
+        {metric && <StatusGlyph status={metric.status} />}
+        {accent && metric == null && (
+          <span
+            className="h-4 w-4 rounded-full border border-[var(--border-strong)]"
+            style={{ background: accent }}
+            aria-hidden
+          />
+        )}
+      </div>
+      <div className="vital-value">{value}</div>
+      {ratio != null && (
+        <div className="vital-bar" aria-hidden>
+          <span
+            style={{
+              width: `${Math.max(6, Math.min(100, ratio * 100))}%`,
+              background: accent ? accent : undefined,
+            }}
+          />
+        </div>
+      )}
+      {metric && metric.status !== "noData" && metric.status !== "noRange" && (
+        <p
+          className="mt-1 text-[0.65rem] font-medium uppercase tracking-wide"
+          data-testid={`vital-range-${label.toLowerCase()}`}
+        >
+          <span className={statusTextClass(metric.status)}>
+            {statusText(metric, rangeLabel)}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function StatusGlyph({ status }: { status: StyleMetricResult["status"] }) {
+  if (status === "inRange") {
+    return (
+      <span
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--success-bg)] text-[var(--success-fg)]"
+        aria-label="In style range"
+        data-testid="status-in-range"
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="2,6 5,9 10,3" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === "below" || status === "above") {
+    return (
+      <span
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--warning-bg)] text-[var(--warning-fg)]"
+        aria-label={status === "below" ? "Below style range" : "Above style range"}
+        data-testid={`status-${status}`}
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {status === "below" ? (
+            <polyline points="3,5 6,9 9,5" />
+          ) : (
+            <polyline points="3,7 6,3 9,7" />
+          )}
+        </svg>
+      </span>
+    );
+  }
+  // noData — show a muted dash.
+  return (
+    <span
+      className="inline-flex h-4 w-4 items-center justify-center text-[var(--muted-foreground)]"
+      aria-label="No value recorded"
+      data-testid="status-no-data"
+    >
+      <span className="text-xs leading-none">—</span>
+    </span>
+  );
+}
+
+function StyleBadge({
+  comparison,
+}: {
+  comparison: StyleComparisonBlock;
+}) {
+  if (comparison.outOfRangeCount == null) return null;
+  if (comparison.outOfRangeCount === 0) {
+    return (
+      <span
+        className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--success-bg)] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--success-fg)]"
+        data-testid="bjcp-style-badge"
+        data-bjcp-state="in-style"
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <polyline points="2,6 5,9 10,3" />
+        </svg>
+        In style
+      </span>
+    );
+  }
+  return (
+    <span
+      className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--warning-bg)] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--warning-fg)]"
+      data-testid="bjcp-style-badge"
+      data-bjcp-state="out-of-style"
+    >
+      {comparison.outOfRangeCount} out of style
+    </span>
+  );
+}
+
+function statusText(m: StyleMetricResult, rangeLabel: string): string {
+  if (m.status === "below") return `below ${rangeLabel}`;
+  if (m.status === "above") return `above ${rangeLabel}`;
+  if (m.status === "inRange") return `in style · ${rangeLabel}`;
+  return rangeLabel;
+}
+
+function statusTextClass(status: StyleMetricResult["status"]): string {
+  if (status === "inRange") return "text-[var(--success-fg)]";
+  if (status === "below" || status === "above") return "text-[var(--warning-fg)]";
+  return "text-[var(--muted-foreground)]";
+}
+
+function formatRangeGravity(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) {
+    return `${fmtGravity(m.min)}–${fmtGravity(m.max)}`;
+  }
+  if (m.min != null) return `≥ ${fmtGravity(m.min)}`;
+  if (m.max != null) return `≤ ${fmtGravity(m.max)}`;
+  return "";
+}
+
+function formatRangeIbu(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) return `${fmtNumber(m.min, 0)}–${fmtNumber(m.max, 0)} IBU`;
+  if (m.min != null) return `≥ ${fmtNumber(m.min, 0)} IBU`;
+  if (m.max != null) return `≤ ${fmtNumber(m.max, 0)} IBU`;
+  return "";
+}
+
+function formatRangeSrm(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) return `${fmtNumber(m.min, 1)}–${fmtNumber(m.max, 1)} SRM`;
+  if (m.min != null) return `≥ ${fmtNumber(m.min, 1)} SRM`;
+  if (m.max != null) return `≤ ${fmtNumber(m.max, 1)} SRM`;
+  return "";
+}
+
+function formatRangeAbv(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) return `${fmtNumber(m.min, 1)}–${fmtNumber(m.max, 1)}% ABV`;
+  if (m.min != null) return `≥ ${fmtNumber(m.min, 1)}% ABV`;
+  if (m.max != null) return `≤ ${fmtNumber(m.max, 1)}% ABV`;
+  return "";
 }
 
 function Fermentables({

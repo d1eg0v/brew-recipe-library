@@ -239,5 +239,29 @@ export function presentRecipe<T extends RecipeView>(
   }
   delete next.shareToken;
 
+  // Average rating (BRE-39): compute mean of non-null tasting ratings across
+  // all batches, if the recipe includes batch+batchLog data (detail queries).
+  const batches = (recipe as Record<string, unknown>).batches as
+    | Array<Record<string, unknown>>
+    | undefined;
+  if (batches) {
+    const ratings: number[] = [];
+    for (const b of batches) {
+      const logs = b.logs as Array<Record<string, unknown>> | undefined;
+      if (!logs) continue;
+      for (const l of logs) {
+        if (l.type === "tasting" && typeof l.rating === "number") {
+          ratings.push(l.rating);
+        }
+      }
+    }
+    next.averageRating =
+      ratings.length > 0
+        ? roundTo(ratings.reduce((a, b) => a + b, 0) / ratings.length, 1)
+        : null;
+  } else {
+    next.averageRating = null;
+  }
+
   return next as T;
 }

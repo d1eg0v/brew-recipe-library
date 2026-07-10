@@ -4,11 +4,15 @@ import BatchSizeStat from "@/components/BatchSizeStat";
 import CategoryBadge from "@/components/CategoryBadge";
 import SrmSwatch from "@/components/SrmSwatch";
 import TagChip from "@/components/TagChip";
+import BrowseFavoritesGrid from "@/components/recipe/BrowseFavoritesGrid";
+import FavoritesFilter from "@/components/recipe/FavoritesFilter";
+import RecipeCardFavorite from "@/components/recipe/RecipeCardFavorite";
 import {
   ArrowGlyph,
   CategoryGlyph,
   PencilGlyph,
   PlusGlyph,
+  RatingStarGlyph,
 } from "@/components/icons";
 import {
   categoryAccent,
@@ -38,6 +42,7 @@ const SORT_FIELD_LABELS: Record<RecipeSortField, string> = {
   ibu: "IBU",
   gravity: "Gravity (OG)",
   date: "Date added",
+  rating: "Rating",
 };
 
 const SORT_DIR_LABELS: Record<RecipeSortDir, string> = {
@@ -63,6 +68,13 @@ interface BrowseSearchParams {
   ogMax?: string;
   sort?: string;
   dir?: string;
+  /**
+   * "1" toggles the client-side favorites-only filter (BRE-46). The server
+   * still returns the full filtered set; the client wrapper hides
+   * non-favorites using the local `localStorage` set. Kept on the URL so
+   * a shared link or a refresh restores the same view.
+   */
+  favorites?: string;
 }
 
 function parseSort(p: BrowseSearchParams): RecipeSortField {
@@ -97,6 +109,9 @@ async function fetchRecipes(
   url.searchParams.set("sort", parseSort(params));
   url.searchParams.set("dir", parseDir(params));
   url.searchParams.set("limit", "100");
+  // `favorites` is a client-only filter; don't forward it to the server. The
+  // server would happily ignore it, but trimming it keeps URLs and debug
+  // logs tidy. See `BrowseFavoritesGrid` for the client-side handling.
 
   try {
     const res = await fetch(url.toString(), { cache: "no-store" });
@@ -187,7 +202,45 @@ function hasRangeFilter(p: BrowseSearchParams): boolean {
 }
 
 function hasAnyFilter(p: BrowseSearchParams): boolean {
-  return Boolean(p.q || p.category || p.style || p.tag || hasRangeFilter(p));
+  return Boolean(
+    p.q ||
+      p.category ||
+      p.style ||
+      p.tag ||
+      hasRangeFilter(p) ||
+      isFavoritesFilterOn(p),
+  );
+}
+
+/** True when `?favorites=1` is set on the URL. The filter is otherwise
+ *  client-side; this is the only place the server cares. */
+function isFavoritesFilterOn(p: BrowseSearchParams): boolean {
+  return p.favorites === "1";
+}
+
+/**
+ * Build the URL for the favorites filter chip (BRE-46). Preserves every
+ * other search param so toggling `?favorites=1` doesn't drop the user's
+ * category, tag, range, or sort selection.
+ */
+function favoritesHref(p: BrowseSearchParams): string {
+  const sp = new URLSearchParams();
+  if (p.q) sp.set("q", p.q);
+  if (p.category) sp.set("category", p.category);
+  if (p.style) sp.set("style", p.style);
+  if (p.tag) sp.set("tag", p.tag);
+  for (const key of RANGE_PARAM_KEYS) {
+    const value = p[key];
+    if (value) sp.set(key, value);
+  }
+  if (isFavoritesFilterOn(p)) sp.delete("favorites");
+  else sp.set("favorites", "1");
+  if (hasAnySort(p)) {
+    sp.set("sort", parseSort(p));
+    sp.set("dir", parseDir(p));
+  }
+  const qs = sp.toString();
+  return qs ? `/?${qs}` : "/";
 }
 
 function hasAnySort(p: BrowseSearchParams): boolean {
@@ -217,7 +270,7 @@ export default async function HomePage({
       {/* ---------------------------------------------------------- */}
       {/*  Hero                                                       */}
       {/* ---------------------------------------------------------- */}
-      <section className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--surface-2)]/50">
+      <section className="brew-hero relative overflow-hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.5]"
@@ -226,35 +279,32 @@ export default async function HomePage({
               "radial-gradient(680px 320px at 8% -20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), radial-gradient(520px 280px at 95% 10%, color-mix(in srgb, var(--secondary) 12%, transparent), transparent 70%)",
           }}
         />
-        <div className="relative mx-auto max-w-6xl px-6 py-12 sm:py-16">
-          <p className="label-eyebrow">A field notebook for fermentations</p>
-          <h1 className="font-display mt-3 text-5xl sm:text-6xl font-semibold tracking-tight text-[var(--foreground)]">
-            Recipes
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--muted-foreground)]">
-            {all.length} recipe{all.length === 1 ? "" : "s"} in the library
-            {isFiltered || hasAnySort(params) ? (
-              <>
-                {" "}
-                — <span className="text-[var(--foreground)] font-medium">
-                  {filtered.length} match
-                  {filtered.length === 1 ? "" : "es"}
-                </span>{" "}
-                your filters
-                {hasAnySort(params) &&
-                  `, sorted by ${SORT_FIELD_LABELS[parseSort(params)].toLowerCase()} (${SORT_DIR_LABELS[parseDir(params)].toLowerCase()})`}
-              </>
-            ) : (
-              <>
-                {" "}
-                across beer, mead, wine, and cider. Scale any batch, switch
-                units, print a shopping list.
-              </>
-            )}
-          </p>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end lg:py-16">
+          <div>
+            <p className="label-eyebrow">Your fermentation archive</p>
+            <h1 className="font-display mt-3 text-5xl font-semibold tracking-tight text-[var(--foreground)] sm:text-6xl">
+              Recipes
+            </h1>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--muted-foreground)]">
+              {all.length} recipe{all.length === 1 ? "" : "s"} in the library
+              {isFiltered || hasAnySort(params) ? (
+                <>
+                  {" "}
+                  — <span className="text-[var(--foreground)] font-medium">
+                    {filtered.length} match
+                    {filtered.length === 1 ? "" : "es"}
+                  </span>{" "}
+                  your filters
+                  {hasAnySort(params) &&
+                    `, sorted by ${SORT_FIELD_LABELS[parseSort(params)].toLowerCase()} (${SORT_DIR_LABELS[parseDir(params)].toLowerCase()})`}
+                </>
+              ) : (
+                <> — every successful pour, ready for the next brew day.</>
+              )}
+            </p>
 
           {/* Search bar */}
-          <form
+            <form
             method="get"
             action="/"
             className="mt-8 flex flex-col sm:flex-row gap-2 sm:gap-0 sm:items-stretch sm:max-w-xl"
@@ -301,29 +351,48 @@ export default async function HomePage({
             <button type="submit" className="btn btn-primary sm:rounded-l-none" style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}>
               Search
             </button>
-          </form>
+            </form>
 
-          <div className="mt-6">
-            <Link href="/recipes/new" className="btn btn-primary no-underline">
-              <PlusGlyph className="h-4 w-4" />
-              New recipe
-            </Link>
+            <div className="mt-6">
+              <Link href="/recipes/new" className="btn btn-primary no-underline">
+                <PlusGlyph className="h-4 w-4" />
+                Add a recipe
+              </Link>
+            </div>
           </div>
+          <aside className="library-ledger" aria-label="Library overview">
+            <p className="label-eyebrow">Library at a glance</p>
+            <div className="ledger-total"><span>{all.length}</span><small>recipes</small></div>
+            <div className="ledger-categories">
+              {CATEGORIES.map((category) => (
+                <div key={category}>
+                  <span>{categoryLabel(category)}</span>
+                  <strong>{counts[category] ?? 0}</strong>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </section>
 
       {/* ---------------------------------------------------------- */}
       {/*  Category chips + grid                                      */}
       {/* ---------------------------------------------------------- */}
-      <div className="mx-auto max-w-6xl px-6 py-10 space-y-8">
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6">
         <CategoryChips
           counts={counts}
           active={params.category ?? ""}
           params={params}
         />
-        <TagFilter params={params} />
-        <RangeFilters params={params} />
-        <SortControls params={params} />
+        <div className="recipe-toolbox">
+          <TagFilter params={params} />
+          <FavoritesFilter
+            href={favoritesHref(params)}
+            active={isFavoritesFilterOn(params)}
+          />
+          <RangeFilters params={params} />
+          <SortControls params={params} />
+        </div>
 
         {/* Active filter summary + clear */}
         {isFiltered && (
@@ -343,13 +412,17 @@ export default async function HomePage({
         {filtered.length === 0 ? (
           <EmptyState filtered={isFiltered} />
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <BrowseFavoritesGrid
+            filterActive={isFavoritesFilterOn(params)}
+            recipeIds={filtered.map((r) => r.id)}
+            recipeCount={filtered.length}
+          >
             {filtered.map((r) => (
               <li key={r.id}>
                 <RecipeCard recipe={r} />
               </li>
             ))}
-          </ul>
+          </BrowseFavoritesGrid>
         )}
       </div>
     </div>
@@ -376,6 +449,9 @@ function CategoryChips({
       const value = params[key];
       if (value) sp.set(key, value);
     }
+    // Carry the favorites filter across category clicks (BRE-46) so the
+    // chip nav doesn't reset a layered filter the user just set.
+    if (isFavoritesFilterOn(params)) sp.set("favorites", "1");
     if (hasAnySort(params)) {
       sp.set("sort", parseSort(params));
       sp.set("dir", parseDir(params));
@@ -659,6 +735,9 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
             <SrmSwatch srm={recipe.targetSrm} size="md" />
           )}
           <CategoryBadge category={recipe.category} />
+          {/* BRE-46: per-card favorite toggle. Sits inside the wrapping <Link>
+              but stops propagation so clicking the star doesn't navigate. */}
+          <RecipeCardFavorite recipeId={recipe.id} recipeTitle={recipe.title} />
         </div>
       </div>
 
@@ -704,6 +783,17 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
             value={recipe.targetOg != null ? recipe.targetOg.toFixed(3) : "—"}
           />
         </dl>
+        {recipe.averageRating != null && (
+          <div className="mt-2 flex items-center gap-0.5" aria-label={`Rated ${recipe.averageRating} out of 5`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <RatingStarGlyph
+                key={star}
+                className={`h-3.5 w-3.5 ${star <= Math.round(recipe.averageRating!) ? 'text-amber-500' : 'text-[var(--muted-foreground)] opacity-25'}`}
+              />
+            ))}
+            <span className="ml-1 text-xs text-[var(--muted-foreground)]">{recipe.averageRating.toFixed(1)}</span>
+          </div>
+        )}
         <div className="mt-3 flex items-center justify-between text-xs">
           <span className="inline-flex items-center gap-1 text-[var(--accent)] font-semibold">
             Open recipe
