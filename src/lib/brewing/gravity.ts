@@ -75,10 +75,31 @@ export function attenuationFromYeasts(yeasts?: YeastInput[]): number {
   return withData?.attenuationPct ?? DEFAULT_ATTENUATION_PCT;
 }
 
-/**
+/** 
  * Alcohol by volume from original and final gravity.
  * Standard formula: ABV = (OG - FG) * 131.25.
  */
 export function estimateAbv(og: number, fg: number): number {
   return roundTo((og - fg) * 131.25, 2);
+}
+
+/**
+ * High-gravity ABV estimate for strong mead and wine where the standard linear
+ * formula under-reports alcohol.
+ */
+export function estimateHighGravityAbv(og: number, fg: number): number {
+  const abv = (76.08 * (og - fg) / (1.775 - og)) * (fg / 0.794);
+  return roundTo(abv, 2);
+}
+
+/**
+ * Convert degrees Brix to specific gravity for unfermented must/wort.
+ * Formula: SG = 1 + Brix / (258.6 - ((Brix / 258.2) * 227.1)).
+ */
+export function brixToGravity(brix: number): number {
+  if (!Number.isFinite(brix) || brix < 0) {
+    throw new Error("brix must be a non-negative finite number");
+  }
+  const sg = 1 + brix / (258.6 - (brix / 258.2) * 227.1);
+  return roundTo(sg, 3);
 }

@@ -7,7 +7,14 @@
 // limit matching to a few high-signal fields. SQLite-specific `contains` works
 // fine here.
 
-import type { RecipeListQuery } from "./schemas";
+import type { Prisma } from "@/generated/prisma/client";
+import { normalizeTagName } from "@/lib/tags";
+
+import type {
+  RecipeListQuery,
+  RecipeSortDir,
+  RecipeSortField,
+} from "./schemas";
 
 export interface IngredientFilter {
   /** Search string supplied by the client (raw, may be empty). */
@@ -24,23 +31,32 @@ function escapeLike(input: string): string {
  * Build a Prisma where clause from the parsed query params.
  *
  * Filters:
- *  - `q`         — case-insensitive substring over title/description/notes/styleName
+ *  - `q`         — case-insensitive substring over title/author/description/notes
  *  - `category`  — exact match
  *  - `style`     — case-insensitive substring over styleName
  *  - `bjcpCategory` — exact match
  *  - `ingredient` — substring match across any fermentable/hop/yeast name
+ *  - `tag`       — exact normalised tag match
  *  - `abvMin`/`abvMax` — bounds on `targetAbv`
+ *  - `ibuMin`/`ibuMax` — bounds on `targetIbu`
+ *  - `srmMin`/`srmMax` — bounds on `targetSrm`
+ *  - `ogMin`/`ogMax`   — bounds on `targetOg`
+ *
+ * Note on null exclusion: Prisma's `gte`/`lte` already exclude `null` values,
+ * so an active bound naturally hides recipes that haven't recorded that target.
  */
 export function buildRecipeWhere(q: RecipeListQuery) {
   const where: Record<string, unknown> = {};
 
   if (q.q && q.q.trim().length > 0) {
-    const needle = q.q.trim();
+    // Escape SQLite LIKE wildcards so user-typed `%` or `_` don't act as
+    // wildcards when matching across the four text fields.
+    const needle = escapeLike(q.q.trim());
     where.OR = [
       { title: { contains: needle } },
+      { author: { contains: needle } },
       { description: { contains: needle } },
       { notes: { contains: needle } },
-      { styleName: { contains: needle } },
     ];
   }
 
@@ -65,20 +81,64 @@ export function buildRecipeWhere(q: RecipeListQuery) {
     ];
   }
 
-  if (q.abvMin != null || q.abvMax != null) {
-    where.targetAbv = {};
-    if (q.abvMin != null) (where.targetAbv as Record<string, number>).gte = q.abvMin;
-    if (q.abvMax != null) (where.targetAbv as Record<string, number>).lte = q.abvMax;
+  if (q.tag && q.tag.trim().length > 0) {
+    const norm = normalizeTagName(q.tag);
+    if (norm) {
+      where.recipeTags = { some: { tag: { name: norm } } };
+    }
   }
+
+  applyRange(where, "targetAbv", q.abvMin, q.abvMax);
+  applyRange(where, "targetIbu", q.ibuMin, q.ibuMax);
+  applyRange(where, "targetSrm", q.srmMin, q.srmMax);
+  applyRange(where, "targetOg", q.ogMin, q.ogMax);
 
   return where;
 }
 
-/** Default order: most-recently updated first, with stable id tiebreak. */
-export const RECIPE_DEFAULT_ORDER = [
-  { updatedAt: "desc" as const },
-  { id: "asc" as const },
-];
+function applyRange(
+  where: Record<string, unknown>,
+  field: string,
+  min: number | undefined,
+  max: number | undefined,
+): void {
+  if (min == null && max == null) return;
+  const clause: Record<string, number> = {};
+  if (min != null) clause.gte = min;
+  if (max != null) clause.lte = max;
+  where[field] = clause;
+}
 
-/** Default pagination. */
-export const RECIPE_DEFAULT_PAGINATION = { limit: 50, offset: 0 };
+/** Map a sort-field alias to the underlying Recipe column. */
+function sortFieldToColumn(
+  field: RecipeSortField,
+): keyof Prisma.RecipeOrderByWithRelationInput {
+  switch (field) {
+    case "name":
+      return "title";
+    case "abv":
+      return "targetAbv";
+    case "ibu":
+      return "targetIbu";
+    case "gravity":
+      return "targetOg";
+    case "date":
+      return "createdAt";
+    case "rating":
+      return "createdAt"; // fallback — rating is computed, not a DB column
+  }
+}
+
+/**
+ * Build a Prisma `orderBy` array for `GET /api/recipes` from the parsed
+ * query params. The primary sort is `sort`/`dir`; `id asc` is appended as a
+ * stable tiebreaker so pagination is deterministic when many rows share the
+ * primary value (or are all `null` on the sorted column).
+ */
+export function buildRecipeOrderBy(
+  sort: RecipeSortField,
+  dir: RecipeSortDir,
+): Prisma.RecipeOrderByWithRelationInput[] {
+  const column = sortFieldToColumn(sort);
+  return [{ [column]: dir }, { id: "asc" }];
+}

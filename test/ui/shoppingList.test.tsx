@@ -35,6 +35,19 @@ let RecipeDetailPage: typeof import("@/app/recipes/[id]/page")["default"];
 beforeAll(async () => {
   db = await setupTestDatabase();
   vi.doMock("@/lib/db", () => ({ prisma: db.prisma }));
+  // RecipeActions (now part of the detail page) uses `useRouter`, which throws
+  // when rendered outside the app router. Stub the module so renderToStaticMarkup
+  // can complete.
+  vi.doMock("next/navigation", () => ({
+    useRouter: () => ({
+      push: vi.fn(),
+      replace: vi.fn(),
+      refresh: vi.fn(),
+      prefetch: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+    }),
+  }));
   recipesRoute = await import("@/app/api/recipes/route");
   recipeDetailRoute = await import("@/app/api/recipes/[id]/route");
   shoppingListRoute = await import(

@@ -1,101 +1,146 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ */
-/* Theme tokens                                                        */
+/*  Cellar Note — design system                                        */
 /*                                                                     */
-/* Each theme is selected via `data-theme="<name>"` on <html>.         */
-/* `:root` carries the default (light) palette so SSR HTML is never    */
-/* unstyled; the inline boot script in app/layout.tsx overwrites the   */
-/* attribute before paint to honour the user's stored choice or        */
-/* `prefers-color-scheme` on first load.                               */
+/*  A craft-publication aesthetic for the Brew Recipe Library:         */
+/*  warm paper surfaces, ink type, a single confident copper accent,   */
+/*  and a hop-green secondary. Beer colour is rendered from the        */
+/*  recipe's own SRM (see src/lib/ui/format.ts → srmToHex).            */
 /*                                                                     */
-/* Beyond the core surface tokens we expose per-theme badge colours   */
-/* (one for each recipe category) and an error tint so that no page    */
-/* has to fall back to hard-coded Tailwind palette utilities.          */
+/*  Four themes via `data-theme` on <html>; `:root` carries the        */
+/*  default (light) so SSR HTML is never unstyled. The inline boot     */
+/*  script in app/layout.tsx overwrites the attribute before paint.    */
 /* ------------------------------------------------------------------ */
 
 :root,
 [data-theme="light"] {
-  --background: #fbf7ef;
-  --foreground: #1c1208;
-  --muted: #f1e9d8;
-  --muted-foreground: #6b5d49;
-  --card: #ffffff;
-  --card-foreground: #1c1208;
-  --border: #e2d6bf;
-  --accent: #8b3a13;
+  --background: #f7f1e3;
+  --background-2: #f1e8d3;
+  --foreground: #211608;
+  --muted: #ece2cc;
+  --muted-foreground: #6f5f48;
+  --card: #fffdf6;
+  --card-foreground: #211608;
+  --surface-2: #fbf4e2;
+  --border: #e1d4b6;
+  --border-strong: #cdbf9d;
+  --accent: #9a4416;
+  --accent-soft: #f3e2d2;
   --accent-foreground: #fbf7ef;
-  --link: #8b3a13;
+  --secondary: #5d6b3a;
+  --secondary-foreground: #fbf7ef;
+  --link: #9a4416;
+  --ring: #9a4416;
 
   --badge-beer-bg: #fde68a;
-  --badge-beer-fg: #78350f;
-  --badge-mead-bg: #fef3c7;
-  --badge-mead-fg: #78350f;
-  --badge-wine-bg: #ede9fe;
-  --badge-wine-fg: #5b21b6;
-  --badge-cider-bg: #ffedd5;
-  --badge-cider-fg: #9a3412;
-  --badge-other-bg: #e7e5e4;
-  --badge-other-fg: #44403c;
+  --badge-beer-fg: #6b3a10;
+  --badge-mead-bg: #fbe8b8;
+  --badge-mead-fg: #6b4a10;
+  --badge-wine-bg: #f2dbe2;
+  --badge-wine-fg: #5b2136;
+  --badge-cider-bg: #f6e0d0;
+  --badge-cider-fg: #7c3416;
+  --badge-other-bg: #e7e0d2;
+  --badge-other-fg: #4a4234;
 
-  --error-bg: #fef2f2;
+  --error-bg: #fdecec;
   --error-fg: #7f1d1d;
-  --error-border: #fecaca;
+  --error-border: #f3c4c4;
 
-  --swatch-bg: #fbf7ef;
-  --swatch-fg: #1c1208;
-  --swatch-accent: #8b3a13;
+  --success-bg: #dcf3e0;
+  --success-fg: #14532d;
+  --success-border: #b3e0bd;
+  --warning-bg: #fef3c7;
+  --warning-fg: #7c4a03;
+  --warning-border: #f6d894;
+
+  --swatch-bg: #f7f1e3;
+  --swatch-fg: #211608;
+  --swatch-accent: #9a4416;
+
+  --shadow-color: 30 22 8;
+  --shadow-card: 0 1px 2px rgb(var(--shadow-color) / 0.05),
+    0 6px 18px -8px rgb(var(--shadow-color) / 0.12);
+  --shadow-lift: 0 2px 4px rgb(var(--shadow-color) / 0.06),
+    0 18px 40px -16px rgb(var(--shadow-color) / 0.22);
+
+  --grain-opacity: 0.05;
 }
 
 [data-theme="sepia"] {
-  --background: #f4ecd8;
-  --foreground: #3b2c1a;
-  --muted: #ebe0c4;
-  --muted-foreground: #6b5436;
-  --card: #faf2e0;
-  --card-foreground: #3b2c1a;
-  --border: #d8c9a8;
-  --accent: #a05a2c;
-  --accent-foreground: #faf2e0;
-  --link: #a05a2c;
+  --background: #f1e7ce;
+  --background-2: #ebdfbf;
+  --foreground: #38291a;
+  --muted: #e6d8b6;
+  --muted-foreground: #6b5333;
+  --card: #faf1d6;
+  --card-foreground: #38291a;
+  --surface-2: #f4e7c4;
+  --border: #d6c49d;
+  --border-strong: #c2ac81;
+  --accent: #9c5a26;
+  --accent-soft: #ecd6b6;
+  --accent-foreground: #faf1d6;
+  --secondary: #6b6233;
+  --secondary-foreground: #faf1d6;
+  --link: #9c5a26;
+  --ring: #9c5a26;
 
-  --badge-beer-bg: #f0d9a8;
-  --badge-beer-fg: #6b3a14;
-  --badge-mead-bg: #ecd9a0;
-  --badge-mead-fg: #6b3a14;
-  --badge-wine-bg: #d9c4a8;
-  --badge-wine-fg: #5a2c14;
-  --badge-cider-bg: #ecd2a8;
-  --badge-cider-fg: #6b3a14;
-  --badge-other-bg: #d6c8a8;
-  --badge-other-fg: #4a3a22;
+  --badge-beer-bg: #ecc496;
+  --badge-beer-fg: #5a2f10;
+  --badge-mead-bg: #e8c994;
+  --badge-mead-fg: #5a3a10;
+  --badge-wine-bg: #d8b9a6;
+  --badge-wine-fg: #4a1f24;
+  --badge-cider-bg: #e6c296;
+  --badge-cider-fg: #5a2c10;
+  --badge-other-bg: #cdbf9d;
+  --badge-other-fg: #3e3522;
 
-  --error-bg: #f4d8c8;
+  --error-bg: #f3dac4;
   --error-fg: #6b1a1a;
   --error-border: #c89c80;
 
-  --swatch-bg: #f4ecd8;
-  --swatch-fg: #3b2c1a;
-  --swatch-accent: #a05a2c;
+  --success-bg: #d8e8c4;
+  --success-fg: #1e3a16;
+  --success-border: #a8c896;
+  --warning-bg: #f5e0b8;
+  --warning-fg: #5a3503;
+  --warning-border: #d4b878;
+
+  --swatch-bg: #f1e7ce;
+  --swatch-fg: #38291a;
+  --swatch-accent: #9c5a26;
+
+  --shadow-color: 50 36 16;
+  --grain-opacity: 0.06;
 }
 
 [data-theme="dark"] {
-  --background: #14110b;
-  --foreground: #f5ead2;
+  --background: #13100a;
+  --background-2: #18130b;
+  --foreground: #f3e8d0;
   --muted: #1f1a10;
-  --muted-foreground: #b8a785;
-  --card: #1d1810;
-  --card-foreground: #f5ead2;
-  --border: #2f2618;
-  --accent: #d48137;
+  --muted-foreground: #b3a180;
+  --card: #1c160c;
+  --card-foreground: #f3e8d0;
+  --surface-2: #221b0f;
+  --border: #2c2416;
+  --border-strong: #3d3220;
+  --accent: #e08a36;
+  --accent-soft: #2e1f10;
   --accent-foreground: #14110b;
-  --link: #d48137;
+  --secondary: #9bb368;
+  --secondary-foreground: #14110b;
+  --link: #e08a36;
+  --ring: #e08a36;
 
   --badge-beer-bg: #3a2a14;
   --badge-beer-fg: #f5d68a;
   --badge-mead-bg: #3a3014;
   --badge-mead-fg: #f0d68a;
-  --badge-wine-bg: #2c2238;
+  --badge-wine-bg: #321f3a;
   --badge-wine-fg: #d6c4f5;
   --badge-cider-bg: #3a2214;
   --badge-cider-fg: #f5c89a;
@@ -106,22 +151,44 @@
   --error-fg: #fca5a5;
   --error-border: #5b2222;
 
-  --swatch-bg: #14110b;
-  --swatch-fg: #f5ead2;
-  --swatch-accent: #d48137;
+  --success-bg: #14291a;
+  --success-fg: #86efac;
+  --success-border: #1e5230;
+  --warning-bg: #2a1f0a;
+  --warning-fg: #fcd34d;
+  --warning-border: #5a4012;
+
+  --swatch-bg: #13100a;
+  --swatch-fg: #f3e8d0;
+  --swatch-accent: #e08a36;
+
+  --shadow-color: 0 0 0;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4),
+    0 10px 24px -10px rgb(0 0 0 / 0.55);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.5),
+    0 24px 48px -18px rgb(0 0 0 / 0.7);
+
+  --grain-opacity: 0.04;
 }
 
 [data-theme="midnight"] {
-  --background: #0b1322;
-  --foreground: #e8edf4;
-  --muted: #15203a;
-  --muted-foreground: #a3b1cf;
-  --card: #131a2a;
-  --card-foreground: #e8edf4;
-  --border: #1f2940;
+  --background: #0a1120;
+  --background-2: #0f182c;
+  --foreground: #e6ecf5;
+  --muted: #14203b;
+  --muted-foreground: #9fb0d4;
+  --card: #121b30;
+  --card-foreground: #e6ecf5;
+  --surface-2: #16213c;
+  --border: #1f2c48;
+  --border-strong: #2a3a5c;
   --accent: #f0b86e;
-  --accent-foreground: #0b1322;
+  --accent-soft: #1f2230;
+  --accent-foreground: #0a1120;
+  --secondary: #8fb3d4;
+  --secondary-foreground: #0a1120;
   --link: #f0b86e;
+  --ring: #f0b86e;
 
   --badge-beer-bg: #2c2210;
   --badge-beer-fg: #f5d28a;
@@ -132,59 +199,649 @@
   --badge-cider-bg: #2c1e10;
   --badge-cider-fg: #f5b878;
   --badge-other-bg: #1c2030;
-  --badge-other-fg: #a3b1cf;
+  --badge-other-fg: #9fb0d4;
 
   --error-bg: #2a1414;
   --error-fg: #f5a3a3;
   --error-border: #5b2222;
 
-  --swatch-bg: #0b1322;
-  --swatch-fg: #e8edf4;
+  --success-bg: #102a18;
+  --success-fg: #86efac;
+  --success-border: #1e5230;
+  --warning-bg: #2a1f0a;
+  --warning-fg: #fcd34d;
+  --warning-border: #5a4012;
+
+  --swatch-bg: #0a1120;
+  --swatch-fg: #e6ecf5;
   --swatch-accent: #f0b86e;
+
+  --shadow-color: 0 0 0;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5),
+    0 12px 28px -10px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 2px 8px rgb(0 0 0 / 0.6),
+    0 26px 52px -18px rgb(0 0 0 / 0.75);
+
+  --grain-opacity: 0.025;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-2: var(--background-2);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface-2: var(--surface-2);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-error-bg: var(--error-bg);
   --color-error-fg: var(--error-fg);
   --color-error-border: var(--error-border);
+  --color-success-bg: var(--success-bg);
+  --color-success-fg: var(--success-fg);
+  --color-success-border: var(--success-border);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-warning-border: var(--warning-border);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+  --radius: 0.75rem;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  transition: background-color 150ms ease, color 150ms ease;
+  font-feature-settings: "ss01", "cv01";
+  transition: background-color 200ms ease, color 200ms ease;
+  text-rendering: optimizeLegibility;
 }
 
-/* Subtle parchment-y background texture for the brew theme — light/sepia only. */
+/* Layered background: a soft radial wash from the accent, plus a faint
+   paper grain so the warm themes read like a printed field notebook. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(
-    circle at 20% 10%,
-    color-mix(in srgb, var(--accent) 6%, transparent),
-    transparent 50%
-  );
+  z-index: -2;
+  background:
+    radial-gradient(
+      900px 600px at 12% -8%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      700px 500px at 92% 8%,
+      color-mix(in srgb, var(--secondary) 8%, transparent),
+      transparent 62%
+    );
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
   z-index: -1;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.7 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 a {
   color: var(--link);
+  text-underline-offset: 3px;
 }
 
 a:hover {
   text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Type scale                                                         */
+/*                                                                     */
+/*  Headings use the display serif (Fraunces) with a high-contrast     */
+/*  optical cut. Numbers and figures stay monospaced.                  */
+/* ------------------------------------------------------------------ */
+
+.font-display {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 30, "WONK" 0;
+  letter-spacing: -0.018em;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+::placeholder {
+  color: color-mix(in srgb, var(--muted-foreground) 75%, transparent);
+}
+
+/* Custom scrollbar — subtle, themed. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); background-clip: padding-box; }
+
+/* ------------------------------------------------------------------ */
+/*  Component primitives                                               */
+/* ------------------------------------------------------------------ */
+
+/* Buttons ----------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease,
+    border-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 100% transparent inset),
+    0 6px 16px -10px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 88%, #000 12%);
+  color: var(--accent-foreground);
+}
+
+.btn-outline {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--border-strong);
+}
+.btn-outline:hover {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--foreground);
+}
+.btn-ghost:hover { background: var(--muted); }
+
+.btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; border-radius: 0.55rem; }
+
+/* Surfaces ---------------------------------------------------------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+}
+.section-title .count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+}
+
+/* Fields ------------------------------------------------------------ */
+.field {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.92rem;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.field:hover { border-color: var(--accent); }
+.field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  background: var(--card);
+}
+.field-mono { font-family: var(--font-mono); }
+
+.label-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Chips ------------------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 140ms ease;
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.chip[data-active="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-foreground);
+}
+.chip .chip-count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
+/* Recipe card ------------------------------------------------------- */
+.recipe-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.25rem 1.25rem 1.1rem;
+  border-radius: 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: var(--card-foreground);
+  overflow: hidden;
+  transition: transform 160ms ease, box-shadow 160ms ease,
+    border-color 160ms ease;
+  isolation: isolate;
+}
+.recipe-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: var(--card-accent, var(--accent));
+  z-index: 2;
+}
+.recipe-card::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -25%;
+  width: 60%;
+  height: 90%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--card-accent, var(--accent)) 16%, transparent),
+    transparent 68%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+.recipe-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
+  box-shadow: var(--shadow-lift);
+}
+.recipe-card > * { position: relative; z-index: 1; }
+
+/* Vitals dashboard -------------------------------------------------- */
+.vitals {
+  display: grid;
+  gap: 0.75rem;
+}
+.vital {
+  position: relative;
+  padding: 1rem 1rem 0.95rem;
+  border-radius: 0.9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.vital-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.vital-value {
+  font-family: var(--font-mono);
+  font-size: 1.65rem;
+  font-weight: 500;
+  line-height: 1.1;
+  margin-top: 0.35rem;
+  letter-spacing: -0.02em;
+}
+.vital-unit { font-size: 0.8rem; color: var(--muted-foreground); margin-left: 0.2rem; }
+.vital-bar {
+  margin-top: 0.7rem;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.vital-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 70%, transparent),
+    var(--accent)
+  );
+}
+
+/* Data tables ------------------------------------------------------- */
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+.data-table thead th {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  text-align: left;
+  padding: 0.5rem 0.9rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table tbody td {
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.data-table .num { font-family: var(--font-mono); }
+
+/* Eyebrow rule used between detail sections */
+.eyebrow-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.eyebrow-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Brew ledger refresh                                                */
+/*                                                                     */
+/*  A calibrated workbench rather than a decorative recipe gallery:   */
+/*  strong rules, quiet paper, and the recipe's own colour as the     */
+/*  point of emphasis.                                                 */
+/* ------------------------------------------------------------------ */
+
+.site-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  box-shadow: 0 8px 24px -24px rgb(var(--shadow-color) / 0.8);
+  backdrop-filter: blur(16px) saturate(1.05);
+}
+
+.site-header-inner {
+  position: relative;
+}
+
+.site-header-inner::after {
+  content: "";
+  position: absolute;
+  right: 1.5rem;
+  bottom: -1px;
+  left: 1.5rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 15%, transparent) 38%, transparent 76%);
+}
+
+.brand-mark {
+  border-radius: 45% 55% 48% 52% / 52% 42% 58% 48%;
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--accent) 22%, var(--background));
+}
+
+.site-nav .btn-ghost {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  letter-spacing: 0.025em;
+}
+
+.site-nav .btn-ghost:hover { color: var(--foreground); }
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 62%, transparent);
+}
+
+.brew-hero {
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--surface-2) 94%, var(--background)), var(--background));
+}
+
+.brew-hero::after {
+  content: "";
+  position: absolute;
+  width: 28rem;
+  height: 28rem;
+  right: -14rem;
+  bottom: -19rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2.7rem color-mix(in srgb, var(--accent) 5%, transparent), 0 0 0 5.5rem color-mix(in srgb, var(--accent) 3%, transparent);
+  pointer-events: none;
+}
+
+.library-ledger {
+  position: relative;
+  padding: 1.3rem 1.35rem 1.15rem;
+  color: var(--accent-foreground);
+  background: var(--foreground);
+  border: 1px solid color-mix(in srgb, var(--foreground) 70%, var(--border));
+  border-radius: 1rem 1rem 1rem 0.2rem;
+  box-shadow: 8px 8px 0 color-mix(in srgb, var(--accent) 22%, transparent);
+  overflow: hidden;
+}
+
+.library-ledger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  background-image: linear-gradient(90deg, transparent 96%, currentColor 96%);
+  background-size: 1.35rem 1.35rem;
+  pointer-events: none;
+}
+
+.library-ledger .label-eyebrow {
+  position: relative;
+  color: color-mix(in srgb, var(--accent-foreground) 67%, transparent);
+}
+
+.ledger-total {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.8rem 0 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-foreground) 22%, transparent);
+}
+
+.ledger-total span {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 3.65rem;
+  font-weight: 600;
+  line-height: 0.85;
+  color: var(--accent);
+}
+
+.ledger-total small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.ledger-categories {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 1.25rem;
+  padding-top: 0.9rem;
+}
+
+.ledger-categories div { display: flex; justify-content: space-between; gap: 0.5rem; }
+.ledger-categories span { font-size: 0.75rem; color: color-mix(in srgb, var(--accent-foreground) 72%, transparent); }
+.ledger-categories strong { font-family: var(--font-mono); font-size: 0.78rem; }
+
+.recipe-toolbox {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+}
+
+.recipe-toolbox .section {
+  min-width: 0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+.recipe-toolbox .section-title { font-size: 1rem; }
+
+.recipe-toolbox > form:first-child {
+  background: color-mix(in srgb, var(--card) 82%, var(--accent-soft));
+}
+
+.recipe-card {
+  border-radius: 0.8rem 0.8rem 0.8rem 0.18rem;
+  box-shadow: 0 1px 1px rgb(var(--shadow-color) / 0.04), 3px 4px 0 color-mix(in srgb, var(--card-accent, var(--accent)) 10%, transparent);
+}
+
+.recipe-card::before { height: 4px; }
+.recipe-card:hover { box-shadow: var(--shadow-lift), 4px 5px 0 color-mix(in srgb, var(--card-accent, var(--accent)) 15%, transparent); }
+
+.recipe-card h3 { text-wrap: pretty; }
+
+@media (min-width: 700px) {
+  .recipe-toolbox { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 1fr); }
+  .recipe-toolbox .section { height: 100%; }
+  .recipe-toolbox .section > div:first-of-type { align-content: start; }
+}
+
+@media (max-width: 639px) {
+  .site-header-inner::after { right: 1.25rem; left: 1.25rem; }
+  .site-nav { gap: 0.25rem; }
+  .site-nav .btn { padding-inline: 0.55rem; }
+  .library-ledger { max-width: 21rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+/* Print ------------------------------------------------------------- */
+@media print {
+  body::before, body::after { display: none; }
+  body > header,
+  body > footer {
+    display: none !important;
+  }
+  body > main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .no-print { display: none !important; }
 }

@@ -109,3 +109,49 @@ describe("recipePatchToUpdateInput", () => {
     });
   });
 });
+
+describe("recipe mapper — tags (BRE-29)", () => {
+  it("attaches a recipeTags connectOrCreate payload on create", () => {
+    const out = asRecord(
+      recipeToCreateInput({
+        title: "Tagged",
+        batchSizeLiters: 20,
+        tags: ["  Summer ", "session", "SUMMER"],
+      } as RecipeCreateBody),
+    );
+    const tagPayload = asRecord(out.recipeTags);
+    expect(tagPayload.create).toHaveLength(2);
+    const tagCreates = (tagPayload.create) as Array<Record<string, unknown>>;
+    const names = tagCreates.map((c) => {
+      const tag = asRecord(c.tag);
+      const inner = asRecord(tag.connectOrCreate);
+      return inner.create;
+    });
+    expect(names).toEqual(
+      expect.arrayContaining([{ name: "summer" }, { name: "session" }]),
+    );
+  });
+
+  it("omits recipeTags when no tags are provided", () => {
+    const out = asRecord(
+      recipeToCreateInput({ title: "x", batchSizeLiters: 1 }),
+    );
+    expect("recipeTags" in out).toBe(false);
+  });
+
+  it("replaces tags with deleteMany + create on patch", () => {
+    const out = asRecord(
+      recipePatchToUpdateInput({ tags: ["session", "summer"] }),
+    );
+    const tagPayload = asRecord(out.recipeTags);
+    expect(tagPayload.deleteMany).toEqual({});
+    expect((tagPayload.create) as unknown[]).toHaveLength(2);
+  });
+
+  it("clears all tags with an empty array on patch", () => {
+    const out = asRecord(recipePatchToUpdateInput({ tags: [] }));
+    const tagPayload = asRecord(out.recipeTags);
+    expect(tagPayload.deleteMany).toEqual({});
+    expect("create" in tagPayload).toBe(false);
+  });
+});

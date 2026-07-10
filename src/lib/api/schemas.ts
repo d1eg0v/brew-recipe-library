@@ -5,6 +5,8 @@
 
 import { z } from "zod";
 
+import { normalizeTagName } from "@/lib/tags";
+
 /** Allowed recipe categories. "beer" | "mead" | "wine" | "cider" | "other". */
 export const RECIPE_CATEGORIES = [
   "beer",
@@ -78,6 +80,31 @@ const nameField = z.string().trim().min(1).max(200);
 const notesField = z.string().trim().max(10_000).optional();
 const temperatureField = z.number().finite().gte(-50).lte(150); // °C; bounded guard
 const percentageField = z.number().finite().gte(0).lte(100);
+const beverageTypeField = z
+  .string()
+  .refine(
+    (v) => (RECIPE_CATEGORIES as readonly string[]).includes(v),
+    { message: `must be one of: ${RECIPE_CATEGORIES.join(", ")}` },
+  );
+
+/**
+ * One freeform tag name as accepted on the wire (BRE-29). Validates shape only;
+ * canonicalisation (trim + lower-case) happens in the mapper so the unique DB
+ * index can dedupe case-insensitively. Empty / whitespace-only names are
+ * rejected here so the client gets a useful error instead of silent drops.
+ */
+const tagNameField = z
+  .string()
+  .trim()
+  .min(1, "tag cannot be empty")
+  .max(50, "tag is too long");
+
+/** An ordered list of tag names. Empty / duplicates are tolerated; the mapper
+ *  collapses them. We bound the count to keep payloads reasonable. */
+const tagsField = z
+  .array(tagNameField)
+  .max(50, "too many tags")
+  .default([]);
 
 const fermentableInputSchema = z
   .object({
@@ -156,6 +183,7 @@ const yeastInputSchema = z.object({
     )
     .optional(),
   attenuationPct: percentageField.optional(),
+  abvTolerancePct: percentageField.optional(),
   temperatureCMin: temperatureField.optional(),
   temperatureCMax: temperatureField.optional(),
   notes: notesField,
@@ -217,13 +245,8 @@ export const recipeBodySchema = z
     author: z.string().trim().max(200).optional(),
     description: z.string().trim().max(5000).optional(),
     notes: z.string().trim().max(10_000).optional(),
-    category: z
-      .string()
-      .refine(
-        (v) => (RECIPE_CATEGORIES as readonly string[]).includes(v),
-        { message: `must be one of: ${RECIPE_CATEGORIES.join(", ")}` },
-      )
-      .optional(),
+    category: beverageTypeField.optional(),
+    beverageType: beverageTypeField.optional(),
     styleName: z.string().trim().max(200).optional(),
     bjcpCategory: z.string().trim().max(20).optional(),
     batchSizeLiters: positiveNumber,
@@ -231,6 +254,7 @@ export const recipeBodySchema = z
     efficiencyPct: percentageField.optional(),
     targetOg: z.number().finite().gte(0.95).lte(1.2).optional(),
     targetFg: z.number().finite().gte(0.95).lte(1.2).optional(),
+    targetPh: z.number().finite().gte(2).lte(7).optional(),
     targetAbv: z.number().finite().gte(0).lte(25).optional(),
     targetIbu: z.number().finite().gte(0).lte(200).optional(),
     targetSrm: z.number().finite().gte(0).lte(80).optional(),
@@ -240,6 +264,7 @@ export const recipeBodySchema = z
     mashSteps: z.array(mashStepInputSchema).default([]),
     processSteps: z.array(processStepInputSchema).default([]),
     additions: z.array(additionInputSchema).default([]),
+    tags: tagsField,
   })
   .refine(
     (r) => !(r.targetOg != null && r.targetFg != null) || r.targetOg >= r.targetFg,
@@ -256,13 +281,8 @@ export const recipePatchSchema = z
     author: z.string().trim().max(200).optional(),
     description: z.string().trim().max(5000).optional(),
     notes: z.string().trim().max(10_000).optional(),
-    category: z
-      .string()
-      .refine(
-        (v) => (RECIPE_CATEGORIES as readonly string[]).includes(v),
-        { message: `must be one of: ${RECIPE_CATEGORIES.join(", ")}` },
-      )
-      .optional(),
+    category: beverageTypeField.optional(),
+    beverageType: beverageTypeField.optional(),
     styleName: z.string().trim().max(200).optional(),
     bjcpCategory: z.string().trim().max(20).optional(),
     batchSizeLiters: positiveNumber.optional(),
@@ -270,6 +290,7 @@ export const recipePatchSchema = z
     efficiencyPct: percentageField.optional(),
     targetOg: z.number().finite().gte(0.95).lte(1.2).optional(),
     targetFg: z.number().finite().gte(0.95).lte(1.2).optional().nullable(),
+    targetPh: z.number().finite().gte(2).lte(7).optional().nullable(),
     targetAbv: z.number().finite().gte(0).lte(25).optional(),
     targetIbu: z.number().finite().gte(0).lte(200).optional(),
     targetSrm: z.number().finite().gte(0).lte(80).optional(),
@@ -279,6 +300,7 @@ export const recipePatchSchema = z
     mashSteps: z.array(mashStepInputSchema).optional(),
     processSteps: z.array(processStepInputSchema).optional(),
     additions: z.array(additionInputSchema).optional(),
+    tags: z.array(tagNameField).max(50).optional(),
   })
   .strict();
 
@@ -292,7 +314,23 @@ export type UnitSystem = (typeof UNIT_SYSTEMS)[number];
 const positiveNumberOrString = z
   .union([z.number().finite().positive(), z.string().regex(/^\d+(\.\d+)?$/, "must be a positive number")]);
 
-/** Query params for `GET /api/recipes` (search/filter). */
+/** Allowed sort fields for `GET /api/recipes`. `gravity` aliases to
+ *  `targetOg`; `date` is the recipe's creation time (date added). */
+export const RECIPE_SORT_FIELDS = [
+  "name",
+  "abv",
+  "ibu",
+  "gravity",
+  "date",
+  "rating",
+] as const;
+export type RecipeSortField = (typeof RECIPE_SORT_FIELDS)[number];
+
+/** Allowed sort directions. */
+export const RECIPE_SORT_DIRS = ["asc", "desc"] as const;
+export type RecipeSortDir = (typeof RECIPE_SORT_DIRS)[number];
+
+/** Query params for `GET /api/recipes` (search/filter/sort). */
 export const recipeListQuerySchema = z
   .object({
     q: z.string().trim().max(200).optional(),
@@ -306,14 +344,35 @@ export const recipeListQuerySchema = z
     style: z.string().trim().max(200).optional(),
     bjcpCategory: z.string().trim().max(20).optional(),
     ingredient: z.string().trim().max(200).optional(),
+    tag: z.string().trim().max(50).optional(),
     abvMin: z.coerce.number().gte(0).lte(25).optional(),
     abvMax: z.coerce.number().gte(0).lte(25).optional(),
+    ibuMin: z.coerce.number().gte(0).lte(200).optional(),
+    ibuMax: z.coerce.number().gte(0).lte(200).optional(),
+    srmMin: z.coerce.number().gte(0).lte(80).optional(),
+    srmMax: z.coerce.number().gte(0).lte(80).optional(),
+    ogMin: z.coerce.number().gte(0.95).lte(1.2).optional(),
+    ogMax: z.coerce.number().gte(0.95).lte(1.2).optional(),
+    sort: z.enum(RECIPE_SORT_FIELDS).default("date"),
+    dir: z.enum(RECIPE_SORT_DIRS).default("desc"),
     limit: z.coerce.number().int().gte(1).lte(200).default(50),
     offset: z.coerce.number().int().gte(0).default(0),
   })
   .refine(
     (q) => q.abvMin == null || q.abvMax == null || q.abvMin <= q.abvMax,
     { message: "abvMin must be <= abvMax", path: ["abvMin"] },
+  )
+  .refine(
+    (q) => q.ibuMin == null || q.ibuMax == null || q.ibuMin <= q.ibuMax,
+    { message: "ibuMin must be <= ibuMax", path: ["ibuMin"] },
+  )
+  .refine(
+    (q) => q.srmMin == null || q.srmMax == null || q.srmMin <= q.srmMax,
+    { message: "srmMin must be <= srmMax", path: ["srmMin"] },
+  )
+  .refine(
+    (q) => q.ogMin == null || q.ogMax == null || q.ogMin <= q.ogMax,
+    { message: "ogMin must be <= ogMax", path: ["ogMin"] },
   );
 
 /** Query params for recipe-detail "scale" + "units" controls. */
@@ -360,11 +419,405 @@ export const batchPatchSchema = z
   })
   .strict();
 
+export const BATCH_LOG_TYPES = [
+  "note",
+  "gravity",
+  "ph",
+  "temperature",
+  "racking",
+  "addition",
+  "tasting",
+  "other",
+] as const;
+
+const batchLogTypeField = z
+  .string()
+  .refine(
+    (v) => (BATCH_LOG_TYPES as readonly string[]).includes(v),
+    { message: `must be one of: ${BATCH_LOG_TYPES.join(", ")}` },
+  );
+
+export const batchLogCreateSchema = z
+  .object({
+    batchId: z.string().optional(),
+    logDate: brewDateField.optional(),
+    type: batchLogTypeField.default("note"),
+    gravity: z.number().finite().gte(0.95).lte(1.2).optional(),
+    ph: z.number().finite().gte(2).lte(7).optional(),
+    temperatureC: temperatureField.optional(),
+    volumeLiters: batchVolumeField.optional(),
+    notes: z.string().trim().max(10_000).optional(),
+  })
+  .strict();
+
+export const batchLogPatchSchema = batchLogCreateSchema.partial().strict();
+
 export type BatchCreateBody = z.infer<typeof batchCreateSchema>;
 export type BatchPatchBody = z.infer<typeof batchPatchSchema>;
+
+// -----------------------------------------------------------------------------
+// Priming-sugar (carbonation) calculator — query params for GET /api/priming-sugar.
+// All physical quantities are metric (litres, °C); imperial display happens in
+// the presentation layer.
+// -----------------------------------------------------------------------------
+
+/** Sugar types supported by the priming-sugar calculator. */
+export const PRIMING_SUGAR_TYPES = [
+  "cornSugar",
+  "tableSugar",
+  "dme",
+] as const;
+export type PrimingSugarType = (typeof PRIMING_SUGAR_TYPES)[number];
+
+/** Query params for `GET /api/priming-sugar`. */
+export const primingSugarQuerySchema = z
+  .object({
+    /** Batch volume at bottling, in litres. Coerced from string when needed. */
+    volumeLiters: z.coerce.number().finite().positive().optional(),
+    /** Target CO2 in volumes. Typical: 1.0–1.5 for low, 2.0–2.5 for ales, 2.5–3.5 for Belgian. */
+    targetVolumes: z.coerce.number().finite().gte(0).lte(6),
+    /** Conditioning temperature in °C. Typical: 0–25 °C. */
+    temperatureC: z.coerce.number().finite().gte(-20).lte(60),
+    /** Which sugar to dose with. */
+    sugarType: z
+      .string()
+      .refine(
+        (v) => (PRIMING_SUGAR_TYPES as readonly string[]).includes(v),
+        { message: `must be one of: ${PRIMING_SUGAR_TYPES.join(", ")}` },
+      ),
+    /** Optional recipe id — when present, the route looks up the batch size
+     *  to pre-fill the volume. */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+    /** Display unit system. "metric" returns g; "imperial" returns g + oz. */
+    units: z
+      .string()
+      .refine(
+        (v) => (UNIT_SYSTEMS as readonly string[]).includes(v),
+        { message: `must be one of: ${UNIT_SYSTEMS.join(", ")}` },
+      )
+      .optional(),
+  })
+  .refine(
+    (q) => q.recipeId != null || q.volumeLiters != null,
+    {
+      message: "either recipeId or volumeLiters is required",
+      path: ["volumeLiters"],
+    },
+  );
+
+export type PrimingSugarQuery = z.infer<typeof primingSugarQuerySchema>;
+
+// -----------------------------------------------------------------------------
+// Strike-water / mash-infusion calculator — query params for GET /api/strike-water.
+// All physical quantities are metric (kg, °C, L); imperial display happens in
+// the presentation layer.
+// -----------------------------------------------------------------------------
+
+/** Sensible bounds on water-to-grain ratio (L/kg). Kept in sync with the
+ *  brewing constants `MIN_WATER_TO_GRAIN_RATIO` / `MAX_WATER_TO_GRAIN_RATIO`
+ *  in `@/lib/brewing/mash`. Mirrored here so the Zod schema stays
+ *  self-contained. */
+const STRIKE_WATER_MIN_RATIO_L_PER_KG = 1.5;
+const STRIKE_WATER_MAX_RATIO_L_PER_KG = 6.0;
+
+/** Query params for `GET /api/strike-water`. */
+export const strikeWaterQuerySchema = z
+  .object({
+    /** Total grain mass in kg. Coerced from string when needed. */
+    grainKg: z.coerce.number().finite().positive().optional(),
+    /** Target mash temperature in °C. Typical 60–72 °C. */
+    targetMashTempC: z.coerce.number().finite().gte(40).lte(80),
+    /** Current grain temperature in °C. Typical 5–30 °C. */
+    grainTempC: z.coerce.number().finite().gte(-10).lte(40),
+    /** Water-to-grain ratio (L/kg). Default 3.0 in the calc layer. */
+    waterToGrainRatioLPerKg: z.coerce
+      .number()
+      .finite()
+      .gte(STRIKE_WATER_MIN_RATIO_L_PER_KG)
+      .lte(STRIKE_WATER_MAX_RATIO_L_PER_KG)
+      .optional(),
+    /** Optional recipe id — when present, the route looks up the grain-bill
+     *  total to pre-fill `grainKg`. */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+    /** Display unit system. "metric" returns L and °C; "imperial" adds qt/gal
+     *  and °F parallels. */
+    units: z
+      .string()
+      .refine(
+        (v) => (UNIT_SYSTEMS as readonly string[]).includes(v),
+        { message: `must be one of: ${UNIT_SYSTEMS.join(", ")}` },
+      )
+      .optional(),
+  })
+  .refine(
+    (q) => q.recipeId != null || q.grainKg != null,
+    {
+      message: "either recipeId or grainKg is required",
+      path: ["grainKg"],
+    },
+  );
+
+export type StrikeWaterQuery = z.infer<typeof strikeWaterQuerySchema>;
+
+// -----------------------------------------------------------------------------
+// Quick ABV-from-OG/FG calculator (BRE-35) — query params for GET /api/abv.
+//
+// The brewer's measured readings are gravity (dimensionless), so there are
+// no metric/imperial conversions here — the same numbers work in either
+// unit system. The optional `recipeId` is for pre-filling the inputs from
+// a recipe's target OG/FG, matching the pre-fill pattern used by
+// `primingSugarQuerySchema` and `strikeWaterQuerySchema`.
+// -----------------------------------------------------------------------------
+
+const abvFormulaField = z
+  .string()
+  .refine(
+    (v) => v === "auto" || v === "linear" || v === "highGravity",
+    { message: "must be one of: auto, linear, highGravity" },
+  )
+  .optional();
+
+/** Query params for `GET /api/abv`. */
+export const abvQuerySchema = z
+  .object({
+    /** Measured original gravity. Coerced from string when needed. */
+    measuredOg: z.coerce.number().finite().gte(0.95).lte(1.2).optional(),
+    /** Measured final gravity. Coerced from string when needed. */
+    measuredFg: z.coerce.number().finite().gte(0.95).lte(1.2).optional(),
+    /**
+     * Formula override. "auto" (default) picks the high-gravity correction
+     * at OG ≥ 1.07; "linear" always uses the standard (OG - FG) × 131.25;
+     * "highGravity" always uses the Daniels/Papazian nonlinear form.
+     */
+    formula: abvFormulaField,
+    /**
+     * Optional recipe id — when present, the route looks up the recipe's
+     * targetOg / targetFg to pre-fill `measuredOg` / `measuredFg`. A
+     * caller-provided value always wins over the recipe target.
+     */
+    recipeId: z.string().trim().min(1).max(200).optional(),
+  })
+  .refine(
+    (q) =>
+      q.recipeId != null ||
+      (q.measuredOg != null && q.measuredFg != null),
+    {
+      message:
+        "either recipeId or both measuredOg and measuredFg are required",
+      path: ["measuredOg"],
+    },
+  )
+  .refine(
+    // Cross-field OG/FG check is enforced by the pure calc; we still reject
+    // the obvious mis-entry here so the caller gets a useful error rather
+    // than a generic 500 from the validator.
+    (q) =>
+      q.measuredOg == null ||
+      q.measuredFg == null ||
+      q.measuredOg >= q.measuredFg,
+    {
+      message: "measuredOg must be greater than or equal to measuredFg",
+      path: ["measuredOg"],
+    },
+  );
+
+export type AbvQuery = z.infer<typeof abvQuerySchema>;
+
+// -----------------------------------------------------------------------------
+// Yeast pitch-rate / starter calculator (BRE-33) — query params for
+// GET /api/pitch-rate.
+// -----------------------------------------------------------------------------
+
+/** Beer types supported by the pitch-rate calculator. */
+export const PITCH_RATE_BEER_TYPES = ["ale", "lager"] as const;
+export type PitchRateBeerType = (typeof PITCH_RATE_BEER_TYPES)[number];
+
+/** Yeast forms supported by the pitch-rate calculator. */
+export const PITCH_RATE_YEAST_FORMS = ["dry", "liquid"] as const;
+export type PitchRateYeastForm = (typeof PITCH_RATE_YEAST_FORMS)[number];
+
+/** Query params for `GET /api/pitch-rate`. */
+export const pitchRateQuerySchema = z
+  .object({
+    /** Original gravity of the wort (e.g. 1.050). */
+    og: z.coerce.number().finite().gte(1.0).lte(1.2),
+    /** Batch volume at pitching, in litres. */
+    batchSizeLiters: z.coerce.number().finite().positive(),
+    /** ale or lager — determines the pitch-rate target. */
+    beerType: z
+      .string()
+      .refine(
+        (v) => (PITCH_RATE_BEER_TYPES as readonly string[]).includes(v),
+        { message: `must be one of: ${PITCH_RATE_BEER_TYPES.join(", ")}` },
+      ),
+    /** dry or liquid — determines cells per pack. */
+    yeastForm: z
+      .string()
+      .refine(
+        (v) => (PITCH_RATE_YEAST_FORMS as readonly string[]).includes(v),
+        { message: `must be one of: ${PITCH_RATE_YEAST_FORMS.join(", ")}` },
+      ),
+    /** Days since production (for viability estimation). 0 = fresh. */
+    daysSinceProduction: z.coerce.number().int().nonnegative().optional(),
+    /** Explicit viability override (0–1). */
+    viabilityOverride: z.coerce.number().finite().gte(0).lte(1).optional(),
+    /** Override cell count per pack (billions). */
+    cellsPerPackOverride: z.coerce.number().finite().positive().optional(),
+  })
+  .refine(
+    (q) => !(q.viabilityOverride != null && q.daysSinceProduction != null),
+    {
+      message:
+        "viabilityOverride and daysSinceProduction are mutually exclusive",
+      path: ["viabilityOverride"],
+    },
+  );
+
+export type PitchRateQuery = z.infer<typeof pitchRateQuerySchema>;
 
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;
 export type RecipeListQuery = z.infer<typeof recipeListQuerySchema>;
 export type RecipeDetailQuery = z.infer<typeof recipeDetailQuerySchema>;
+export type BatchLogCreateBody = z.infer<typeof batchLogCreateSchema>;
+export type BatchLogPatchBody = z.infer<typeof batchLogPatchSchema>;
+
+// -----------------------------------------------------------------------------
+// Tag schemas (BRE-29) — freeform recipe labels.
+// -----------------------------------------------------------------------------
+
+/** Body for `PUT /api/recipes/[id]/tags` (replace the tag set wholesale). */
+export const recipeTagsReplaceSchema = z
+  .object({
+    tags: z.array(tagNameField).max(50),
+  })
+  .strict();
+
+/** Body for `POST /api/recipes/[id]/tags` (add a single tag, idempotent). */
+export const recipeTagAddSchema = z
+  .object({
+    name: tagNameField,
+  })
+  .strict()
+  .transform((v) => ({ name: normalizeTagName(v.name) ?? v.name }));
+
+/** Body for `POST /api/tags` (admin-style create; same shape as add). */
+export const tagCreateSchema = recipeTagAddSchema;
+
+export type RecipeTagsReplaceBody = z.infer<typeof recipeTagsReplaceSchema>;
+export type RecipeTagAddBody = z.infer<typeof recipeTagAddSchema>;
+export type TagCreateBody = z.infer<typeof tagCreateSchema>;
+
+/** Query params for `GET /api/tags` — supports sorting and a min count. */
+export const tagListQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  minCount: z.coerce.number().int().gte(0).optional(),
+  limit: z.coerce.number().int().gte(1).lte(500).default(200),
+});
+export type TagListQuery = z.infer<typeof tagListQuerySchema>;
+
+// -----------------------------------------------------------------------------
+// Inventory schemas (BRE-40) — track on-hand grain/hop/yeast stock so the
+// shopping list can cross-reference what still needs buying. The category
+// union mirrors the shopping-list categories so an inventory row can match a
+// shopping-list row directly. Normalised key fields are derived at write time
+// so the API never accepts them from the client.
+// -----------------------------------------------------------------------------
+
+/** Inventory item categories (BRE-40). Same shape as shopping-list `category`. */
+export const INVENTORY_CATEGORIES = [
+  "fermentables",
+  "hops",
+  "yeast",
+  "additions",
+] as const;
+export type InventoryCategory = (typeof INVENTORY_CATEGORIES)[number];
+
+const inventoryCategoryField = z
+  .string()
+  .refine(
+    (v) => (INVENTORY_CATEGORIES as readonly string[]).includes(v),
+    { message: `must be one of: ${INVENTORY_CATEGORIES.join(", ")}` },
+  );
+
+const inventoryNameField = z.string().trim().min(1).max(200);
+const inventoryUnitField = z.string().trim().max(50);
+const inventoryDetailField = z.string().trim().max(100);
+const inventoryNotesField = z.string().trim().max(10_000).optional();
+
+/** Optional variant of `inventoryUnitField` with empty-string default. The
+ *  PATCH schema uses the required variant above because there we need to
+ *  distinguish "field omitted from body" (undefined → reject) from "field
+ *  explicitly set to empty string" (legitimate, e.g. clearing a unit). */
+const inventoryUnitFieldOptional = inventoryUnitField.optional().default("");
+const inventoryDetailFieldOptional = inventoryDetailField.optional().default("");
+
+/**
+ * Normalise a free-text field for the unique key on the inventory row.
+ * Trimmed + lowercased — matches the convention the shopping-list builder
+ * already uses for its bucket keys, so an inventory row matches the same
+ * shopping-list row regardless of who created it.
+ */
+function normaliseForKey(s: string | null | undefined): string {
+  return (s ?? "").trim().toLowerCase();
+}
+
+/** Body for `POST /api/inventory` (create one row). */
+export const inventoryCreateSchema = z
+  .object({
+    category: inventoryCategoryField,
+    name: inventoryNameField,
+    detail: inventoryDetailFieldOptional,
+    unit: inventoryUnitFieldOptional,
+    amountOnHand: nonNegativeNumber,
+    notes: inventoryNotesField,
+  })
+  .strict()
+  .transform((v) => ({
+    category: v.category,
+    name: v.name.trim(),
+    nameNormalized: normaliseForKey(v.name),
+    detail: v.detail,
+    detailNormalized: normaliseForKey(v.detail),
+    unit: v.unit,
+    unitNormalized: normaliseForKey(v.unit),
+    amountOnHand: v.amountOnHand,
+    notes: v.notes,
+  }));
+
+/** Body for `PATCH /api/inventory/[id]` (partial update). Any subset of the
+ *  editable fields is accepted. At least one field is required so empty PATCH
+ *  bodies fail fast instead of writing nothing. */
+export const inventoryPatchSchema = z
+  .object({
+    name: inventoryNameField.optional(),
+    detail: inventoryDetailField.optional(),
+    unit: inventoryUnitField.optional(),
+    amountOnHand: nonNegativeNumber.optional(),
+    notes: inventoryNotesField.nullable(),
+  })
+  .strict()
+  .refine(
+    (v) =>
+      v.name !== undefined ||
+      v.detail !== undefined ||
+      v.unit !== undefined ||
+      v.amountOnHand !== undefined ||
+      v.notes !== undefined,
+    { message: "at least one field must be provided" },
+  );
+
+/** Query params for `GET /api/inventory` — filter by category. */
+export const inventoryListQuerySchema = z.object({
+  category: inventoryCategoryField.optional(),
+});
+
+/** Query param for `GET /api/recipes/[id]/shopping-list` — when true, the
+ *  response includes a `crossReference` block with on-hand inventory data
+ *  layered on top of every shopping-list row. */
+export const RECIPE_SHOPPING_LIST_INCLUDE_INVENTORY = ["true", "1", "yes"] as const;
+
+export type InventoryCreateBody = z.infer<typeof inventoryCreateSchema>;
+export type InventoryPatchBody = z.infer<typeof inventoryPatchSchema>;
+export type InventoryListQuery = z.infer<typeof inventoryListQuerySchema>;

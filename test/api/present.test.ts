@@ -128,3 +128,35 @@ describe("presentRecipe", () => {
     expect(back.batchSizeGallons).toBeUndefined();
   });
 });
+
+describe("presentRecipe — tags (BRE-29)", () => {
+  it("flattens recipeTags into a sorted `tags` array", () => {
+    const input = {
+      batchSizeLiters: 20,
+      recipeTags: [
+        { recipeId: "r1", tagId: "t2", tag: { id: "t2", name: "summer" } },
+        { recipeId: "r1", tagId: "t1", tag: { id: "t1", name: "session" } },
+      ],
+    };
+    const out = presentRecipe(input) as unknown as { tags: string[]; tagDetails: Array<{ id: string; name: string }> };
+    expect(out.tags).toEqual(["session", "summer"]);
+    expect(out.tagDetails.map((t) => t.name)).toEqual(["session", "summer"]);
+  });
+
+  it("produces an empty tags array when recipeTags is missing", () => {
+    const out = presentRecipe({ batchSizeLiters: 20 }) as unknown as {
+      tags: string[];
+    };
+    expect(out.tags).toEqual([]);
+  });
+
+  it("strips the recipeTags join from the response", () => {
+    const out = presentRecipe({
+      batchSizeLiters: 20,
+      recipeTags: [
+        { recipeId: "r1", tagId: "t1", tag: { id: "t1", name: "session" } },
+      ],
+    });
+    expect((out as Record<string, unknown>).recipeTags).toBeUndefined();
+  });
+});

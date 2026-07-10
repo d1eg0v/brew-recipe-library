@@ -9,6 +9,7 @@ import type {
   RecipeReplaceBody,
   RecipePatchBody,
 } from "./schemas";
+import { normalizeTagNames } from "@/lib/tags";
 
 type Child<T> = T & { position?: number };
 
@@ -33,6 +34,14 @@ function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
   return out as T;
 }
 
+function syncBeverageFields(data: Record<string, unknown>): void {
+  const beverageType = data.beverageType ?? data.category;
+  if (typeof beverageType === "string" && beverageType.length > 0) {
+    data.category = beverageType;
+    data.beverageType = beverageType;
+  }
+}
+
 /** Build the `create` payload for a child list under a new recipe. */
 function childCreateMany<T extends Record<string, unknown>>(
   items: Child<T>[] | undefined,
@@ -41,13 +50,42 @@ function childCreateMany<T extends Record<string, unknown>>(
 }
 
 /**
+ * Build a Prisma `recipeTags` payload that re-uses existing `Tag` rows by name
+ * and creates the rest. The shape uses the nested `tag` relation so Prisma
+ * can wire both the join and the Tag row in a single write.
+ * Duplicates inside the same input are deduped by `normalizeTagNames`.
+ */
+function buildTagPayload(names: readonly string[] | undefined) {
+  const unique = normalizeTagNames(names);
+  if (unique.length === 0) return undefined;
+  return {
+    create: unique.map((name) => ({
+      tag: {
+        connectOrCreate: {
+          where: { name },
+          create: { name },
+        },
+      },
+    })),
+  };
+}
+
+/**
  * Convert a POST or PUT body into `Prisma.RecipeUncheckedCreateInput`. Children
  * are passed via nested `create:` for atomic creation.
  */
 export function recipeToCreateInput(body: RecipeCreateBody | RecipeReplaceBody) {
-  const { fermentables, hops, yeasts, mashSteps, processSteps, additions, ...rest } =
-    body;
-  return stripUndefined({
+  const {
+    fermentables,
+    hops,
+    yeasts,
+    mashSteps,
+    processSteps,
+    additions,
+    tags,
+    ...rest
+  } = body;
+  const out: Record<string, unknown> = stripUndefined({
     ...rest,
     fermentables: { create: childCreateMany(fermentables) },
     hops: { create: childCreateMany(hops) },
@@ -56,6 +94,10 @@ export function recipeToCreateInput(body: RecipeCreateBody | RecipeReplaceBody) 
     processSteps: { create: childCreateMany(processSteps) },
     additions: { create: childCreateMany(additions) },
   });
+  syncBeverageFields(out);
+  const tagPayload = buildTagPayload(tags);
+  if (tagPayload) out.recipeTags = tagPayload;
+  return out;
 }
 
 /**
@@ -71,10 +113,12 @@ export function recipePatchToUpdateInput(body: RecipePatchBody) {
     mashSteps,
     processSteps,
     additions,
+    tags,
     ...scalars
   } = body;
 
   const data: Record<string, unknown> = stripUndefined(scalars);
+  syncBeverageFields(data);
   if (fermentables !== undefined) {
     data.fermentables = {
       deleteMany: {},
@@ -98,6 +142,14 @@ export function recipePatchToUpdateInput(body: RecipePatchBody) {
   }
   if (additions !== undefined) {
     data.additions = { deleteMany: {}, create: childCreateMany(additions) };
+  }
+  if (tags !== undefined) {
+    // Replace the tag set for this recipe: drop all joins, then create the
+    // supplied names through the nested tag relation. Empty array clears all.
+    data.recipeTags = {
+      deleteMany: {},
+      ...(buildTagPayload(tags) ?? {}),
+    };
   }
 
   return Object.keys(data).length === 0 ? null : data;

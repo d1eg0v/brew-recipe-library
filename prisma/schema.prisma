@@ -28,9 +28,10 @@ model Recipe {
   description String?
   notes       String?
 
-  // What kind of ferment this is. Downstream UI, calculations, and seed data
-  // branch on this. Defaults to "beer" so existing beer recipes are unchanged.
+  // What kind of ferment this is. `category` remains the app-facing field for
+  // backwards compatibility; `beverageType` is the FermentDB schema flag.
   category String @default("beer") // beer | mead | wine | cider | other
+  beverageType String @default("beer") @map("beverage_type") // beer | mead | wine | cider | other
 
   // Style / classification
   styleName    String? // e.g. "American IPA", "Traditional Mead", "Country Wine"
@@ -44,6 +45,7 @@ model Recipe {
   // Target measurements
   targetOg  Float? // original gravity, e.g. 1.056
   targetFg  Float? // final gravity, e.g. 1.012
+  targetPh  Float? @map("target_ph") // target acidity; useful for mead/wine/cider
   targetAbv Float? // % alcohol by volume
   targetIbu Float? // International Bitterness Units (beer only; null for mead/wine)
   targetSrm Float? // colour (Standard Reference Method) (beer only; null for mead/wine)
@@ -53,14 +55,45 @@ model Recipe {
   yeasts       Yeast[]
   mashSteps    MashStep[] // grain-based recipes only; empty for mead & extract/juice recipes
   processSteps ProcessStep[] // generic fermentation/racking/backsweetening steps (all categories)
-  additions    Addition[] // nutrients, acid blend, campden, pectic enzyme, tannin, etc.
+  additions    Addition[] // nutrients, acid blend, campden, pectic enzyme, etc.
   batches      Batch[] // logged actual brews of this recipe (brew-day history)
+  batchLogs    BatchLog[] // flexible FermentDB timeline events across active batches
+  recipeTags   RecipeTag[] // freeform labels (BRE-29); join through Tag
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([styleName])
   @@index([bjcpCategory])
+}
+
+/// Freeform label for a recipe ("session", "competition", "summer", ...).
+/// Independent of the fixed `Recipe.category`. Names are stored normalised
+/// (trimmed, lower-case) so equality and uniqueness are case-insensitive at the
+/// application layer. A recipe can have many tags; a tag can be applied to many
+/// recipes — the join table is `RecipeTag` (BRE-29).
+model Tag {
+  id        String   @id @default(cuid())
+  /// Normalised tag name. Always trimmed + lower-case on write. The DB unique
+  /// constraint prevents duplicates; the UI surfaces the original casing.
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  recipeTags RecipeTag[]
+}
+
+/// Many-to-many join between `Recipe` and `Tag`. Cascade-deletes with either
+/// parent so we never leave orphan rows.
+model RecipeTag {
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+  tag      Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId    String
+
+  createdAt DateTime @default(now())
+
+  @@id([recipeId, tagId])
+  @@index([tagId])
 }
 
 /// A fermentable sugar source contributing gravity and (for beer) colour.
@@ -115,6 +148,7 @@ model Yeast {
   type            String  @default("ale") // ale | lager | wheat | wine | champagne | other
   form            String  @default("dry") // dry | liquid | slant | culture
   attenuationPct  Float? // apparent attenuation %
+  abvTolerancePct Float? // maximum alcohol tolerance for mead/wine/cider strains
   temperatureCMin Float?
   temperatureCMax Float?
   notes           String?
@@ -194,8 +228,123 @@ model Batch {
   volumeLiters Float? // volume into the fermenter (used for achieved-efficiency math)
   notes        String? // brew-day notes and any deviations from the recipe
 
+  logs BatchLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([recipeId])
+}
+
+/// On-hand pantry inventory of brewing ingredients (BRE-40). Used to cross-
+/// reference the recipe shopping list and surface what still needs buying.
+/// Keyed on (category, normalisedName, normalisedDetail, normalisedUnit) so the
+/// UI can match one inventory row to one shopping-list row — the same
+/// name+detail+unit rules the shopping-list builder uses to bucket ingredients.
+model InventoryItem {
+  id String @id @default(cuid())
+
+  // fermentable | hop | yeast | addition
+  category        String
+  /// Display name as the brewer typed it. The canonical matching key is the
+  /// lower-cased trimmed value, stored separately to keep the unique index
+  /// case-insensitive without sacrificing the original casing in the UI.
+  name            String
+  /// Lower-cased trimmed name. Used for equality + unique index.
+  nameNormalized  String
+  /// Sub-bucket key matching the shopping-list `detail` field: hop use
+  /// ("boil", "dryHop"), yeast form ("dry", "liquid"), addition unit ("tsp"),
+  /// or "" for fermentables / un-sub-bucketed rows.
+  detail          String  @default("")
+  /// Lower-cased trimmed detail. Used for equality + unique index.
+  detailNormalized String @default("")
+  /// Display unit ("kg", "g", "L", "packets", "tsp", "tablet", …). Matches the
+  /// shopping-list row's `unit` for direct cross-reference.
+  unit            String  @default("")
+  /// Lower-cased trimmed unit. Used for equality + unique index.
+  unitNormalized  String  @default("")
+  /// Quantity on hand in `unit`. Stored as metric / canonical quantity for
+  /// metric units (kg, g, L) and as the same scale for free-text units
+  /// (e.g. packets, tsp) — there is no implicit imperial conversion in the DB.
+  amountOnHand    Float
+  /// Free-text brewer note (lot number, supplier, expiry, …).
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, nameNormalized, detailNormalized, unitNormalized])
+  @@index([category])
+}
+
+/// BJCP style-guideline range (BRE-44).
+///
+/// Each row holds the canonical vital-statistics range for a single BJCP
+/// sub-category (e.g. "21A" = American IPA). Recipe.bjcpCategory holds the
+/// code; the API/presentation layer joins it against this table to flag
+/// in/out-of-range values on the detail page.
+///
+/// `category` mirrors the Recipe-level "beer" | "mead" | "cider" | "wine"
+/// vocabulary so the seed loader can sanity-check cross-references. Numeric
+/// bounds are nullable: mead/cider have no IBU/SRM, so the comparison layer
+/// must treat a null bound on either side as "no guideline for this metric"
+/// and skip the comparison.
+model BjcpStyle {
+  id       String @id @default(cuid())
+  /// BJCP sub-category code, e.g. "21A", "M1A", "C1".
+  code     String  @unique
+  /// Human-readable style name, e.g. "American IPA".
+  name     String
+  /// beer | mead | cider | wine — mirrors the `Recipe.category` vocabulary.
+  category String  @default("beer")
+
+  /// Original gravity range (specific gravity, e.g. 1.056–1.070).
+  ogMin  Float?
+  ogMax  Float?
+  /// Final gravity range.
+  fgMin  Float?
+  fgMax  Float?
+  /// IBU range (beer only; null on both sides for mead/cider/wine).
+  ibuMin Float?
+  ibuMax Float?
+  /// SRM colour range (beer only).
+  srmMin Float?
+  srmMax Float?
+  /// ABV percent range.
+  abvMin Float?
+  abvMax Float?
+
+  /// Free-form provenance note (BJCP edition / source). Not user-facing.
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+}
+
+/// A dynamic timeline log entry for a batch. Logs are intentionally flexible so
+/// active fermentations can record gravity, pH, temperature, racking, nutrient,
+/// tasting, and other events without schema churn.
+model BatchLog {
+  id       String @id @default(cuid())
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+  batch    Batch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batchId  String?
+
+  logDate       DateTime @default(now())
+  type          String   @default("note") // note | gravity | ph | temperature | racking | addition | tasting | other
+  gravity       Float?
+  ph            Float?
+  temperatureC  Float?
+  volumeLiters  Float?
+  rating        Int?     @map("rating") // 1-5; only meaningful when type = "tasting"
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recipeId])
+  @@index([batchId])
+  @@index([logDate])
 }

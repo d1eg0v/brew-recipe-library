@@ -2,16 +2,17 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="py-16 text-center space-y-3">
-      <h1 className="text-2xl font-bold">Page not found</h1>
-      <p className="text-[var(--muted-foreground)]">
+    <div className="mx-auto max-w-6xl px-6 py-24 text-center">
+      <p className="font-mono text-sm text-[var(--muted-foreground)]">404</p>
+      <h1 className="font-display mt-2 text-4xl font-semibold tracking-tight">
+        Page not found
+      </h1>
+      <p className="mt-3 text-[var(--muted-foreground)]">
         That URL didn&apos;t match any recipe.
       </p>
-      <p>
-        <Link href="/" className="font-medium">
-          Browse all recipes
-        </Link>
-      </p>
+      <Link href="/" className="btn btn-primary mt-6 no-underline">
+        Browse all recipes
+      </Link>
     </div>
   );
 }

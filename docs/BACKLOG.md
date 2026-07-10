@@ -176,12 +176,16 @@ efficiency achieved, and what deviated from the recipe.
 - Star rating + free-text notes per batch (or recipe).
 - Average rating shown on cards; sortable by rating (ties into BRE-27).
 
-### BRE-40 — Ingredient inventory · **P2**
+### BRE-40 — Ingredient inventory · **P2** · shipped
 **Description:** Track on-hand grain/hop/yeast stock; cross-reference the existing
 shopping-list output to show what you still need to buy.
 
 **Technical notes:** Builds on `src/lib/brewing/shoppingList.ts` and the
-`/api/recipes/[id]/shopping-list` route.
+`/api/recipes/[id]/shopping-list` route. Ships an `InventoryItem` Prisma
+model + a new `/api/inventory` CRUD resource + a `?includeInventory=true`
+flag on the shopping-list route that layers the pantry onto every row. Pure
+cross-reference lives in `src/lib/brewing/inventory.ts`; the `/inventory`
+page gives the brewer a CRUD UI grouped by category.
 
 ---
 

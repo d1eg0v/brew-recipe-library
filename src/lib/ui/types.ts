@@ -8,12 +8,19 @@ export type RecipeCategory = "beer" | "mead" | "wine" | "cider" | "other";
 
 export type UnitSystem = "metric" | "imperial";
 
+/** A tag row attached to a recipe (BRE-29). */
+export interface TagSummary {
+  id: string;
+  name: string;
+}
+
 /** Minimal recipe row used by the browse list view. */
 export interface RecipeListItem {
   id: string;
   title: string;
   author: string | null;
   category: string;
+  beverageType?: string | null;
   styleName: string | null;
   bjcpCategory: string | null;
   batchSizeLiters: number;
@@ -22,7 +29,13 @@ export interface RecipeListItem {
   targetSrm: number | null;
   targetOg: number | null;
   targetFg: number | null;
+  targetPh: number | null;
   description: string | null;
+  /** Sorted, normalised tag names. Empty array when the recipe has none. */
+  tags: string[];
+  /** Per-tag ids (parallel to `tags`). */
+  tagDetails: TagSummary[];
+  averageRating: number | null;
   updatedAt: string;
 }
 
@@ -63,6 +76,7 @@ export interface YeastRow {
   type: string | null;
   form: string | null;
   attenuationPct: number | null;
+  abvTolerancePct: number | null;
   temperatureCMin: number | null;
   temperatureCMax: number | null;
   temperatureFMin?: number | null;
@@ -114,6 +128,7 @@ export interface RecipeDetail {
   description: string | null;
   notes: string | null;
   category: string;
+  beverageType?: string | null;
   styleName: string | null;
   bjcpCategory: string | null;
   batchSizeLiters: number;
@@ -122,6 +137,7 @@ export interface RecipeDetail {
   efficiencyPct: number;
   targetOg: number | null;
   targetFg: number | null;
+  targetPh: number | null;
   targetAbv: number | null;
   targetIbu: number | null;
   targetSrm: number | null;
@@ -131,8 +147,59 @@ export interface RecipeDetail {
   mashSteps: MashStepRow[];
   processSteps: ProcessStepRow[];
   additions: AdditionRow[];
+  /** Sorted, normalised tag names. Empty array when the recipe has none. */
+  tags: string[];
+  /** Per-tag ids (parallel to `tags`). */
+  tagDetails: TagSummary[];
+  averageRating: number | null;
   createdAt: string;
   updatedAt: string;
+  /** BRE-44: BJCP style-guideline comparison block. Null when the recipe
+   *  has no `bjcpCategory` or the code doesn't match a seeded style. */
+  style: RecipeStyleComparison | null;
+}
+
+/** Per-metric comparison result echoed from the API (BRE-44). Mirrors
+ *  `StyleMetricResult` from `@/lib/brewing/bjcp` so the client can stay
+ *  strict without importing the brewing module. */
+export interface StyleMetricResult {
+  status: "inRange" | "below" | "above" | "noData" | "noRange";
+  value: number | null;
+  min: number | null;
+  max: number | null;
+}
+
+/** Full BRE-44 style comparison block. */
+export interface RecipeStyleComparison {
+  style: BjcpStyleSummary | null;
+  comparison: StyleComparisonBlock | null;
+}
+
+export interface BjcpStyleSummary {
+  code: string;
+  name: string;
+  category: string;
+  ogMin: number | null;
+  ogMax: number | null;
+  fgMin: number | null;
+  fgMax: number | null;
+  ibuMin: number | null;
+  ibuMax: number | null;
+  srmMin: number | null;
+  srmMax: number | null;
+  abvMin: number | null;
+  abvMax: number | null;
+}
+
+export interface StyleComparisonBlock {
+  og: StyleMetricResult;
+  fg: StyleMetricResult;
+  ibu: StyleMetricResult;
+  srm: StyleMetricResult;
+  abv: StyleMetricResult;
+  hasAnyRange: boolean;
+  allInRange: boolean | null;
+  outOfRangeCount: number | null;
 }
 
 /** Calculated targets derived from a recipe on the server. */
@@ -153,6 +220,21 @@ export interface RecipeListResponse {
 
 export interface RecipeDetailResponse {
   data: RecipeDetail;
+}
+
+export interface BatchLogRow {
+  id: string;
+  recipeId: string;
+  batchId: string | null;
+  logDate: string;
+  type: string;
+  gravity: number | null;
+  ph: number | null;
+  temperatureC: number | null;
+  volumeLiters: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** One row of the shopping list as returned by `GET /api/recipes/[id]/shopping-list`. */
@@ -187,4 +269,258 @@ export interface ShoppingList {
 
 export interface ShoppingListResponse {
   data: ShoppingList;
+}
+
+// -----------------------------------------------------------------------------
+// Batch (brew log) types — mirror the response from
+// `GET /api/recipes/[id]/batches` and `GET /api/batches/[id]`. The list and
+// detail endpoints return the same row shape, with a `derived` block
+// (actualAbv / apparentAttenuation / brewhouseEfficiency) attached by the
+// presentation layer.
+// -----------------------------------------------------------------------------
+
+/** Derived metrics attached to a Batch row by `presentBatch`. */
+export interface BatchDerived {
+  actualAbv: number | null;
+  apparentAttenuation: number | null;
+  brewhouseEfficiency: number | null;
+}
+
+/** One logged brew as returned by both batch endpoints. */
+export interface BatchSummary {
+  id: string;
+  recipeId: string;
+  /** ISO timestamp of brew day. */
+  brewDate: string;
+  measuredOg: number | null;
+  measuredFg: number | null;
+  volumeLiters: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  derived: BatchDerived;
+}
+
+export interface BatchListResponse {
+  data: BatchSummary[];
+}
+
+export interface BatchResponse {
+  data: BatchSummary;
+}
+
+// ---------------------------------------------------------------------------
+// Priming-sugar / carbonation calculator (BRE-32).
+// ---------------------------------------------------------------------------
+
+/** Sugar options the calculator accepts. */
+export type PrimingSugarType = "cornSugar" | "tableSugar" | "dme";
+
+/** Server-derived result of the priming-sugar calculation. */
+export interface PrimingSugarResult {
+  weightGrams: number;
+  weightOz: number;
+  residualVolumes: number;
+  volumesToAdd: number;
+  sugarType: PrimingSugarType;
+  input: {
+    volumeLiters: number;
+    targetVolumes: number;
+    temperatureC: number;
+    sugarType: PrimingSugarType;
+  };
+}
+
+/** `GET /api/priming-sugar` response shape. */
+export interface PrimingSugarResponse {
+  data: {
+    result: PrimingSugarResult;
+    imperial?: { weightOz: number } | null;
+    source: "standalone" | "recipe";
+    recipe?: { id: string; title: string; batchSizeLiters: number } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Strike-water / mash-infusion calculator (BRE-34).
+// ---------------------------------------------------------------------------
+
+/** Server-derived result of the strike-water calculation. */
+export interface StrikeWaterResult {
+  volumeLiters: number;
+  strikeTempC: number;
+  waterToGrainRatioLPerKg: number;
+  input: {
+    grainKg: number;
+    targetMashTempC: number;
+    grainTempC: number;
+    waterToGrainRatioLPerKg: number;
+  };
+}
+
+/** `GET /api/strike-water` response shape. */
+export interface StrikeWaterResponse {
+  data: {
+    result: StrikeWaterResult;
+    /** Imperial parallel when `?units=imperial` was requested. */
+    imperial?: {
+      volumeGallons: number;
+      strikeTempF: number;
+    } | null;
+    /** Echoed source — "standalone" when no recipe was involved. */
+    source: "standalone" | "recipe";
+    /** Optional pre-fill context (the recipe that fed the grain mass). */
+    recipe?: {
+      id: string;
+      title: string;
+      grainKg: number;
+    } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Yeast pitch-rate / starter calculator (BRE-33).
+// ---------------------------------------------------------------------------
+
+/** Beer type for pitch-rate calculation. */
+export type PitchRateBeerType = "ale" | "lager";
+
+/** Yeast form for pitch-rate calculation. */
+export type PitchRateYeastForm = "dry" | "liquid";
+
+/** Server-derived result of the pitch-rate calculation. */
+export interface PitchRateResult {
+  recommendedCells: number;
+  viableCellsPerPack: number;
+  packsNeeded: number;
+  starterVolumeLiters: number;
+  starterRecommended: boolean;
+  viability: number;
+  degreesPlato: number;
+  input: {
+    og: number;
+    batchSizeLiters: number;
+    beerType: PitchRateBeerType;
+    yeastForm: PitchRateYeastForm;
+    daysSinceProduction?: number;
+    viabilityOverride?: number;
+    cellsPerPackOverride?: number;
+  };
+}
+
+/** `GET /api/pitch-rate` response shape. */
+export interface PitchRateResponse {
+  data: {
+    result: PitchRateResult;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Quick ABV-from-OG/FG calculator (BRE-35).
+
+/** Which formula the ABV calc used. Matches `AbvFormula` in `@/lib/brewing/abv`. */
+export type AbvFormula = "linear" | "highGravity";
+
+/** Server-derived result of the ABV calculation. */
+export interface MeasuredAbvResult {
+  /** Alcohol by volume, percent. */
+  abvPct: number;
+  /** Apparent attenuation, percent (0–100). */
+  apparentAttenuationPct: number;
+  /** Gravity points dropped during fermentation (OG − FG, in points × 1000). */
+  gravityPointsDropped: number;
+  /** Which formula was used. */
+  formulaUsed: AbvFormula;
+  /** True when the high-gravity formula was used (either forced or auto-picked). */
+  isHighGravity: boolean;
+  input: {
+    measuredOg: number;
+    measuredFg: number;
+    formula: AbvFormula;
+  };
+}
+
+/** `GET /api/abv` response shape. */
+export interface MeasuredAbvResponse {
+  data: {
+    result: MeasuredAbvResult;
+    /** Echoed source — "standalone" when no recipe was involved. */
+    source: "standalone" | "recipe";
+    /** Optional pre-fill context (the recipe that fed OG/FG). */
+    recipe?: {
+      id: string;
+      title: string;
+      targetOg: number | null;
+      targetFg: number | null;
+    } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Inventory / pantry (BRE-40).
+// ---------------------------------------------------------------------------
+
+/** Mirrors the Prisma `InventoryItem` model categories. */
+export type InventoryCategory = "fermentables" | "hops" | "yeast" | "additions";
+
+/** Cross-reference status for one shopping-list row vs. on-hand inventory. */
+export type InventoryStatus = "full" | "partial" | "missing";
+
+/** One pantry row as returned by `GET /api/inventory`. */
+export interface InventoryItemView {
+  id: string;
+  category: InventoryCategory;
+  name: string;
+  detail: string;
+  unit: string;
+  amountOnHand: number;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** `GET /api/inventory` response shape. */
+export interface InventoryListResponse {
+  data: InventoryItemView[];
+}
+
+/** `POST /api/inventory` and `PATCH /api/inventory/[id]` response shape. */
+export interface InventoryItemResponse {
+  data: InventoryItemView;
+}
+
+/** A shopping-list row layered with on-hand inventory data (BRE-40). */
+export interface ShoppingListItemWithInventory extends ShoppingListItem {
+  /** Quantity on hand for this row (0 when none is recorded). */
+  onHand: number;
+  /** How much still needs buying: max(0, required − onHand). */
+  stillNeed: number;
+  /** "full" when onHand >= required; "partial" when 0 < onHand < required; "missing" when onHand == 0. */
+  status: InventoryStatus;
+  /** Inventory row id(s) that contributed to `onHand`. Empty when no row hit. */
+  matchedInventoryIds: string[];
+}
+
+/** Cross-reference block returned by
+ *  `GET /api/recipes/[id]/shopping-list?includeInventory=true`. */
+export interface ShoppingListCrossReference {
+  rows: ShoppingListItemWithInventory[];
+  counts: {
+    total: number;
+    full: number;
+    partial: number;
+    missing: number;
+    /** Number of rows that still require a purchase (partial + missing). */
+    toBuy: number;
+  };
+}
+
+/** Shopping-list response shape when `?includeInventory=true` was set. The
+ *  `crossReference` field is additive — it's `undefined` when the query
+ *  param is absent, so existing clients that only read `data.items` and
+ *  `data.counts` keep working unchanged. */
+export interface ShoppingListResponseWithInventory extends ShoppingListResponse {
+  data: ShoppingList & {
+    crossReference?: ShoppingListCrossReference;
+  };
 }
