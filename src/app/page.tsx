@@ -9,6 +9,7 @@ import {
   CategoryGlyph,
   PencilGlyph,
   PlusGlyph,
+  StarGlyph,
 } from "@/components/icons";
 import {
   categoryAccent,
@@ -38,6 +39,7 @@ const SORT_FIELD_LABELS: Record<RecipeSortField, string> = {
   ibu: "IBU",
   gravity: "Gravity (OG)",
   date: "Date added",
+  rating: "Rating",
 };
 
 const SORT_DIR_LABELS: Record<RecipeSortDir, string> = {
@@ -716,6 +718,17 @@ function RecipeCard({ recipe }: { recipe: RecipeListItem }) {
             value={recipe.targetOg != null ? recipe.targetOg.toFixed(3) : "—"}
           />
         </dl>
+        {recipe.averageRating != null && (
+          <div className="mt-2 flex items-center gap-0.5" aria-label={`Rated ${recipe.averageRating} out of 5`}>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <StarGlyph
+                key={star}
+                className={`h-3.5 w-3.5 ${star <= Math.round(recipe.averageRating!) ? 'text-amber-500' : 'text-[var(--muted-foreground)] opacity-25'}`}
+              />
+            ))}
+            <span className="ml-1 text-xs text-[var(--muted-foreground)]">{recipe.averageRating.toFixed(1)}</span>
+          </div>
+        )}
         <div className="mt-3 flex items-center justify-between text-xs">
           <span className="inline-flex items-center gap-1 text-[var(--accent)] font-semibold">
             Open recipe

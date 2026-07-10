@@ -322,6 +322,7 @@ export const RECIPE_SORT_FIELDS = [
   "ibu",
   "gravity",
   "date",
+  "rating",
 ] as const;
 export type RecipeSortField = (typeof RECIPE_SORT_FIELDS)[number];
 

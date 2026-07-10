@@ -35,6 +35,7 @@ export interface RecipeListItem {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  averageRating: number | null;
   updatedAt: string;
 }
 
@@ -150,6 +151,7 @@ export interface RecipeDetail {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  averageRating: number | null;
   createdAt: string;
   updatedAt: string;
   /** BRE-44: BJCP style-guideline comparison block. Null when the recipe
