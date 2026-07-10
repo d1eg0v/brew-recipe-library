@@ -367,14 +367,11 @@ export interface StrikeWaterResult {
 export interface StrikeWaterResponse {
   data: {
     result: StrikeWaterResult;
-    /** Imperial parallel when `?units=imperial` was requested. */
     imperial?: {
       volumeGallons: number;
       strikeTempF: number;
     } | null;
-    /** Echoed source — "standalone" when no recipe was involved. */
     source: "standalone" | "recipe";
-    /** Optional pre-fill context (the recipe that fed the grain mass). */
     recipe?: {
       id: string;
       title: string;
@@ -387,13 +384,9 @@ export interface StrikeWaterResponse {
 // Yeast pitch-rate / starter calculator (BRE-33).
 // ---------------------------------------------------------------------------
 
-/** Beer type for pitch-rate calculation. */
 export type PitchRateBeerType = "ale" | "lager";
-
-/** Yeast form for pitch-rate calculation. */
 export type PitchRateYeastForm = "dry" | "liquid";
 
-/** Server-derived result of the pitch-rate calculation. */
 export interface PitchRateResult {
   recommendedCells: number;
   viableCellsPerPack: number;
@@ -413,7 +406,6 @@ export interface PitchRateResult {
   };
 }
 
-/** `GET /api/pitch-rate` response shape. */
 export interface PitchRateResponse {
   data: {
     result: PitchRateResult;
@@ -423,20 +415,13 @@ export interface PitchRateResponse {
 // ---------------------------------------------------------------------------
 // Quick ABV-from-OG/FG calculator (BRE-35).
 
-/** Which formula the ABV calc used. Matches `AbvFormula` in `@/lib/brewing/abv`. */
 export type AbvFormula = "linear" | "highGravity";
 
-/** Server-derived result of the ABV calculation. */
 export interface MeasuredAbvResult {
-  /** Alcohol by volume, percent. */
   abvPct: number;
-  /** Apparent attenuation, percent (0–100). */
   apparentAttenuationPct: number;
-  /** Gravity points dropped during fermentation (OG − FG, in points × 1000). */
   gravityPointsDropped: number;
-  /** Which formula was used. */
   formulaUsed: AbvFormula;
-  /** True when the high-gravity formula was used (either forced or auto-picked). */
   isHighGravity: boolean;
   input: {
     measuredOg: number;
@@ -445,13 +430,10 @@ export interface MeasuredAbvResult {
   };
 }
 
-/** `GET /api/abv` response shape. */
 export interface MeasuredAbvResponse {
   data: {
     result: MeasuredAbvResult;
-    /** Echoed source — "standalone" when no recipe was involved. */
     source: "standalone" | "recipe";
-    /** Optional pre-fill context (the recipe that fed OG/FG). */
     recipe?: {
       id: string;
       title: string;
@@ -465,13 +447,9 @@ export interface MeasuredAbvResponse {
 // Inventory / pantry (BRE-40).
 // ---------------------------------------------------------------------------
 
-/** Mirrors the Prisma `InventoryItem` model categories. */
 export type InventoryCategory = "fermentables" | "hops" | "yeast" | "additions";
-
-/** Cross-reference status for one shopping-list row vs. on-hand inventory. */
 export type InventoryStatus = "full" | "partial" | "missing";
 
-/** One pantry row as returned by `GET /api/inventory`. */
 export interface InventoryItemView {
   id: string;
   category: InventoryCategory;
@@ -484,30 +462,21 @@ export interface InventoryItemView {
   updatedAt: string;
 }
 
-/** `GET /api/inventory` response shape. */
 export interface InventoryListResponse {
   data: InventoryItemView[];
 }
 
-/** `POST /api/inventory` and `PATCH /api/inventory/[id]` response shape. */
 export interface InventoryItemResponse {
   data: InventoryItemView;
 }
 
-/** A shopping-list row layered with on-hand inventory data (BRE-40). */
 export interface ShoppingListItemWithInventory extends ShoppingListItem {
-  /** Quantity on hand for this row (0 when none is recorded). */
   onHand: number;
-  /** How much still needs buying: max(0, required − onHand). */
   stillNeed: number;
-  /** "full" when onHand >= required; "partial" when 0 < onHand < required; "missing" when onHand == 0. */
   status: InventoryStatus;
-  /** Inventory row id(s) that contributed to `onHand`. Empty when no row hit. */
   matchedInventoryIds: string[];
 }
 
-/** Cross-reference block returned by
- *  `GET /api/recipes/[id]/shopping-list?includeInventory=true`. */
 export interface ShoppingListCrossReference {
   rows: ShoppingListItemWithInventory[];
   counts: {
@@ -515,17 +484,78 @@ export interface ShoppingListCrossReference {
     full: number;
     partial: number;
     missing: number;
-    /** Number of rows that still require a purchase (partial + missing). */
     toBuy: number;
   };
 }
 
-/** Shopping-list response shape when `?includeInventory=true` was set. The
- *  `crossReference` field is additive — it's `undefined` when the query
- *  param is absent, so existing clients that only read `data.items` and
- *  `data.counts` keep working unchanged. */
 export interface ShoppingListResponseWithInventory extends ShoppingListResponse {
   data: ShoppingList & {
     crossReference?: ShoppingListCrossReference;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Water chemistry calculator (BRE-31).
+// ---------------------------------------------------------------------------
+
+export type SaltType =
+  | "gypsum"
+  | "calciumChloride"
+  | "epsomSalt"
+  | "canningSalt"
+  | "bakingSoda"
+  | "chalk";
+
+export interface SaltAdditionInput {
+  saltType: SaltType;
+  grams: number;
+}
+
+export interface WaterProfileResult {
+  calcium: number;
+  magnesium: number;
+  sodium: number;
+  sulfate: number;
+  chloride: number;
+  bicarbonate: number;
+}
+
+export interface SaltContributionResult {
+  saltType: SaltType;
+  grams: number;
+  label: string;
+  formula: string;
+  calcium: number;
+  magnesium: number;
+  sodium: number;
+  sulfate: number;
+  chloride: number;
+  bicarbonate: number;
+}
+
+export interface WaterChemistryResult {
+  resultingProfile: WaterProfileResult;
+  contributions: SaltContributionResult[];
+  alkalinityAsCaCO3: number;
+  residualAlkalinity: number;
+  estimatedMashPh: number;
+  sulfateChlorideRatio: number | null;
+}
+
+export interface NamedProfile {
+  name: string;
+  description: string;
+  calcium: number;
+  magnesium: number;
+  sodium: number;
+  sulfate: number;
+  chloride: number;
+  bicarbonate: number;
+}
+
+export interface WaterChemistryResponse {
+  data: {
+    result: WaterChemistryResult;
+    profiles: NamedProfile[];
   };
 }

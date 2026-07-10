@@ -586,7 +586,7 @@ export const abvQuerySchema = z
     measuredFg: z.coerce.number().finite().gte(0.95).lte(1.2).optional(),
     /**
      * Formula override. "auto" (default) picks the high-gravity correction
-     * at OG ≥ 1.07; "linear" always uses the standard (OG - FG) × 131.25;
+     * at OG >= 1.07; "linear" always uses the standard (OG - FG) x 131.25;
      * "highGravity" always uses the Daniels/Papazian nonlinear form.
      */
     formula: abvFormulaField,
@@ -659,7 +659,7 @@ export const pitchRateQuerySchema = z
       ),
     /** Days since production (for viability estimation). 0 = fresh. */
     daysSinceProduction: z.coerce.number().int().nonnegative().optional(),
-    /** Explicit viability override (0–1). */
+    /** Explicit viability override (0-1). */
     viabilityOverride: z.coerce.number().finite().gte(0).lte(1).optional(),
     /** Override cell count per pack (billions). */
     cellsPerPackOverride: z.coerce.number().finite().positive().optional(),
@@ -674,6 +674,42 @@ export const pitchRateQuerySchema = z
   );
 
 export type PitchRateQuery = z.infer<typeof pitchRateQuerySchema>;
+
+// -----------------------------------------------------------------------------
+// Water chemistry calculator — query params for GET /api/water-chemistry.
+// All mineral values in ppm (mg/L); volume in litres.
+// -----------------------------------------------------------------------------
+
+export const SALT_TYPES = [
+  "gypsum",
+  "calciumChloride",
+  "epsomSalt",
+  "canningSalt",
+  "bakingSoda",
+  "chalk",
+] as const;
+export type SaltType = (typeof SALT_TYPES)[number];
+
+const saltAdditionSchema = z.object({
+  saltType: z.string().refine(
+    (v) => (SALT_TYPES as readonly string[]).includes(v),
+    { message: `must be one of: ${SALT_TYPES.join(", ")}` },
+  ),
+  grams: z.number().finite().gte(0),
+});
+
+export const waterChemistryQuerySchema = z.object({
+  calcium: z.coerce.number().finite().gte(0).optional(),
+  magnesium: z.coerce.number().finite().gte(0).optional(),
+  sodium: z.coerce.number().finite().gte(0).optional(),
+  sulfate: z.coerce.number().finite().gte(0).optional(),
+  chloride: z.coerce.number().finite().gte(0).optional(),
+  bicarbonate: z.coerce.number().finite().gte(0).optional(),
+  volumeLiters: z.coerce.number().finite().positive(),
+  additions: z.string().optional(), // JSON-encoded SaltAddition[]
+});
+
+export type WaterChemistryQuery = z.infer<typeof waterChemistryQuerySchema>;
 
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
