@@ -217,7 +217,7 @@ export default async function HomePage({
       {/* ---------------------------------------------------------- */}
       {/*  Hero                                                       */}
       {/* ---------------------------------------------------------- */}
-      <section className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--surface-2)]/50">
+      <section className="brew-hero relative overflow-hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.5]"
@@ -226,35 +226,32 @@ export default async function HomePage({
               "radial-gradient(680px 320px at 8% -20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), radial-gradient(520px 280px at 95% 10%, color-mix(in srgb, var(--secondary) 12%, transparent), transparent 70%)",
           }}
         />
-        <div className="relative mx-auto max-w-6xl px-6 py-12 sm:py-16">
-          <p className="label-eyebrow">A field notebook for fermentations</p>
-          <h1 className="font-display mt-3 text-5xl sm:text-6xl font-semibold tracking-tight text-[var(--foreground)]">
-            Recipes
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--muted-foreground)]">
-            {all.length} recipe{all.length === 1 ? "" : "s"} in the library
-            {isFiltered || hasAnySort(params) ? (
-              <>
-                {" "}
-                — <span className="text-[var(--foreground)] font-medium">
-                  {filtered.length} match
-                  {filtered.length === 1 ? "" : "es"}
-                </span>{" "}
-                your filters
-                {hasAnySort(params) &&
-                  `, sorted by ${SORT_FIELD_LABELS[parseSort(params)].toLowerCase()} (${SORT_DIR_LABELS[parseDir(params)].toLowerCase()})`}
-              </>
-            ) : (
-              <>
-                {" "}
-                across beer, mead, wine, and cider. Scale any batch, switch
-                units, print a shopping list.
-              </>
-            )}
-          </p>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end lg:py-16">
+          <div>
+            <p className="label-eyebrow">Your fermentation archive</p>
+            <h1 className="font-display mt-3 text-5xl font-semibold tracking-tight text-[var(--foreground)] sm:text-6xl">
+              Recipes
+            </h1>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--muted-foreground)]">
+              {all.length} recipe{all.length === 1 ? "" : "s"} in the library
+              {isFiltered || hasAnySort(params) ? (
+                <>
+                  {" "}
+                  — <span className="text-[var(--foreground)] font-medium">
+                    {filtered.length} match
+                    {filtered.length === 1 ? "" : "es"}
+                  </span>{" "}
+                  your filters
+                  {hasAnySort(params) &&
+                    `, sorted by ${SORT_FIELD_LABELS[parseSort(params)].toLowerCase()} (${SORT_DIR_LABELS[parseDir(params)].toLowerCase()})`}
+                </>
+              ) : (
+                <> — every successful pour, ready for the next brew day.</>
+              )}
+            </p>
 
           {/* Search bar */}
-          <form
+            <form
             method="get"
             action="/"
             className="mt-8 flex flex-col sm:flex-row gap-2 sm:gap-0 sm:items-stretch sm:max-w-xl"
@@ -301,29 +298,44 @@ export default async function HomePage({
             <button type="submit" className="btn btn-primary sm:rounded-l-none" style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}>
               Search
             </button>
-          </form>
+            </form>
 
-          <div className="mt-6">
-            <Link href="/recipes/new" className="btn btn-primary no-underline">
-              <PlusGlyph className="h-4 w-4" />
-              New recipe
-            </Link>
+            <div className="mt-6">
+              <Link href="/recipes/new" className="btn btn-primary no-underline">
+                <PlusGlyph className="h-4 w-4" />
+                Add a recipe
+              </Link>
+            </div>
           </div>
+          <aside className="library-ledger" aria-label="Library overview">
+            <p className="label-eyebrow">Library at a glance</p>
+            <div className="ledger-total"><span>{all.length}</span><small>recipes</small></div>
+            <div className="ledger-categories">
+              {CATEGORIES.map((category) => (
+                <div key={category}>
+                  <span>{categoryLabel(category)}</span>
+                  <strong>{counts[category] ?? 0}</strong>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </section>
 
       {/* ---------------------------------------------------------- */}
       {/*  Category chips + grid                                      */}
       {/* ---------------------------------------------------------- */}
-      <div className="mx-auto max-w-6xl px-6 py-10 space-y-8">
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6">
         <CategoryChips
           counts={counts}
           active={params.category ?? ""}
           params={params}
         />
-        <TagFilter params={params} />
-        <RangeFilters params={params} />
-        <SortControls params={params} />
+        <div className="recipe-toolbox">
+          <TagFilter params={params} />
+          <RangeFilters params={params} />
+          <SortControls params={params} />
+        </div>
 
         {/* Active filter summary + clear */}
         {isFiltered && (
@@ -343,7 +355,7 @@ export default async function HomePage({
         {filtered.length === 0 ? (
           <EmptyState filtered={isFiltered} />
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <ul className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((r) => (
               <li key={r.id}>
                 <RecipeCard recipe={r} />

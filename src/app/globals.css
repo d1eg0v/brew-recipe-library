@@ -618,6 +618,185 @@ h1, h2, h3 {
   background: var(--border);
 }
 
+/* ------------------------------------------------------------------ */
+/*  Brew ledger refresh                                                */
+/*                                                                     */
+/*  A calibrated workbench rather than a decorative recipe gallery:   */
+/*  strong rules, quiet paper, and the recipe's own colour as the     */
+/*  point of emphasis.                                                 */
+/* ------------------------------------------------------------------ */
+
+.site-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  box-shadow: 0 8px 24px -24px rgb(var(--shadow-color) / 0.8);
+  backdrop-filter: blur(16px) saturate(1.05);
+}
+
+.site-header-inner {
+  position: relative;
+}
+
+.site-header-inner::after {
+  content: "";
+  position: absolute;
+  right: 1.5rem;
+  bottom: -1px;
+  left: 1.5rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 15%, transparent) 38%, transparent 76%);
+}
+
+.brand-mark {
+  border-radius: 45% 55% 48% 52% / 52% 42% 58% 48%;
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--accent) 22%, var(--background));
+}
+
+.site-nav .btn-ghost {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  letter-spacing: 0.025em;
+}
+
+.site-nav .btn-ghost:hover { color: var(--foreground); }
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 62%, transparent);
+}
+
+.brew-hero {
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--surface-2) 94%, var(--background)), var(--background));
+}
+
+.brew-hero::after {
+  content: "";
+  position: absolute;
+  width: 28rem;
+  height: 28rem;
+  right: -14rem;
+  bottom: -19rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2.7rem color-mix(in srgb, var(--accent) 5%, transparent), 0 0 0 5.5rem color-mix(in srgb, var(--accent) 3%, transparent);
+  pointer-events: none;
+}
+
+.library-ledger {
+  position: relative;
+  padding: 1.3rem 1.35rem 1.15rem;
+  color: var(--accent-foreground);
+  background: var(--foreground);
+  border: 1px solid color-mix(in srgb, var(--foreground) 70%, var(--border));
+  border-radius: 1rem 1rem 1rem 0.2rem;
+  box-shadow: 8px 8px 0 color-mix(in srgb, var(--accent) 22%, transparent);
+  overflow: hidden;
+}
+
+.library-ledger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  background-image: linear-gradient(90deg, transparent 96%, currentColor 96%);
+  background-size: 1.35rem 1.35rem;
+  pointer-events: none;
+}
+
+.library-ledger .label-eyebrow {
+  position: relative;
+  color: color-mix(in srgb, var(--accent-foreground) 67%, transparent);
+}
+
+.ledger-total {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.8rem 0 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-foreground) 22%, transparent);
+}
+
+.ledger-total span {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 3.65rem;
+  font-weight: 600;
+  line-height: 0.85;
+  color: var(--accent);
+}
+
+.ledger-total small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.ledger-categories {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 1.25rem;
+  padding-top: 0.9rem;
+}
+
+.ledger-categories div { display: flex; justify-content: space-between; gap: 0.5rem; }
+.ledger-categories span { font-size: 0.75rem; color: color-mix(in srgb, var(--accent-foreground) 72%, transparent); }
+.ledger-categories strong { font-family: var(--font-mono); font-size: 0.78rem; }
+
+.recipe-toolbox {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+}
+
+.recipe-toolbox .section {
+  min-width: 0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+.recipe-toolbox .section-title { font-size: 1rem; }
+
+.recipe-toolbox > form:first-child {
+  background: color-mix(in srgb, var(--card) 82%, var(--accent-soft));
+}
+
+.recipe-card {
+  border-radius: 0.8rem 0.8rem 0.8rem 0.18rem;
+  box-shadow: 0 1px 1px rgb(var(--shadow-color) / 0.04), 3px 4px 0 color-mix(in srgb, var(--card-accent, var(--accent)) 10%, transparent);
+}
+
+.recipe-card::before { height: 4px; }
+.recipe-card:hover { box-shadow: var(--shadow-lift), 4px 5px 0 color-mix(in srgb, var(--card-accent, var(--accent)) 15%, transparent); }
+
+.recipe-card h3 { text-wrap: pretty; }
+
+@media (min-width: 700px) {
+  .recipe-toolbox { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 1fr); }
+  .recipe-toolbox .section { height: 100%; }
+  .recipe-toolbox .section > div:first-of-type { align-content: start; }
+}
+
+@media (max-width: 639px) {
+  .site-header-inner::after { right: 1.25rem; left: 1.25rem; }
+  .site-nav { gap: 0.25rem; }
+  .site-nav .btn { padding-inline: 0.55rem; }
+  .library-ledger { max-width: 21rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
 /* Print ------------------------------------------------------------- */
 @media print {
   body::before, body::after { display: none; }
