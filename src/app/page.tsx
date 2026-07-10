@@ -59,7 +59,6 @@ interface BrowseSearchParams {
   style?: string;
   ingredient?: string;
   tag?: string;
-  ingredient?: string;
   abvMin?: string;
   abvMax?: string;
   ibuMin?: string;
