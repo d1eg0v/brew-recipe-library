@@ -105,7 +105,7 @@ export default function RootLayout({
                   <span className="md:hidden">New</span>
                 </Link>
                 <span className="hidden lg:contents"><UnitToggle /></span>
-                <span className="hidden sm:contents"><ThemeSwitcher /></span>
+                <ThemeSwitcher compact />
               </nav>
             </div>
           </div>

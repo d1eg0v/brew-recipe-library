@@ -684,68 +684,6 @@ h1, h2, h3 {
   pointer-events: none;
 }
 
-.library-ledger {
-  position: relative;
-  padding: 1.3rem 1.35rem 1.15rem;
-  color: var(--accent-foreground);
-  background: var(--foreground);
-  border: 1px solid color-mix(in srgb, var(--foreground) 70%, var(--border));
-  border-radius: 1rem 1rem 1rem 0.2rem;
-  box-shadow: 8px 8px 0 color-mix(in srgb, var(--accent) 22%, transparent);
-  overflow: hidden;
-}
-
-.library-ledger::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.18;
-  background-image: linear-gradient(90deg, transparent 96%, currentColor 96%);
-  background-size: 1.35rem 1.35rem;
-  pointer-events: none;
-}
-
-.library-ledger .label-eyebrow {
-  position: relative;
-  color: color-mix(in srgb, var(--accent-foreground) 67%, transparent);
-}
-
-.ledger-total {
-  position: relative;
-  display: flex;
-  align-items: baseline;
-  gap: 0.55rem;
-  padding: 0.8rem 0 0.7rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-foreground) 22%, transparent);
-}
-
-.ledger-total span {
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 3.65rem;
-  font-weight: 600;
-  line-height: 0.85;
-  color: var(--accent);
-}
-
-.ledger-total small {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.ledger-categories {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.55rem 1.25rem;
-  padding-top: 0.9rem;
-}
-
-.ledger-categories div { display: flex; justify-content: space-between; gap: 0.5rem; }
-.ledger-categories span { font-size: 0.75rem; color: color-mix(in srgb, var(--accent-foreground) 72%, transparent); }
-.ledger-categories strong { font-family: var(--font-mono); font-size: 0.78rem; }
-
 .recipe-toolbox {
   display: grid;
   grid-template-columns: 1fr;
@@ -790,7 +728,6 @@ h1, h2, h3 {
   .site-header-inner::after { right: 1.25rem; left: 1.25rem; }
   .site-nav { gap: 0.25rem; }
   .site-nav .btn { padding-inline: 0.55rem; }
-  .library-ledger { max-width: 21rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -226,7 +226,7 @@ export default async function HomePage({
               "radial-gradient(680px 320px at 8% -20%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), radial-gradient(520px 280px at 95% 10%, color-mix(in srgb, var(--secondary) 12%, transparent), transparent 70%)",
           }}
         />
-        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end lg:py-16">
+        <div className="relative mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:py-16">
           <div>
             <p className="label-eyebrow">Your fermentation archive</p>
             <h1 className="font-display mt-3 text-5xl font-semibold tracking-tight text-[var(--foreground)] sm:text-6xl">
@@ -307,18 +307,6 @@ export default async function HomePage({
               </Link>
             </div>
           </div>
-          <aside className="library-ledger" aria-label="Library overview">
-            <p className="label-eyebrow">Library at a glance</p>
-            <div className="ledger-total"><span>{all.length}</span><small>recipes</small></div>
-            <div className="ledger-categories">
-              {CATEGORIES.map((category) => (
-                <div key={category}>
-                  <span>{categoryLabel(category)}</span>
-                  <strong>{counts[category] ?? 0}</strong>
-                </div>
-              ))}
-            </div>
-          </aside>
         </div>
       </section>
 

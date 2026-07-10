@@ -15,7 +15,12 @@ function readAppliedTheme(): ThemeId {
   return isThemeId(attr) ? attr : DEFAULT_THEME;
 }
 
-export default function ThemeSwitcher() {
+interface ThemeSwitcherProps {
+  /** Keep the trigger compact while retaining the full labelled menu. */
+  compact?: boolean;
+}
+
+export default function ThemeSwitcher({ compact = false }: ThemeSwitcherProps) {
   const [open, setOpen] = useState(false);
   // Initial state must match the server-rendered HTML to avoid a hydration
   // mismatch. The boot script in `src/lib/theme/bootScript.ts` may have set
@@ -89,7 +94,10 @@ export default function ThemeSwitcher() {
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--border)] bg-[var(--background)] text-sm text-[var(--foreground)] hover:bg-[var(--muted)]"
+        aria-label={compact ? `Change color theme (currently ${current.label})` : undefined}
+        className={`inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background)] py-1.5 text-sm text-[var(--foreground)] hover:bg-[var(--muted)] ${
+          compact ? "px-2" : "px-3"
+        }`}
       >
         <span
           aria-hidden
@@ -104,8 +112,8 @@ export default function ThemeSwitcher() {
             style={{ background: "var(--swatch-accent)" }}
           />
         </span>
-        <span className="font-medium">{current.label}</span>
-        <span aria-hidden className="text-[var(--muted-foreground)]">▾</span>
+        <span className={compact ? "sr-only" : "font-medium"}>{current.label}</span>
+        {!compact && <span aria-hidden className="text-[var(--muted-foreground)]">▾</span>}
       </button>
       {open && (
         <ul
