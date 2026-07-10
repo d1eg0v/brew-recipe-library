@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import FavoriteButton from "@/components/recipe/FavoriteButton";
 import TagEditor from "@/components/recipe/TagEditor";
 import {
   ArrowGlyph,
@@ -439,6 +440,10 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
             >
               Compare with…
             </Link>
+            <FavoriteButton
+              recipeId={recipe.id}
+              recipeTitle={recipe.title}
+            />
             <Link
               href={`/recipes/${recipe.id}/edit`}
               className="btn btn-outline no-underline"

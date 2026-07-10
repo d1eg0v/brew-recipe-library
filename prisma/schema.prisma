@@ -296,6 +296,7 @@ model BatchLog {
   ph            Float?
   temperatureC  Float?
   volumeLiters  Float?
+  rating        Int?     @map("rating") // 1-5; only meaningful when type = "tasting"
   notes         String?
 
   createdAt DateTime @default(now())

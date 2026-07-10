@@ -35,6 +35,7 @@ export interface RecipeListItem {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  averageRating: number | null;
   updatedAt: string;
 }
 
@@ -150,6 +151,7 @@ export interface RecipeDetail {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  averageRating: number | null;
   createdAt: string;
   updatedAt: string;
   /** BRE-44: BJCP style-guideline comparison block. Null when the recipe
@@ -373,6 +375,43 @@ export interface StrikeWaterResponse {
       title: string;
       grainKg: number;
     } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Yeast pitch-rate / starter calculator (BRE-33).
+// ---------------------------------------------------------------------------
+
+/** Beer type for pitch-rate calculation. */
+export type PitchRateBeerType = "ale" | "lager";
+
+/** Yeast form for pitch-rate calculation. */
+export type PitchRateYeastForm = "dry" | "liquid";
+
+/** Server-derived result of the pitch-rate calculation. */
+export interface PitchRateResult {
+  recommendedCells: number;
+  viableCellsPerPack: number;
+  packsNeeded: number;
+  starterVolumeLiters: number;
+  starterRecommended: boolean;
+  viability: number;
+  degreesPlato: number;
+  input: {
+    og: number;
+    batchSizeLiters: number;
+    beerType: PitchRateBeerType;
+    yeastForm: PitchRateYeastForm;
+    daysSinceProduction?: number;
+    viabilityOverride?: number;
+    cellsPerPackOverride?: number;
+  };
+}
+
+/** `GET /api/pitch-rate` response shape. */
+export interface PitchRateResponse {
+  data: {
+    result: PitchRateResult;
   };
 }
 
