@@ -8,6 +8,7 @@ import { FAVORITES_BOOT_SCRIPT } from "@/lib/favorites/bootScript";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme/bootScript";
 import { UNIT_BOOT_SCRIPT } from "@/lib/units/bootScript";
 import { HopMark } from "@/components/icons";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,12 +46,19 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: UNIT_BOOT_SCRIPT }} />
-        {/* BRE-46: prime `data-favorites-count` from localStorage before paint
-            so the server-rendered card grid matches the user's stored set
-            on first paint. */}
-        <script
+        <Script
+          id="theme-boot"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
+        />
+        <Script
+          id="unit-boot"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: UNIT_BOOT_SCRIPT }}
+        />
+        <Script
+          id="favorites-boot"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: FAVORITES_BOOT_SCRIPT }}
         />
       </head>

@@ -59,7 +59,6 @@ interface BrowseSearchParams {
   style?: string;
   ingredient?: string;
   tag?: string;
-  ingredient?: string;
   abvMin?: string;
   abvMax?: string;
   ibuMin?: string;
@@ -207,6 +206,10 @@ function hasRangeFilter(p: BrowseSearchParams): boolean {
 
 function hasAnyFilter(p: BrowseSearchParams): boolean {
   return Boolean(p.q || p.category || p.style || p.tag || p.ingredient || hasRangeFilter(p));
+}
+
+function isFavoritesFilterOn(p: BrowseSearchParams): boolean {
+  return p.favorites === "1";
 }
 
 function hasAnySort(p: BrowseSearchParams): boolean {

@@ -326,7 +326,6 @@ model BjcpStyle {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-}
 
 /// A dynamic timeline log entry for a batch. Logs are intentionally flexible so
 /// active fermentations can record gravity, pH, temperature, racking, nutrient,
