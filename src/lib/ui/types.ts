@@ -35,6 +35,7 @@ export interface RecipeListItem {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  averageRating: number | null;
   updatedAt: string;
 }
 
@@ -150,8 +151,55 @@ export interface RecipeDetail {
   tags: string[];
   /** Per-tag ids (parallel to `tags`). */
   tagDetails: TagSummary[];
+  averageRating: number | null;
   createdAt: string;
   updatedAt: string;
+  /** BRE-44: BJCP style-guideline comparison block. Null when the recipe
+   *  has no `bjcpCategory` or the code doesn't match a seeded style. */
+  style: RecipeStyleComparison | null;
+}
+
+/** Per-metric comparison result echoed from the API (BRE-44). Mirrors
+ *  `StyleMetricResult` from `@/lib/brewing/bjcp` so the client can stay
+ *  strict without importing the brewing module. */
+export interface StyleMetricResult {
+  status: "inRange" | "below" | "above" | "noData" | "noRange";
+  value: number | null;
+  min: number | null;
+  max: number | null;
+}
+
+/** Full BRE-44 style comparison block. */
+export interface RecipeStyleComparison {
+  style: BjcpStyleSummary | null;
+  comparison: StyleComparisonBlock | null;
+}
+
+export interface BjcpStyleSummary {
+  code: string;
+  name: string;
+  category: string;
+  ogMin: number | null;
+  ogMax: number | null;
+  fgMin: number | null;
+  fgMax: number | null;
+  ibuMin: number | null;
+  ibuMax: number | null;
+  srmMin: number | null;
+  srmMax: number | null;
+  abvMin: number | null;
+  abvMax: number | null;
+}
+
+export interface StyleComparisonBlock {
+  og: StyleMetricResult;
+  fg: StyleMetricResult;
+  ibu: StyleMetricResult;
+  srm: StyleMetricResult;
+  abv: StyleMetricResult;
+  hasAnyRange: boolean;
+  allInRange: boolean | null;
+  outOfRangeCount: number | null;
 }
 
 /** Calculated targets derived from a recipe on the server. */
@@ -327,6 +375,43 @@ export interface StrikeWaterResponse {
       title: string;
       grainKg: number;
     } | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Yeast pitch-rate / starter calculator (BRE-33).
+// ---------------------------------------------------------------------------
+
+/** Beer type for pitch-rate calculation. */
+export type PitchRateBeerType = "ale" | "lager";
+
+/** Yeast form for pitch-rate calculation. */
+export type PitchRateYeastForm = "dry" | "liquid";
+
+/** Server-derived result of the pitch-rate calculation. */
+export interface PitchRateResult {
+  recommendedCells: number;
+  viableCellsPerPack: number;
+  packsNeeded: number;
+  starterVolumeLiters: number;
+  starterRecommended: boolean;
+  viability: number;
+  degreesPlato: number;
+  input: {
+    og: number;
+    batchSizeLiters: number;
+    beerType: PitchRateBeerType;
+    yeastForm: PitchRateYeastForm;
+    daysSinceProduction?: number;
+    viabilityOverride?: number;
+    cellsPerPackOverride?: number;
+  };
+}
+
+/** `GET /api/pitch-rate` response shape. */
+export interface PitchRateResponse {
+  data: {
+    result: PitchRateResult;
   };
 }
 
