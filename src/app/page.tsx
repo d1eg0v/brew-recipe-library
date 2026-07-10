@@ -59,6 +59,7 @@ interface BrowseSearchParams {
   style?: string;
   ingredient?: string;
   tag?: string;
+  ingredient?: string;
   abvMin?: string;
   abvMax?: string;
   ibuMin?: string;
@@ -100,6 +101,7 @@ async function fetchRecipes(
   if (params.style) url.searchParams.set("style", params.style);
   if (params.ingredient) url.searchParams.set("ingredient", params.ingredient);
   if (params.tag) url.searchParams.set("tag", params.tag);
+  if (params.ingredient) url.searchParams.set("ingredient", params.ingredient);
   if (params.abvMin) url.searchParams.set("abvMin", params.abvMin);
   if (params.abvMax) url.searchParams.set("abvMax", params.abvMax);
   if (params.ibuMin) url.searchParams.set("ibuMin", params.ibuMin);
@@ -204,47 +206,7 @@ function hasRangeFilter(p: BrowseSearchParams): boolean {
 }
 
 function hasAnyFilter(p: BrowseSearchParams): boolean {
-  return Boolean(
-    p.q ||
-      p.category ||
-      p.style ||
-      p.ingredient ||
-      p.tag ||
-      hasRangeFilter(p) ||
-      isFavoritesFilterOn(p),
-  );
-}
-
-/** True when `?favorites=1` is set on the URL. The filter is otherwise
- *  client-side; this is the only place the server cares. */
-function isFavoritesFilterOn(p: BrowseSearchParams): boolean {
-  return p.favorites === "1";
-}
-
-/**
- * Build the URL for the favorites filter chip (BRE-46). Preserves every
- * other search param so toggling `?favorites=1` doesn't drop the user's
- * category, tag, range, or sort selection.
- */
-function favoritesHref(p: BrowseSearchParams): string {
-  const sp = new URLSearchParams();
-  if (p.q) sp.set("q", p.q);
-  if (p.category) sp.set("category", p.category);
-  if (p.style) sp.set("style", p.style);
-  if (p.ingredient) sp.set("ingredient", p.ingredient);
-  if (p.tag) sp.set("tag", p.tag);
-  for (const key of RANGE_PARAM_KEYS) {
-    const value = p[key];
-    if (value) sp.set(key, value);
-  }
-  if (isFavoritesFilterOn(p)) sp.delete("favorites");
-  else sp.set("favorites", "1");
-  if (hasAnySort(p)) {
-    sp.set("sort", parseSort(p));
-    sp.set("dir", parseDir(p));
-  }
-  const qs = sp.toString();
-  return qs ? `/?${qs}` : "/";
+  return Boolean(p.q || p.category || p.style || p.tag || p.ingredient || hasRangeFilter(p));
 }
 
 function hasAnySort(p: BrowseSearchParams): boolean {
@@ -333,6 +295,7 @@ export default async function HomePage({
               <input type="hidden" name="style" value={params.style ?? ""} />
               <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
               <input type="hidden" name="tag" value={params.tag ?? ""} />
+              <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
               <HiddenRangeInputs params={params} />
               <input type="hidden" name="sort" value={parseSort(params)} />
               <input type="hidden" name="dir" value={parseDir(params)} />
@@ -391,10 +354,7 @@ export default async function HomePage({
         />
         <div className="recipe-toolbox">
           <TagFilter params={params} />
-          <FavoritesFilter
-            href={favoritesHref(params)}
-            active={isFavoritesFilterOn(params)}
-          />
+          <IngredientFilter params={params} />
           <RangeFilters params={params} />
           <SortControls params={params} />
         </div>
@@ -451,6 +411,7 @@ function CategoryChips({
     if (params.style) sp.set("style", params.style);
     if (params.ingredient) sp.set("ingredient", params.ingredient);
     if (params.tag) sp.set("tag", params.tag);
+    if (params.ingredient) sp.set("ingredient", params.ingredient);
     for (const key of RANGE_PARAM_KEYS) {
       const value = params[key];
       if (value) sp.set(key, value);
@@ -553,6 +514,43 @@ function TagFilter({ params }: { params: BrowseSearchParams }) {
   );
 }
 
+function IngredientFilter({ params }: { params: BrowseSearchParams }) {
+  return (
+    <form method="get" action="/" className="section" aria-label="Filter by ingredient">
+      <input type="hidden" name="q" value={params.q ?? ""} />
+      <input type="hidden" name="category" value={params.category ?? ""} />
+      <input type="hidden" name="style" value={params.style ?? ""} />
+      <input type="hidden" name="tag" value={params.tag ?? ""} />
+      <input type="hidden" name="sort" value={parseSort(params)} />
+      <input type="hidden" name="dir" value={parseDir(params)} />
+      <HiddenRangeInputs params={params} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="flex-1">
+          <span className="label-eyebrow mb-1.5 block">Ingredient</span>
+          <input
+            id="ingredient"
+            name="ingredient"
+            type="text"
+            defaultValue={params.ingredient ?? ""}
+            placeholder="e.g. Citra, US-05, 2-Row"
+            className="field field-mono"
+          />
+        </label>
+        <div className="flex gap-2">
+          <button type="submit" className="btn btn-primary btn-sm">
+            Apply
+          </button>
+          {params.ingredient && (
+            <Link href="/" className="btn btn-ghost btn-sm no-underline">
+              Clear
+            </Link>
+          )}
+        </div>
+      </div>
+    </form>
+  );
+}
+
 function RangeFilters({ params }: { params: BrowseSearchParams }) {
   return (
     <form
@@ -565,6 +563,7 @@ function RangeFilters({ params }: { params: BrowseSearchParams }) {
       <input type="hidden" name="category" value={params.category ?? ""} />
       <input type="hidden" name="style" value={params.style ?? ""} />
       <input type="hidden" name="tag" value={params.tag ?? ""} />
+      <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
       <input type="hidden" name="sort" value={parseSort(params)} />
       <input type="hidden" name="dir" value={parseDir(params)} />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -625,6 +624,7 @@ function SortControls({ params }: { params: BrowseSearchParams }) {
       <input type="hidden" name="category" value={params.category ?? ""} />
       <input type="hidden" name="style" value={params.style ?? ""} />
       <input type="hidden" name="tag" value={params.tag ?? ""} />
+      <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
       <HiddenRangeInputs params={params} />
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="section-title mb-0 text-base">Sort</h2>

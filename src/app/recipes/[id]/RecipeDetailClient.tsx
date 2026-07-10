@@ -1375,6 +1375,33 @@ function clamp(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
 
+/** Build the browse-page URL filtered by an ingredient name. */
+function ingredientBrowseHref(name: string): string {
+  const params = new URLSearchParams();
+  params.set("ingredient", name);
+  return `/?${params.toString()}`;
+}
+
+/**
+ * Renders an ingredient name as a link to the browse page filtered by that
+ * ingredient. Empty / whitespace-only names render as plain text.
+ */
+function IngredientLink({ name }: { name: string }) {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return <span className="text-[var(--muted-foreground)]">—</span>;
+  }
+  return (
+    <Link
+      href={ingredientBrowseHref(trimmed)}
+      className="underline decoration-dotted underline-offset-2 hover:text-[var(--accent)]"
+      title={`Show all recipes using "${trimmed}"`}
+    >
+      {name}
+    </Link>
+  );
+}
+
 function formatFermentableAmount(
   kg: number | null,
   liters: number | null,
