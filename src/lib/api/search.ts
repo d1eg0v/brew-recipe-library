@@ -124,6 +124,8 @@ function sortFieldToColumn(
       return "targetOg";
     case "date":
       return "createdAt";
+    case "rating":
+      return "createdAt"; // fallback — rating is computed, not a DB column
   }
 }
 
