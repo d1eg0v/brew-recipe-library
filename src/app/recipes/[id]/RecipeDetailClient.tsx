@@ -982,7 +982,7 @@ function Fermentables({
         <Table headers={["Name", "Type", "Amount", "Notes"]}>
           {recipe.fermentables.map((f) => (
             <tr key={f.id}>
-              <td className="font-medium">{f.name}</td>
+              <td className="font-medium"><IngredientLink name={f.name} /></td>
               <td>
                 <Tag>{fermentableTypeLabel(f.type)}</Tag>
               </td>
@@ -1021,7 +1021,7 @@ function Hops({
         <Table headers={["Name", "Amount", "Time", "Use", "Form", "α-acid", "Notes"]}>
           {recipe.hops.map((h) => (
             <tr key={h.id}>
-              <td className="font-medium">{h.name}</td>
+              <td className="font-medium"><IngredientLink name={h.name} /></td>
               <td className="num">{fmtGrams(h.amountGrams, units)}</td>
               <td className="num">
                 {h.timeMinutes} {h.use === "dryHop" ? "d" : "min"}
@@ -1059,7 +1059,7 @@ function Yeasts({
         <Table headers={["Name", "Lab / code", "Type", "Form", "Attenuation", "ABV tolerance", "Temperature", "Notes"]}>
           {recipe.yeasts.map((y) => (
             <tr key={y.id}>
-              <td className="font-medium">{y.name}</td>
+              <td className="font-medium"><IngredientLink name={y.name} /></td>
               <td>
                 {[y.laboratory, y.productId].filter(Boolean).join(" · ") || "—"}
               </td>
@@ -1261,6 +1261,34 @@ function NotesText({ text }: { text: string | null }) {
   }
   return (
     <span className="text-sm text-[var(--muted-foreground)]">{text}</span>
+  );
+}
+
+/** Build the URL for the browse page filtered by a specific ingredient name. */
+export function ingredientBrowseHref(name: string): string {
+  const params = new URLSearchParams();
+  params.set("ingredient", name);
+  return `/?${params.toString()}`;
+}
+
+/**
+ * Renders an ingredient name as a link to the browse page filtered by that
+ * ingredient. Empty / whitespace-only names render as plain text so we don't
+ * link to a `?ingredient=` blank.
+ */
+function IngredientLink({ name }: { name: string }) {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return <span className="text-[var(--muted-foreground)]">—</span>;
+  }
+  return (
+    <Link
+      href={ingredientBrowseHref(trimmed)}
+      className="text-[var(--foreground)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent)]"
+      title={`Show all recipes using "${trimmed}"`}
+    >
+      {name}
+    </Link>
   );
 }
 

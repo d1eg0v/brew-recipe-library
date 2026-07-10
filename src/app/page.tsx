@@ -57,6 +57,7 @@ interface BrowseSearchParams {
   q?: string;
   category?: string;
   style?: string;
+  ingredient?: string;
   tag?: string;
   abvMin?: string;
   abvMax?: string;
@@ -97,6 +98,7 @@ async function fetchRecipes(
   if (params.q) url.searchParams.set("q", params.q);
   if (params.category) url.searchParams.set("category", params.category);
   if (params.style) url.searchParams.set("style", params.style);
+  if (params.ingredient) url.searchParams.set("ingredient", params.ingredient);
   if (params.tag) url.searchParams.set("tag", params.tag);
   if (params.abvMin) url.searchParams.set("abvMin", params.abvMin);
   if (params.abvMax) url.searchParams.set("abvMax", params.abvMax);
@@ -206,6 +208,7 @@ function hasAnyFilter(p: BrowseSearchParams): boolean {
     p.q ||
       p.category ||
       p.style ||
+      p.ingredient ||
       p.tag ||
       hasRangeFilter(p) ||
       isFavoritesFilterOn(p),
@@ -228,6 +231,7 @@ function favoritesHref(p: BrowseSearchParams): string {
   if (p.q) sp.set("q", p.q);
   if (p.category) sp.set("category", p.category);
   if (p.style) sp.set("style", p.style);
+  if (p.ingredient) sp.set("ingredient", p.ingredient);
   if (p.tag) sp.set("tag", p.tag);
   for (const key of RANGE_PARAM_KEYS) {
     const value = p[key];
@@ -327,6 +331,7 @@ export default async function HomePage({
                 style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
               />
               <input type="hidden" name="style" value={params.style ?? ""} />
+              <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
               <input type="hidden" name="tag" value={params.tag ?? ""} />
               <HiddenRangeInputs params={params} />
               <input type="hidden" name="sort" value={parseSort(params)} />
@@ -444,6 +449,7 @@ function CategoryChips({
     if (category) sp.set("category", category);
     if (params.q) sp.set("q", params.q);
     if (params.style) sp.set("style", params.style);
+    if (params.ingredient) sp.set("ingredient", params.ingredient);
     if (params.tag) sp.set("tag", params.tag);
     for (const key of RANGE_PARAM_KEYS) {
       const value = params[key];
@@ -516,6 +522,7 @@ function TagFilter({ params }: { params: BrowseSearchParams }) {
       <input type="hidden" name="q" value={params.q ?? ""} />
       <input type="hidden" name="category" value={params.category ?? ""} />
       <input type="hidden" name="style" value={params.style ?? ""} />
+      <input type="hidden" name="ingredient" value={params.ingredient ?? ""} />
       <HiddenRangeInputs params={params} />
       <input type="hidden" name="sort" value={parseSort(params)} />
       <input type="hidden" name="dir" value={parseDir(params)} />

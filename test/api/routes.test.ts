@@ -119,6 +119,62 @@ describe("GET /api/recipes", () => {
     expect(beerBody.data[0].title).toBe("IPA 1");
   });
 
+  it("filters by ingredient name across fermentables", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Has Munich",
+          fermentables: [{ name: "Munich Malt", type: "grain", amountKg: 1 }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Plain Pale",
+          fermentables: [{ name: "Pale 2-Row", type: "grain", amountKg: 4 }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=Munich") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Has Munich");
+  });
+
+  it("filters by ingredient name across hops", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra IPA",
+          hops: [{ name: "Citra", amountGrams: 50, timeMinutes: 10, use: "whirlpool" }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Plain Pale",
+          fermentables: [{ name: "Pale 2-Row", type: "grain", amountKg: 4 }],
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ingredient=Citra") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Citra IPA");
+  });
+
   it("filters by abv range", async () => {
     await recipesRoute.POST(
       buildRequest("/api/recipes", {

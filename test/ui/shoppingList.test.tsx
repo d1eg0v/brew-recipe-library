@@ -358,3 +358,124 @@ describe("/recipes/[id] page renders the shopping list section", () => {
     }
   });
 });
+
+describe("/recipes/[id] ingredient links (BRE-28)", () => {
+  it("renders fermentable, hop, and yeast names as links to the filtered browse page", async () => {
+    const id = await createRecipe({
+      fermentables: [{ name: "Munich Malt", type: "grain", amountKg: 1 }],
+      hops: [{ name: "Citra", amountGrams: 30, timeMinutes: 10, use: "whirlpool" }],
+      yeasts: [{ name: "US-05", form: "dry", attenuationPct: 81 }],
+    });
+
+    const recipe = await fetchRecipeApi(id);
+    const shoppingList = await fetchShoppingListApi(id);
+    const original = global.fetch;
+    const mock = vi.fn(
+      async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        if (url.pathname === `/api/recipes/${id}`) {
+          return new Response(JSON.stringify({ data: recipe }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        if (url.pathname === `/api/recipes/${id}/shopping-list`) {
+          return new Response(JSON.stringify({ data: shoppingList }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        return new Response("not found", { status: 404 });
+      },
+    );
+    global.fetch = mock as unknown as typeof fetch;
+    try {
+      const element = await RecipeDetailPage({
+        params: Promise.resolve({ id }),
+        searchParams: Promise.resolve({}),
+      });
+      const html = renderToStaticMarkup(element);
+      // Each ingredient name appears as a link to the filtered browse page.
+      expect(html).toContain('href="/?ingredient=Munich+Malt"');
+      expect(html).toContain('href="/?ingredient=Citra"');
+      expect(html).toContain('href="/?ingredient=US-05"');
+      // The plain text ingredient name is still in the rendered table cell.
+      expect(html).toContain(">Munich Malt<");
+      expect(html).toContain(">Citra<");
+      expect(html).toContain(">US-05<");
+    } finally {
+      if (original) {
+        global.fetch = original;
+      } else {
+        delete (global as { fetch?: typeof fetch }).fetch;
+      }
+    }
+  });
+
+  it("renders an empty ingredient name as a dash, not a link", async () => {
+    // The API rejects whitespace-only names (Zod's trim().min(1) check),
+    // so to exercise the IngredientLink defensive branch we reach into the
+    // returned recipe directly and inject an empty fermentable name.
+    const id = await createRecipe({
+      fermentables: [{ name: "Pale 2-Row", type: "grain", amountKg: 1 }],
+    });
+
+    const recipe = await fetchRecipeApi(id);
+    const shoppingList = await fetchShoppingListApi(id);
+    recipe.fermentables[0].name = "";
+    const original = global.fetch;
+    const mock = vi.fn(
+      async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        if (url.pathname === `/api/recipes/${id}`) {
+          return new Response(JSON.stringify({ data: recipe }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        if (url.pathname === `/api/recipes/${id}/shopping-list`) {
+          return new Response(JSON.stringify({ data: shoppingList }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        return new Response("not found", { status: 404 });
+      },
+    );
+    global.fetch = mock as unknown as typeof fetch;
+    try {
+      const element = await RecipeDetailPage({
+        params: Promise.resolve({ id }),
+        searchParams: Promise.resolve({}),
+      });
+      const html = renderToStaticMarkup(element);
+      // No link produced for an empty fermentable name; a dash placeholder
+      // shows in the Fermentables row's Name column instead.
+      expect(html).not.toContain("href=\"/?ingredient=\"");
+      // Confirm the dash placeholder shows in the Fermentables table row.
+      const fermentablesIdx = html.indexOf(">Fermentables <");
+      const dashIdx = html.indexOf(
+        "<span class=\"text-[var(--muted-foreground)]\">—</span>",
+        fermentablesIdx,
+      );
+      expect(fermentablesIdx).toBeGreaterThanOrEqual(0);
+      expect(dashIdx).toBeGreaterThan(fermentablesIdx);
+    } finally {
+      if (original) {
+        global.fetch = original;
+      } else {
+        delete (global as { fetch?: typeof fetch }).fetch;
+      }
+    }
+  });
+});
