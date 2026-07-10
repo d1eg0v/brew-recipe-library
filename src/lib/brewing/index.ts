@@ -28,6 +28,7 @@ export * from "./abv";
 export * from "./mash";
 export * from "./inventory";
 export * from "./bjcp";
+export * from "./water";
 
 /**
  * Compute the full target set (OG/FG/ABV/IBU/SRM) for a recipe in one call.

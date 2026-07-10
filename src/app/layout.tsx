@@ -98,6 +98,18 @@ export default function RootLayout({
                   ABV
                 </Link>
                 <Link
+                  href="/water-chemistry"
+                  className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                >
+                  Water chem
+                </Link>
+                <Link
+                  href="/recipes/new"
+                  className="btn btn-outline btn-sm no-underline"
+                >
+                  + New
+                </Link>
+                <Link
                   href="/pitch-rate"
                   className="btn btn-ghost btn-sm hidden sm:inline-flex"
                 >
