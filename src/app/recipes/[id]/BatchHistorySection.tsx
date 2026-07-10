@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import FermentationTrackingSection from "@/components/fermentation/FermentationTrackingSection";
 import { buildBatchUrl } from "@/lib/ui/api";
 import {
   fmtBatchVolume,
@@ -376,6 +377,10 @@ function BatchDetailsPanel({
         >
           Edit this brew
         </Link>
+      </div>
+
+      <div className="border-t border-[var(--border)] pt-3 mt-2">
+        <FermentationTrackingSection batchId={id} />
       </div>
     </div>
   );
