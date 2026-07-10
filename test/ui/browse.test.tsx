@@ -80,7 +80,13 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
 
   // Synchronous-ish Prisma call (Prisma 7 returns a thenable).
   return db.prisma.recipe
-    .findMany({ where, orderBy: { updatedAt: "desc" }, skip: offset, take: limit })
+    .findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      skip: offset,
+      take: limit,
+      include: { recipeTags: { include: { tag: true } } },
+    })
     .then((rows) => ({
       data: rows.map((r) => ({
         id: r.id,
@@ -96,6 +102,10 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
         targetOg: r.targetOg,
         targetFg: r.targetFg,
         description: r.description,
+        tags: r.recipeTags.map((rt) => rt.tag.name).sort(),
+        tagDetails: r.recipeTags
+          .map((rt) => ({ id: rt.tag.id, name: rt.tag.name }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
         updatedAt: r.updatedAt.toISOString(),
       })),
       total: rows.length,
@@ -162,6 +172,17 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       // Filter form is present.
       expect(html).toContain("name=\"category\"");
       expect(html).toContain("name=\"style\"");
+
+      // SRM swatch is rendered for beer cards (BRE-45). Pull a beer
+      // recipe with a non-null targetSrm and assert the swatch aria label
+      // appears in the HTML.
+      const beer = await db.prisma.recipe.findFirst({
+        where: { category: "beer", targetSrm: { not: null } },
+        select: { targetSrm: true },
+      });
+      if (beer?.targetSrm != null) {
+        expect(html).toContain(`aria-label="SRM ${beer.targetSrm.toFixed(1)}"`);
+      }
     } finally {
       restore();
     }
@@ -189,6 +210,282 @@ describe("UI smoke: / browse page renders seeded recipes", () => {
       });
       if (beer) {
         expect(html).not.toContain(`>${beer.title}<`);
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("renders a full-text search input (BRE-25)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      // Search input is part of the filter form, with id/name=q.
+      expect(html).toContain("name=\"q\"");
+      expect(html).toContain("id=\"q\"");
+      // Empty default value (no q in URL).
+      expect(html).toMatch(/<input[^>]*name="q"[^>]*value=""/);
+      // Placeholder hints at the four searched fields.
+      expect(html).toMatch(/Search title, author, description, notes/);
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards q to /api/recipes and pre-fills the input", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        // Empty result so we just exercise the wiring, not the rendering.
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({ q: "sessionable" }),
+        });
+        const html = renderToStaticMarkup(element);
+        expect(seen.some((s) => s.includes("q=sessionable"))).toBe(true);
+        // Input echoes the query so the user sees what they searched for.
+        expect(html).toMatch(/<input[^>]*name="q"[^>]*value="sessionable"/);
+      } finally {
+        global.fetch = originalMock;
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("renders min/max number inputs for ABV, IBU, SRM, OG (BRE-26)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      for (const field of ["abv", "ibu", "srm", "og"]) {
+        expect(html).toContain(`name="${field}Min"`);
+        expect(html).toContain(`name="${field}Max"`);
+        expect(html).toContain(`id="${field}Min"`);
+        expect(html).toContain(`id="${field}Max"`);
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards range filter values to /api/recipes and pre-fills inputs (BRE-26)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({
+            abvMin: "5",
+            abvMax: "8",
+            ibuMin: "30",
+            ibuMax: "70",
+            srmMin: "4",
+            srmMax: "20",
+            ogMin: "1.05",
+            ogMax: "1.08",
+          }),
+        });
+        const html = renderToStaticMarkup(element);
+
+        for (const param of [
+          "abvMin=5",
+          "abvMax=8",
+          "ibuMin=30",
+          "ibuMax=70",
+          "srmMin=4",
+          "srmMax=20",
+          "ogMin=1.05",
+          "ogMax=1.08",
+        ]) {
+          expect(seen.some((s) => s.includes(param))).toBe(true);
+        }
+        expect(html).toMatch(/<input[^>]*name="abvMin"[^>]*value="5"/);
+        expect(html).toMatch(/<input[^>]*name="ibuMax"[^>]*value="70"/);
+        expect(html).toMatch(/<input[^>]*name="ogMin"[^>]*value="1\.05"/);
+      } finally {
+        global.fetch = originalMock;
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("narrows the list when an ABV range is active (BRE-26)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const lowCount = await db.prisma.recipe.count({
+        where: { targetAbv: { gte: 4, lte: 5.5 } },
+      });
+      expect(lowCount).toBeGreaterThan(0);
+
+      const element = await HomePage({
+        searchParams: Promise.resolve({ abvMin: "4", abvMax: "5.5" }),
+      });
+      const html = renderToStaticMarkup(element);
+
+      expect(html).toContain(`Showing ${lowCount}`);
+      const strong = await db.prisma.recipe.findFirst({
+        where: { targetAbv: { gt: 9 } },
+        select: { title: true },
+      });
+      if (strong) {
+        expect(html).not.toContain(`>${strong.title}<`);
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("renders sort controls (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      expect(html).toContain("name=\"sort\"");
+      expect(html).toContain("id=\"sort\"");
+      expect(html).toContain("name=\"dir\"");
+      expect(html).toContain("id=\"dir\"");
+      expect(html).toContain("Date added");
+      expect(html).toContain("ABV");
+      expect(html).toContain("Ascending");
+      expect(html).toContain("Descending");
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards sort params to /api/recipes and pre-selects controls (BRE-27)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({ sort: "abv", dir: "asc" }),
+        });
+        const html = renderToStaticMarkup(element);
+
+        expect(seen.some((s) => s.includes("sort=abv"))).toBe(true);
+        expect(seen.some((s) => s.includes("dir=asc"))).toBe(true);
+        expect(html).toMatch(/<select[^>]*name="sort"[^>]*>[\s\S]*<option value="abv" selected="">ABV<\/option>/);
+        expect(html).toMatch(/<select[^>]*name="dir"[^>]*>[\s\S]*<option value="asc" selected="">Ascending<\/option>/);
+      } finally {
+        global.fetch = originalMock;
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  it("renders a tag filter input and clickable tag chips (BRE-29)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const recipe = await db.prisma.recipe.findFirst({
+        select: { id: true },
+      });
+      expect(recipe).not.toBeNull();
+      const tag = await db.prisma.tag.create({
+        data: { name: "session" },
+      });
+      await db.prisma.recipeTag.create({
+        data: { recipeId: recipe!.id, tagId: tag.id },
+      });
+
+      const element = await HomePage({ searchParams: Promise.resolve({}) });
+      const html = renderToStaticMarkup(element);
+
+      expect(html).toContain("name=\"tag\"");
+      expect(html).toContain("id=\"tag\"");
+      expect(html).toContain(`href="/?tag=${encodeURIComponent(tag.name)}"`);
+      expect(html).toContain(tag.name);
+    } finally {
+      restore();
+    }
+  });
+
+  it("forwards tag to /api/recipes and pre-fills the tag input (BRE-29)", async () => {
+    const restore = installFetchMock();
+    try {
+      await loadSeed();
+      const seen: string[] = [];
+      const originalMock = global.fetch;
+      global.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+        const url =
+          typeof input === "string"
+            ? new URL(input)
+            : input instanceof URL
+              ? input
+              : new URL((input as Request).url);
+        seen.push(url.search);
+        return new Response(
+          JSON.stringify({ data: [], total: 0, limit: 100, offset: 0 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }) as unknown as typeof fetch;
+      try {
+        const element = await HomePage({
+          searchParams: Promise.resolve({ tag: "session" }),
+        });
+        const html = renderToStaticMarkup(element);
+
+        expect(seen.some((s) => s.includes("tag=session"))).toBe(true);
+        expect(html).toMatch(/<input[^>]*name="tag"[^>]*value="session"/);
+      } finally {
+        global.fetch = originalMock;
       }
     } finally {
       restore();

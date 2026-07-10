@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import CategoryBadge from "@/components/CategoryBadge";
+import FavoriteButton from "@/components/recipe/FavoriteButton";
+import TagEditor from "@/components/recipe/TagEditor";
 import {
   ArrowGlyph,
   CategoryGlyph,
@@ -16,7 +18,12 @@ import {
   ScaleGlyph,
   YeastGlyph,
 } from "@/components/icons";
-import { buildDetailUrl, buildShoppingListUrl } from "@/lib/ui/api";
+import { litersToGallons } from "@/lib/brewing/units";
+import {
+  buildDetailUrl,
+  buildRecipeBatchesUrl,
+  buildShoppingListUrl,
+} from "@/lib/ui/api";
 import {
   categoryAccent,
   fermentableTypeLabel,
@@ -37,13 +44,25 @@ import {
   titleCase,
 } from "@/lib/ui/format";
 import type {
+  BatchListResponse,
+  BatchSummary,
   RecipeDetail,
   RecipeDetailResponse,
+  RecipeStyleComparison,
   ShoppingList,
   ShoppingListResponse,
+  StyleComparisonBlock,
+  StyleMetricResult,
   UnitSystem,
 } from "@/lib/ui/types";
+import {
+  STORAGE_KEY,
+  UNITS_CHANGE_EVENT,
+  isUnitSystem,
+} from "@/lib/units/units";
 
+import BatchHistorySection from "./BatchHistorySection";
+import RecipeActions from "./RecipeActions";
 import ShoppingListSection from "./ShoppingListSection";
 
 interface RecipeDetailClientProps {
@@ -51,6 +70,8 @@ interface RecipeDetailClientProps {
   initialUnits?: UnitSystem;
   initialBatchSize?: number;
   initialShoppingList?: ShoppingList;
+  initialBatches?: BatchSummary[];
+  initialBatchesError?: string | null;
 }
 
 export default function RecipeDetailClient({
@@ -58,6 +79,8 @@ export default function RecipeDetailClient({
   initialUnits,
   initialBatchSize,
   initialShoppingList,
+  initialBatches,
+  initialBatchesError,
 }: RecipeDetailClientProps) {
   const [recipe, setRecipe] = useState<RecipeDetail>(initialRecipe);
   const [units, setUnits] = useState<UnitSystem>(initialUnits ?? "metric");
@@ -67,11 +90,19 @@ export default function RecipeDetailClient({
   const [shoppingList, setShoppingList] = useState<ShoppingList | null>(
     initialShoppingList ?? null,
   );
+  const [batches, setBatches] = useState<BatchSummary[]>(
+    initialBatches ?? [],
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shoppingListError, setShoppingListError] = useState<string | null>(
-    null,
+  const [shoppingListError, setShoppingListError] = useState<string | null>(null);
+  const [batchesError, setBatchesError] = useState<string | null>(
+    initialBatchesError ?? null,
   );
+  // Mirror the latest `units` so the UNITS_CHANGE_EVENT listener — which is
+  // bound once at mount with an empty dep array — can compare against the
+  // current value without re-binding on every state change.
+  const unitsRef = useRef<UnitSystem>(units);
 
   const fetchShoppingList = useCallback(
     async (newBatchSize: number, newUnits: UnitSystem): Promise<void> => {
@@ -97,6 +128,24 @@ export default function RecipeDetailClient({
     [recipe.id],
   );
 
+  const fetchBatches = useCallback(async (): Promise<void> => {
+    try {
+      const url = buildRecipeBatchesUrl("", recipe.id);
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`batches request failed: ${res.status}`);
+      }
+      const body = (await res.json()) as BatchListResponse;
+      setBatches(body.data ?? []);
+      setBatchesError(null);
+    } catch (err) {
+      console.error("batches refetch error", err);
+      setBatchesError(
+        err instanceof Error ? err.message : "failed to reload batches",
+      );
+    }
+  }, [recipe.id]);
+
   const refetch = useCallback(
     async (newBatchSize: number, newUnits: UnitSystem) => {
       setLoading(true);
@@ -113,6 +162,7 @@ export default function RecipeDetailClient({
         const body = (await res.json()) as RecipeDetailResponse;
         setRecipe(body.data);
         await fetchShoppingList(newBatchSize, newUnits);
+        await fetchBatches();
       } catch (err) {
         console.error("refetch error", err);
         setError(err instanceof Error ? err.message : "failed to reload recipe");
@@ -120,33 +170,79 @@ export default function RecipeDetailClient({
         setLoading(false);
       }
     },
-    [recipe.id, fetchShoppingList],
+    [recipe.id, fetchShoppingList, fetchBatches],
   );
 
-  function applyUnits(next: UnitSystem) {
-    setUnits(next);
-    const parsed = Number.parseFloat(batchSize);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      refetch(parsed, next);
-    } else {
-      setShoppingListError(null);
-    }
-  }
+  const applyUnits = useCallback(
+    (next: UnitSystem) => {
+      if (next === unitsRef.current) return;
+      unitsRef.current = next;
+      setUnits(next);
+      // Keep the global state in lockstep with the in-page toggle: update
+      // `data-units` on <html>, persist to localStorage, and notify other
+      // consumers (e.g. <UnitToggle /> on the header) so the segmented
+      // control re-renders to match. We skip this when next already matches
+      // the applied attribute to avoid a redundant write loop when
+      // `syncFromDocument` fires.
+      if (
+        typeof document !== "undefined" &&
+        document.documentElement.getAttribute("data-units") !== next
+      ) {
+        document.documentElement.setAttribute("data-units", next);
+        try {
+          window.localStorage.setItem(STORAGE_KEY, next);
+        } catch {
+          // Ignore storage failures (private mode / quota).
+        }
+        window.dispatchEvent(
+          new CustomEvent(UNITS_CHANGE_EVENT, { detail: next }),
+        );
+      }
+      const parsed = Number.parseFloat(batchSize);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        void refetch(parsed, next);
+      } else {
+        setShoppingListError(null);
+      }
+    },
+    [batchSize, refetch],
+  );
 
-  function applyBatchSize(next: string) {
-    setBatchSize(next);
-    const parsed = Number.parseFloat(next);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      refetch(parsed, units);
-    } else {
-      setShoppingListError(null);
+  // React to the global header toggle. The boot script sets `data-units`
+  // before paint, so on mount we may need to align local `units` with the
+  // stored preference (when the URL didn't pin a value). After mount, listen
+  // for UNITS_CHANGE_EVENT fired by <UnitToggle /> so a header click
+  // re-fetches this recipe in the new unit system.
+  useEffect(() => {
+    function syncFromDocument() {
+      const attr = document.documentElement.getAttribute("data-units");
+      const next: UnitSystem = isUnitSystem(attr) ? attr : "metric";
+      applyUnits(next);
     }
-  }
+    syncFromDocument();
+    window.addEventListener(UNITS_CHANGE_EVENT, syncFromDocument);
+    return () => {
+      window.removeEventListener(UNITS_CHANGE_EVENT, syncFromDocument);
+    };
+  }, [applyUnits]);
 
-  function resetBatchSize() {
+  const applyBatchSize = useCallback(
+    (next: string) => {
+      setBatchSize(next);
+      const parsed = Number.parseFloat(next);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        void refetch(parsed, unitsRef.current);
+      } else {
+        setShoppingListError(null);
+      }
+    },
+    [refetch],
+  );
+
+  const resetBatchSize = useCallback(() => {
     setBatchSize(String(initialRecipe.batchSizeLiters));
-    refetch(initialRecipe.batchSizeLiters, units);
-  }
+    void refetch(initialRecipe.batchSizeLiters, unitsRef.current);
+  }, [initialRecipe.batchSizeLiters, refetch]);
 
   const originalBatchLiters = initialRecipe.batchSizeLiters;
   const currentBatch = Number.parseFloat(batchSize);
@@ -168,6 +264,9 @@ export default function RecipeDetailClient({
       )}
 
       <div className="mt-8 space-y-6">
+        <RecipeActions recipeId={recipe.id} recipeTitle={recipe.title} />
+        <TagsSection recipe={recipe} />
+
         <Controls
           batchSize={batchSize}
           onBatchSizeChange={applyBatchSize}
@@ -181,7 +280,7 @@ export default function RecipeDetailClient({
           recipe={recipe}
         />
 
-        <Targets recipe={recipe} />
+        <Targets recipe={recipe} style={recipe.style ?? null} />
 
         <Fermentables recipe={recipe} units={units} />
         <Hops recipe={recipe} units={units} />
@@ -193,6 +292,13 @@ export default function RecipeDetailClient({
           <ProcessSteps recipe={recipe} units={units} />
         )}
         {recipe.additions.length > 0 && <Additions recipe={recipe} />}
+
+        <BatchHistorySection
+          recipeId={recipe.id}
+          batches={batches}
+          units={units}
+          error={batchesError}
+        />
 
         <ShoppingListSection
           shoppingList={shoppingList}
@@ -217,6 +323,26 @@ export default function RecipeDetailClient({
   );
 }
 
+function TagsSection({ recipe }: { recipe: RecipeDetail }) {
+  const tags = recipe.tags ?? [];
+  return (
+    <section className="section" aria-labelledby="tags-heading">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 id="tags-heading" className="section-title mb-0">
+          Tags
+          <span className="count">{tags.length}</span>
+        </h2>
+        {tags.length > 0 && (
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Click a tag to filter the library
+          </p>
+        )}
+      </div>
+      <TagEditor recipeId={recipe.id} initialTags={tags} />
+    </section>
+  );
+}
+
 function Header({ recipe }: { recipe: RecipeDetail }) {
   const accent = categoryAccent(recipe.category, recipe.targetSrm);
   const srmHex = srmToHex(recipe.category === "beer" ? recipe.targetSrm : null);
@@ -235,13 +361,23 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
       />
       <div className="relative mx-auto max-w-6xl px-6 py-10">
         <nav className="mb-6">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
-          >
-            <ArrowGlyph className="h-3.5 w-3.5 rotate-180" />
-            All recipes
-          </Link>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
+            >
+              <ArrowGlyph className="h-3.5 w-3.5 rotate-180" />
+              All recipes
+            </Link>
+            <Link
+              href={`/recipes/${recipe.id}/print`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--muted-foreground)] no-underline hover:text-[var(--foreground)]"
+              data-testid="print-sheet-link"
+            >
+              Print brew sheet
+              <ArrowGlyph className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </nav>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -298,6 +434,17 @@ function Header({ recipe }: { recipe: RecipeDetail }) {
 
           <div className="ml-auto flex gap-2">
             <Link
+              href={`/recipes/compare?a=${recipe.id}`}
+              className="btn btn-ghost no-underline"
+              data-testid="compare-link"
+            >
+              Compare with…
+            </Link>
+            <FavoriteButton
+              recipeId={recipe.id}
+              recipeTitle={recipe.title}
+            />
+            <Link
               href={`/recipes/${recipe.id}/edit`}
               className="btn btn-outline no-underline"
             >
@@ -349,7 +496,7 @@ function Controls({
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[2fr_1fr] md:items-end">
         <div>
           <label htmlFor="batch-size" className="label-eyebrow block mb-1.5">
-            Target batch size (litres)
+            Target batch size ({units === "imperial" ? "gallons" : "litres"})
           </label>
           <div className="flex flex-wrap gap-2">
             <input
@@ -367,7 +514,12 @@ function Controls({
                 onClick={onResetBatchSize}
                 className="btn btn-outline btn-sm"
               >
-                Reset · {fmtNumber(originalBatchLiters, 1)} L
+                Reset ·{" "}
+                {fmtBatchSize(
+                  originalBatchLiters,
+                  recipe.batchSizeGallons ?? null,
+                  units,
+                )}
               </button>
             )}
           </div>
@@ -375,11 +527,19 @@ function Controls({
             <p className="mt-2 text-xs text-[var(--muted-foreground)]">
               Scaled to{" "}
               <span className="font-mono text-[var(--foreground)]">
-                {fmtNumber(currentBatchLiters, 2)} L
+                {fmtBatchSize(
+                  currentBatchLiters,
+                  litersToGallons(currentBatchLiters),
+                  units,
+                )}
               </span>{" "}
               (from{" "}
               <span className="font-mono">
-                {fmtNumber(originalBatchLiters, 2)} L
+                {fmtBatchSize(
+                  originalBatchLiters,
+                  recipe.batchSizeGallons ?? null,
+                  units,
+                )}
               </span>
               ). Targets are not rescaled.
             </p>
@@ -437,6 +597,20 @@ function Controls({
         >
           Calculate priming sugar →
         </Link>
+        <Link
+          href={`/abv?recipeId=${recipe.id}`}
+          className="text-[var(--accent)] underline"
+          data-testid="abv-link"
+        >
+          Calculate ABV →
+        </Link>
+        <Link
+          href={`/strike-water?recipeId=${recipe.id}&units=${units}`}
+          className="text-[var(--accent)] underline"
+          data-testid="strike-water-link"
+        >
+          Calculate strike water →
+        </Link>
         {loading && <span className="italic">updating…</span>}
       </div>
     </section>
@@ -468,90 +642,314 @@ function UnitButton({
   );
 }
 
-function Targets({ recipe }: { recipe: RecipeDetail }) {
+function Targets({
+  recipe,
+  style,
+}: {
+  recipe: RecipeDetail;
+  style: RecipeStyleComparison | null;
+}) {
+  const comparison = style?.comparison ?? null;
+  const styleInfo = style?.style ?? null;
   const cells: Array<{
     label: string;
     value: string;
     ratio?: number;
     accent?: string;
-  }> = [];
-  cells.push({
-    label: "OG",
-    value: recipe.targetOg != null ? fmtGravity(recipe.targetOg) : "—",
-    ratio: recipe.targetOg != null ? clamp((recipe.targetOg - 1.0) / 0.12) : 0,
-  });
-  cells.push({
-    label: "FG",
-    value: recipe.targetFg != null ? fmtGravity(recipe.targetFg) : "—",
-    ratio: recipe.targetFg != null ? clamp((recipe.targetFg - 1.0) / 0.06) : 0,
-  });
-  cells.push({
-    label: "ABV",
-    value: recipe.targetAbv != null ? fmtPercent(recipe.targetAbv, 1) : "—",
-    ratio: recipe.targetAbv != null ? clamp(recipe.targetAbv / 15) : 0,
-  });
+    metric: StyleMetricResult | null;
+    format: (m: StyleMetricResult) => string;
+  }> = [
+    {
+      label: "OG",
+      value: recipe.targetOg != null ? fmtGravity(recipe.targetOg) : "—",
+      ratio: recipe.targetOg != null ? clamp((recipe.targetOg - 1.0) / 0.12) : 0,
+      metric: comparison?.og ?? null,
+      format: formatRangeGravity,
+    },
+    {
+      label: "FG",
+      value: recipe.targetFg != null ? fmtGravity(recipe.targetFg) : "—",
+      ratio: recipe.targetFg != null ? clamp((recipe.targetFg - 1.0) / 0.06) : 0,
+      metric: comparison?.fg ?? null,
+      format: formatRangeGravity,
+    },
+    {
+      label: "ABV",
+      value: recipe.targetAbv != null ? fmtPercent(recipe.targetAbv, 1) : "—",
+      ratio: recipe.targetAbv != null ? clamp(recipe.targetAbv / 15) : 0,
+      metric: comparison?.abv ?? null,
+      format: formatRangeAbv,
+    },
+    {
+      label: "pH",
+      value: recipe.targetPh != null ? fmtNumber(recipe.targetPh, 2) : "—",
+      ratio: recipe.targetPh != null ? clamp((7 - recipe.targetPh) / 5) : 0,
+      metric: null,
+      format: () => "",
+    },
+  ];
   if (recipe.category === "beer") {
     cells.push({
       label: "IBU",
       value: recipe.targetIbu != null ? fmtNumber(recipe.targetIbu, 0) : "—",
       ratio: recipe.targetIbu != null ? clamp(recipe.targetIbu / 80) : 0,
+      metric: comparison?.ibu ?? null,
+      format: formatRangeIbu,
     });
     cells.push({
       label: "SRM",
       value: recipe.targetSrm != null ? fmtNumber(recipe.targetSrm, 1) : "—",
       ratio: recipe.targetSrm != null ? clamp(recipe.targetSrm / 40) : 0,
       accent: srmToHex(recipe.targetSrm),
+      metric: comparison?.srm ?? null,
+      format: formatRangeSrm,
     });
   }
   const cols =
-    cells.length === 5 ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-3";
+    cells.length === 6 ? "sm:grid-cols-3 lg:grid-cols-6" : "sm:grid-cols-4";
   return (
-    <section className="section">
+    <section className="section" aria-labelledby="vitals-heading">
       <div className="section-title">
         <FlaskGlyph className="h-5 w-5 text-[var(--accent)]" />
         Vital measurements
+        <span className="count">{cells.length}</span>
+        {styleInfo && comparison && comparison.hasAnyRange && (
+          <StyleBadge comparison={comparison} />
+        )}
       </div>
+      {styleInfo && comparison && comparison.hasAnyRange && (
+        <p
+          className="mb-3 text-xs text-[var(--muted-foreground)]"
+          data-testid="bjcp-style-line"
+        >
+          Compared against{" "}
+          <span className="font-mono text-[var(--foreground)]">
+            {styleInfo.code} · {styleInfo.name}
+          </span>
+        </p>
+      )}
       <div className={`vitals grid-cols-2 ${cols}`}>
         {cells.map((c) => (
-          <div
+          <VitalCell
             key={c.label}
-            className="vital"
-            style={
-              c.accent
-                ? {
-                    borderColor: "color-mix(in srgb, " + c.accent + " 45%, var(--border))",
-                  }
-                : undefined
-            }
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="vital-label">{c.label}</span>
-              {c.accent && (
-                <span
-                  className="h-4 w-4 rounded-full border border-[var(--border-strong)]"
-                  style={{ background: c.accent }}
-                  aria-hidden
-                />
-              )}
-            </div>
-            <div className="vital-value">{c.value}</div>
-            {c.ratio != null && (
-              <div className="vital-bar" aria-hidden>
-                <span
-                  style={{
-                    width: `${Math.max(6, Math.min(100, c.ratio * 100))}%`,
-                    background: c.accent
-                      ? c.accent
-                      : undefined,
-                  }}
-                />
-              </div>
-            )}
-          </div>
+            label={c.label}
+            value={c.value}
+            ratio={c.ratio}
+            accent={c.accent}
+            metric={c.metric}
+            rangeLabel={c.metric ? c.format(c.metric) : ""}
+          />
         ))}
       </div>
     </section>
   );
+}
+
+function VitalCell({
+  label,
+  value,
+  ratio,
+  accent,
+  metric,
+  rangeLabel,
+}: {
+  label: string;
+  value: string;
+  ratio?: number;
+  accent?: string;
+  metric: StyleMetricResult | null;
+  rangeLabel: string;
+}) {
+  return (
+    <div
+      className="vital"
+      data-testid={`vital-${label.toLowerCase()}`}
+      data-bjcp={metric ? metric.status : undefined}
+      style={
+        accent
+          ? {
+              borderColor:
+                "color-mix(in srgb, " + accent + " 45%, var(--border))",
+            }
+          : undefined
+      }
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="vital-label">{label}</span>
+        {metric && <StatusGlyph status={metric.status} />}
+        {accent && metric == null && (
+          <span
+            className="h-4 w-4 rounded-full border border-[var(--border-strong)]"
+            style={{ background: accent }}
+            aria-hidden
+          />
+        )}
+      </div>
+      <div className="vital-value">{value}</div>
+      {ratio != null && (
+        <div className="vital-bar" aria-hidden>
+          <span
+            style={{
+              width: `${Math.max(6, Math.min(100, ratio * 100))}%`,
+              background: accent ? accent : undefined,
+            }}
+          />
+        </div>
+      )}
+      {metric && metric.status !== "noData" && metric.status !== "noRange" && (
+        <p
+          className="mt-1 text-[0.65rem] font-medium uppercase tracking-wide"
+          data-testid={`vital-range-${label.toLowerCase()}`}
+        >
+          <span className={statusTextClass(metric.status)}>
+            {statusText(metric, rangeLabel)}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function StatusGlyph({ status }: { status: StyleMetricResult["status"] }) {
+  if (status === "inRange") {
+    return (
+      <span
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--success-bg)] text-[var(--success-fg)]"
+        aria-label="In style range"
+        data-testid="status-in-range"
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="2,6 5,9 10,3" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === "below" || status === "above") {
+    return (
+      <span
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--warning-bg)] text-[var(--warning-fg)]"
+        aria-label={status === "below" ? "Below style range" : "Above style range"}
+        data-testid={`status-${status}`}
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {status === "below" ? (
+            <polyline points="3,5 6,9 9,5" />
+          ) : (
+            <polyline points="3,7 6,3 9,7" />
+          )}
+        </svg>
+      </span>
+    );
+  }
+  // noData — show a muted dash.
+  return (
+    <span
+      className="inline-flex h-4 w-4 items-center justify-center text-[var(--muted-foreground)]"
+      aria-label="No value recorded"
+      data-testid="status-no-data"
+    >
+      <span className="text-xs leading-none">—</span>
+    </span>
+  );
+}
+
+function StyleBadge({
+  comparison,
+}: {
+  comparison: StyleComparisonBlock;
+}) {
+  if (comparison.outOfRangeCount == null) return null;
+  if (comparison.outOfRangeCount === 0) {
+    return (
+      <span
+        className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--success-bg)] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--success-fg)]"
+        data-testid="bjcp-style-badge"
+        data-bjcp-state="in-style"
+      >
+        <svg
+          viewBox="0 0 12 12"
+          className="h-2.5 w-2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <polyline points="2,6 5,9 10,3" />
+        </svg>
+        In style
+      </span>
+    );
+  }
+  return (
+    <span
+      className="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--warning-bg)] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--warning-fg)]"
+      data-testid="bjcp-style-badge"
+      data-bjcp-state="out-of-style"
+    >
+      {comparison.outOfRangeCount} out of style
+    </span>
+  );
+}
+
+function statusText(m: StyleMetricResult, rangeLabel: string): string {
+  if (m.status === "below") return `below ${rangeLabel}`;
+  if (m.status === "above") return `above ${rangeLabel}`;
+  if (m.status === "inRange") return `in style · ${rangeLabel}`;
+  return rangeLabel;
+}
+
+function statusTextClass(status: StyleMetricResult["status"]): string {
+  if (status === "inRange") return "text-[var(--success-fg)]";
+  if (status === "below" || status === "above") return "text-[var(--warning-fg)]";
+  return "text-[var(--muted-foreground)]";
+}
+
+function formatRangeGravity(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) {
+    return `${fmtGravity(m.min)}–${fmtGravity(m.max)}`;
+  }
+  if (m.min != null) return `≥ ${fmtGravity(m.min)}`;
+  if (m.max != null) return `≤ ${fmtGravity(m.max)}`;
+  return "";
+}
+
+function formatRangeIbu(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) return `${fmtNumber(m.min, 0)}–${fmtNumber(m.max, 0)} IBU`;
+  if (m.min != null) return `≥ ${fmtNumber(m.min, 0)} IBU`;
+  if (m.max != null) return `≤ ${fmtNumber(m.max, 0)} IBU`;
+  return "";
+}
+
+function formatRangeSrm(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) return `${fmtNumber(m.min, 1)}–${fmtNumber(m.max, 1)} SRM`;
+  if (m.min != null) return `≥ ${fmtNumber(m.min, 1)} SRM`;
+  if (m.max != null) return `≤ ${fmtNumber(m.max, 1)} SRM`;
+  return "";
+}
+
+function formatRangeAbv(m: StyleMetricResult): string {
+  if (m.min != null && m.max != null) return `${fmtNumber(m.min, 1)}–${fmtNumber(m.max, 1)}% ABV`;
+  if (m.min != null) return `≥ ${fmtNumber(m.min, 1)}% ABV`;
+  if (m.max != null) return `≤ ${fmtNumber(m.max, 1)}% ABV`;
+  return "";
 }
 
 function Fermentables({
@@ -643,7 +1041,7 @@ function Yeasts({
       {recipe.yeasts.length === 0 ? (
         <Empty>None listed.</Empty>
       ) : (
-        <Table headers={["Name", "Lab / code", "Type", "Form", "Attenuation", "Temperature", "Notes"]}>
+        <Table headers={["Name", "Lab / code", "Type", "Form", "Attenuation", "ABV tolerance", "Temperature", "Notes"]}>
           {recipe.yeasts.map((y) => (
             <tr key={y.id}>
               <td className="font-medium">{y.name}</td>
@@ -654,6 +1052,9 @@ function Yeasts({
               <td>{titleCase(y.form)}</td>
               <td className="num">
                 {y.attenuationPct != null ? fmtPercent(y.attenuationPct, 0) : "—"}
+              </td>
+              <td className="num">
+                {y.abvTolerancePct != null ? fmtPercent(y.abvTolerancePct, 1) : "—"}
               </td>
               <td className="num">
                 {fmtTempRange(y.temperatureCMin, y.temperatureCMax, units)}

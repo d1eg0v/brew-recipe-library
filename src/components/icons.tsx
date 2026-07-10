@@ -217,6 +217,36 @@ export function PrintGlyph({ className, ...rest }: IconProps) {
   );
 }
 
+/**
+ * Outline star (BRE-46) — the unfavorited state. Inherits `currentColor`,
+ * matching the rest of the icon set, so theme colours come along for free.
+ */
+export function StarGlyph({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} {...rest}>
+      <path d="M12 3.6 14.7 9l5.9.6-4.4 4 1.3 5.8L12 16.6 6.5 19.4 7.8 13.6 3.4 9.6 9.3 9Z" />
+    </svg>
+  );
+}
+
+/**
+ * Filled star (BRE-46) — the favorited state. Same outline as `StarGlyph`
+ * but rendered solid so the two states read clearly at a glance on cards.
+ */
+export function StarFillGlyph({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...rest}>
+      <path
+        d="M12 3.6 14.7 9l5.9.6-4.4 4 1.3 5.8L12 16.6 6.5 19.4 7.8 13.6 3.4 9.6 9.3 9Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Map a recipe category to its glyph. */
 export function categoryGlyph(category: string | null | undefined) {
   switch (category) {
@@ -239,6 +269,15 @@ export function categoryGlyph(category: string | null | undefined) {
  * Declared at module scope (rather than `const Glyph = categoryGlyph(c)`
  * inside a parent) so it satisfies `react-hooks/static-components`.
  */
+/** Filled star glyph for ratings. */
+export function StarGlyph({ className, ...rest }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} {...rest}>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function CategoryGlyph({
   category,
   className,

@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 
 import RecipeDetailClient from "./RecipeDetailClient";
 import type {
+  BatchListResponse,
+  BatchSummary,
   RecipeDetail,
   RecipeDetailResponse,
   ShoppingList,
@@ -66,6 +68,34 @@ async function fetchShoppingList(
   }
 }
 
+async function fetchBatches(
+  id: string,
+): Promise<{ batches: BatchSummary[]; error: string | null }> {
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const url = new URL(`/api/recipes/${id}/batches`, base);
+  try {
+    const res = await fetch(url.toString(), { cache: "no-store" });
+    if (res.status === 404) {
+      return { batches: [], error: null };
+    }
+    if (!res.ok) {
+      console.error("batches fetch failed", res.status, await res.text());
+      return {
+        batches: [],
+        error: `request failed: ${res.status}`,
+      };
+    }
+    const body = (await res.json()) as BatchListResponse;
+    return { batches: body.data ?? [], error: null };
+  } catch (err) {
+    console.error("batches fetch error", err);
+    return {
+      batches: [],
+      error: err instanceof Error ? err.message : "failed to load batches",
+    };
+  }
+}
+
 function parseBatchSizeParam(raw: string | undefined): number | undefined {
   if (!raw) return undefined;
   const v = Number.parseFloat(raw);
@@ -104,6 +134,8 @@ export default async function RecipePage({
     batchSize: initialBatchSize,
     units: initialUnits,
   });
+  const { batches: initialBatches, error: initialBatchesError } =
+    await fetchBatches(id);
 
   return (
     <RecipeDetailClient
@@ -111,6 +143,8 @@ export default async function RecipePage({
       initialBatchSize={initialBatchSize}
       initialUnits={initialUnits}
       initialShoppingList={initialShoppingList ?? undefined}
+      initialBatches={initialBatches}
+      initialBatchesError={initialBatchesError}
     />
   );
 }

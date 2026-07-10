@@ -5,6 +5,8 @@
 // `?units=imperial` is set. These helpers pick the right field for display
 // and format numbers in a brewer-friendly way.
 
+import { litersToGallons } from "@/lib/brewing/units";
+
 import type { UnitSystem } from "./types";
 
 /** Format a number with up to N decimals, trimming trailing zeros. */
@@ -119,6 +121,32 @@ export function fmtBatchSize(
   }
   if (liters == null) return "—";
   return `${fmtNumber(liters, 2)} L`;
+}
+
+/** Format a batch's logged volume into the fermenter in L or gal. Unlike
+ * `fmtBatchSize`, the batch API only returns the metric value, so the
+ * imperial display is computed here from the canonical litres. */
+export function fmtBatchVolume(
+  liters: number | null | undefined,
+  units: UnitSystem,
+): string {
+  if (liters == null || !Number.isFinite(liters)) return "—";
+  if (units === "imperial") {
+    return `${fmtNumber(litersToGallons(liters), 2)} gal`;
+  }
+  return `${fmtNumber(liters, 2)} L`;
+}
+
+/** Format an ISO brew-date string as e.g. "May 1, 2026". */
+export function fmtBrewDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 /**

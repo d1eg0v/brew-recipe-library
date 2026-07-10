@@ -141,9 +141,402 @@ describe("GET /api/recipes", () => {
     expect(body.data[0].title).toBe("High");
   });
 
+  it("filters by ibu range", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Mild", targetIbu: 20 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bitter", targetIbu: 70 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ibuMin=50&ibuMax=100") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Bitter");
+  });
+
+  it("filters by srm range", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Pale", targetSrm: 3 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Dark", targetSrm: 35 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?srmMin=20&srmMax=80") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Dark");
+  });
+
+  it("filters by og range", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Session", targetOg: 1.04 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Imperial", targetOg: 1.09 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ogMin=1.07&ogMax=1.12") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Imperial");
+  });
+
+  it("excludes recipes with null targets when a range is active", async () => {
+    // Recipe with a recorded IBU.
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "WithIbu", targetIbu: 40 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    // Recipe with no IBU recorded (explicitly null on a cider).
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: {
+          ...fixtureRecipe({ title: "NoIbu" }),
+          category: "cider",
+          targetIbu: null,
+          targetSrm: null,
+        },
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ibuMin=20") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("WithIbu");
+  });
+
+  it("stacks a range filter with category and full-text search", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra IPA",
+          category: "beer",
+          description: "citrusy",
+          targetAbv: 6.5,
+          targetIbu: 55,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra Session",
+          category: "beer",
+          description: "easy",
+          targetAbv: 4.0,
+          targetIbu: 30,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Citra Mead",
+          category: "mead",
+          description: "honey + citrus",
+          targetAbv: 12.0,
+          targetIbu: null,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest(
+        "/api/recipes?q=citra&category=beer&abvMin=5&ibuMin=40",
+      ) as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.total).toBe(1);
+    expect(body.data[0].title).toBe("Citra IPA");
+  });
+
+  it("rejects invalid range bounds (ibuMin > ibuMax)", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?ibuMin=80&ibuMax=20") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects range values outside the documented domain", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?srmMin=200") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("rejects invalid query params", async () => {
     const res = await recipesRoute.GET(
       buildRequest("/api/recipes?category=gin") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("sorts by name (asc)", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Charlie" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Alpha" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bravo" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=name&dir=asc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual([
+      "Alpha",
+      "Bravo",
+      "Charlie",
+    ]);
+  });
+
+  it("sorts by ABV (desc) — nulls last via id tiebreak", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Mild", targetAbv: 4 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Big", targetAbv: 9 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    // Insert directly so we can leave targetAbv null; the POST schema disallows
+    // null but the Prisma column allows it.
+    await db.prisma.recipe.create({
+      data: {
+        title: "Unknown",
+        category: "beer",
+        batchSizeLiters: 20,
+        targetAbv: null,
+      },
+    });
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=abv&dir=desc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data[0].title).toBe("Big");
+    expect(body.data[1].title).toBe("Mild");
+    expect(body.data[2].title).toBe("Unknown");
+  });
+
+  it("sorts by IBU (asc)", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bitter", targetIbu: 70 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Mild", targetIbu: 20 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=ibu&dir=asc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual(["Mild", "Bitter"]);
+  });
+
+  it("sorts by gravity (desc) — nulls last", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Imperial", targetOg: 1.09 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Session", targetOg: 1.04 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await db.prisma.recipe.create({
+      data: {
+        title: "Mystery",
+        category: "beer",
+        batchSizeLiters: 20,
+        targetOg: null,
+      },
+    });
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=gravity&dir=desc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data[0].title).toBe("Imperial");
+    expect(body.data[1].title).toBe("Session");
+    expect(body.data[2].title).toBe("Mystery");
+  });
+
+  it("sorts by date (asc) — oldest first", async () => {
+    const a = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Alpha" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const aBody = await readJson<{ data: { id: string } }>(a);
+
+    // Force a later createdAt by manually updating the row.
+    await db.prisma.recipe.update({
+      where: { id: aBody.data.id },
+      data: { createdAt: new Date("2024-01-01T00:00:00Z") },
+    });
+
+    const b = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bravo" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const bBody = await readJson<{ data: { id: string } }>(b);
+    await db.prisma.recipe.update({
+      where: { id: bBody.data.id },
+      data: { createdAt: new Date("2024-06-01T00:00:00Z") },
+    });
+
+    const c = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Charlie" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const cBody = await readJson<{ data: { id: string } }>(c);
+    await db.prisma.recipe.update({
+      where: { id: cBody.data.id },
+      data: { createdAt: new Date("2025-01-01T00:00:00Z") },
+    });
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=date&dir=asc") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual([
+      "Alpha",
+      "Bravo",
+      "Charlie",
+    ]);
+  });
+
+  it("defaults to date desc when no sort params are given", async () => {
+    const a = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Alpha" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const aBody = await readJson<{ data: { id: string } }>(a);
+    await db.prisma.recipe.update({
+      where: { id: aBody.data.id },
+      data: { createdAt: new Date("2024-01-01T00:00:00Z") },
+    });
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bravo" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data[0].title).toBe("Bravo");
+    expect(body.data[1].title).toBe("Alpha");
+  });
+
+  it("combines sort with a range filter", async () => {
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Bitter", targetIbu: 80, targetAbv: 6 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Session", targetIbu: 20, targetAbv: 4 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Big", targetIbu: 100, targetAbv: 8 }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+
+    const res = await recipesRoute.GET(
+      buildRequest(
+        "/api/recipes?abvMin=5&abvMax=9&sort=abv&dir=asc",
+      ) as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    const body = await readJson<ListResponse>(res);
+    expect(body.data.map((r) => r.title)).toEqual(["Bitter", "Big"]);
+  });
+
+  it("rejects an unknown sort field", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?sort=banana") as unknown as Parameters<typeof recipesRoute.GET>[0],
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an unknown sort direction", async () => {
+    const res = await recipesRoute.GET(
+      buildRequest("/api/recipes?dir=sideways") as unknown as Parameters<typeof recipesRoute.GET>[0],
     );
     expect(res.status).toBe(400);
   });
@@ -250,6 +643,135 @@ describe("GET /api/recipes/[id]", () => {
       routeCtx(id),
     );
     expect(res.status).toBe(400);
+  });
+
+  // BRE-44: BJCP style-guideline comparison
+  async function seedAmericanIpaStyle() {
+    await db.prisma.bjcpStyle.upsert({
+      where: { code: "21A" },
+      create: {
+        code: "21A",
+        name: "American IPA",
+        category: "beer",
+        ogMin: 1.06,
+        ogMax: 1.07,
+        fgMin: 1.01,
+        fgMax: 1.015,
+        ibuMin: 50,
+        ibuMax: 70,
+        srmMin: 6,
+        srmMax: 14,
+        abvMin: 5.5,
+        abvMax: 7.5,
+      },
+      update: {},
+    });
+  }
+
+  it("attaches a style block when bjcpCategory matches a seeded row", async () => {
+    const { id } = await createFixture();
+    await seedAmericanIpaStyle();
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(id),
+    );
+    expect(res.status).toBe(200);
+    const body = await readJson<{
+      data: {
+        style: {
+          style: { code: string; name: string } | null;
+          comparison: {
+            og: { status: string; value: number | null };
+            ibu: { status: string };
+            allInRange: boolean | null;
+            outOfRangeCount: number | null;
+          } | null;
+        };
+      };
+    }>(res);
+    expect(body.data.style).not.toBeNull();
+    expect(body.data.style?.style?.code).toBe("21A");
+    expect(body.data.style?.comparison).not.toBeNull();
+    // The fixture values (OG 1.06, IBU 60) sit inside the 21A range.
+    expect(body.data.style?.comparison?.og.status).toBe("inRange");
+    expect(body.data.style?.comparison?.ibu.status).toBe("inRange");
+    expect(body.data.style?.comparison?.allInRange).toBe(true);
+    expect(body.data.style?.comparison?.outOfRangeCount).toBe(0);
+  });
+
+  it("flags out-of-range metrics with status=below/above", async () => {
+    // Recipe with an OG far below the 21A range, and an IBU far above.
+    const create = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({
+          title: "Weird IPA",
+          bjcpCategory: "21A",
+          targetOg: 1.04,
+          targetIbu: 120,
+        }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const { data: created } = await readJson<CreatedResponse>(create);
+    await seedAmericanIpaStyle();
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${created.id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(created.id),
+    );
+    const body = await readJson<{
+      data: {
+        style: {
+          comparison: {
+            og: { status: string };
+            ibu: { status: string };
+            allInRange: boolean | null;
+            outOfRangeCount: number | null;
+          } | null;
+        };
+      };
+    }>(res);
+    expect(body.data.style?.comparison?.og.status).toBe("below");
+    expect(body.data.style?.comparison?.ibu.status).toBe("above");
+    expect(body.data.style?.comparison?.allInRange).toBe(false);
+    expect(body.data.style?.comparison?.outOfRangeCount).toBe(2);
+  });
+
+  it("returns style=null when bjcpCategory is null", async () => {
+    // Create a recipe directly via Prisma to bypass the create schema's
+    // non-null bjcpCategory constraint. We're testing GET's response
+    // shape, not the create path.
+    const created = await db.prisma.recipe.create({
+      data: {
+        title: "No Style",
+        category: "beer",
+        bjcpCategory: null,
+        batchSizeLiters: 20,
+        boilTimeMinutes: 60,
+        efficiencyPct: 75,
+      },
+    });
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${created.id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(created.id),
+    );
+    const body = await readJson<{ data: { style: unknown } }>(res);
+    expect(body.data.style).toBeNull();
+  });
+
+  it("returns style=null when bjcpCategory is set but unknown", async () => {
+    const create = await recipesRoute.POST(
+      buildRequest("/api/recipes", {
+        method: "POST",
+        body: fixtureRecipe({ title: "Unknown Style", bjcpCategory: "ZZZ" }),
+      }) as unknown as Parameters<typeof recipesRoute.POST>[0],
+    );
+    const { data: created } = await readJson<CreatedResponse>(create);
+    const res = await recipeIdRoute.GET(
+      buildRequest(`/api/recipes/${created.id}`) as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(created.id),
+    );
+    const body = await readJson<{ data: { style: unknown } }>(res);
+    expect(body.data.style).toBeNull();
   });
 });
 
