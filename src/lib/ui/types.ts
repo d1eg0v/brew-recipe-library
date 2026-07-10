@@ -331,6 +331,43 @@ export interface StrikeWaterResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Yeast pitch-rate / starter calculator (BRE-33).
+// ---------------------------------------------------------------------------
+
+/** Beer type for pitch-rate calculation. */
+export type PitchRateBeerType = "ale" | "lager";
+
+/** Yeast form for pitch-rate calculation. */
+export type PitchRateYeastForm = "dry" | "liquid";
+
+/** Server-derived result of the pitch-rate calculation. */
+export interface PitchRateResult {
+  recommendedCells: number;
+  viableCellsPerPack: number;
+  packsNeeded: number;
+  starterVolumeLiters: number;
+  starterRecommended: boolean;
+  viability: number;
+  degreesPlato: number;
+  input: {
+    og: number;
+    batchSizeLiters: number;
+    beerType: PitchRateBeerType;
+    yeastForm: PitchRateYeastForm;
+    daysSinceProduction?: number;
+    viabilityOverride?: number;
+    cellsPerPackOverride?: number;
+  };
+}
+
+/** `GET /api/pitch-rate` response shape. */
+export interface PitchRateResponse {
+  data: {
+    result: PitchRateResult;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Quick ABV-from-OG/FG calculator (BRE-35).
 // ---------------------------------------------------------------------------
 

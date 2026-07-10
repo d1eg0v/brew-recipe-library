@@ -622,6 +622,58 @@ export const abvQuerySchema = z
 
 export type AbvQuery = z.infer<typeof abvQuerySchema>;
 
+// -----------------------------------------------------------------------------
+// Yeast pitch-rate / starter calculator (BRE-33) — query params for
+// GET /api/pitch-rate.
+// -----------------------------------------------------------------------------
+
+/** Beer types supported by the pitch-rate calculator. */
+export const PITCH_RATE_BEER_TYPES = ["ale", "lager"] as const;
+export type PitchRateBeerType = (typeof PITCH_RATE_BEER_TYPES)[number];
+
+/** Yeast forms supported by the pitch-rate calculator. */
+export const PITCH_RATE_YEAST_FORMS = ["dry", "liquid"] as const;
+export type PitchRateYeastForm = (typeof PITCH_RATE_YEAST_FORMS)[number];
+
+/** Query params for `GET /api/pitch-rate`. */
+export const pitchRateQuerySchema = z
+  .object({
+    /** Original gravity of the wort (e.g. 1.050). */
+    og: z.coerce.number().finite().gte(1.0).lte(1.2),
+    /** Batch volume at pitching, in litres. */
+    batchSizeLiters: z.coerce.number().finite().positive(),
+    /** ale or lager — determines the pitch-rate target. */
+    beerType: z
+      .string()
+      .refine(
+        (v) => (PITCH_RATE_BEER_TYPES as readonly string[]).includes(v),
+        { message: `must be one of: ${PITCH_RATE_BEER_TYPES.join(", ")}` },
+      ),
+    /** dry or liquid — determines cells per pack. */
+    yeastForm: z
+      .string()
+      .refine(
+        (v) => (PITCH_RATE_YEAST_FORMS as readonly string[]).includes(v),
+        { message: `must be one of: ${PITCH_RATE_YEAST_FORMS.join(", ")}` },
+      ),
+    /** Days since production (for viability estimation). 0 = fresh. */
+    daysSinceProduction: z.coerce.number().int().nonnegative().optional(),
+    /** Explicit viability override (0–1). */
+    viabilityOverride: z.coerce.number().finite().gte(0).lte(1).optional(),
+    /** Override cell count per pack (billions). */
+    cellsPerPackOverride: z.coerce.number().finite().positive().optional(),
+  })
+  .refine(
+    (q) => !(q.viabilityOverride != null && q.daysSinceProduction != null),
+    {
+      message:
+        "viabilityOverride and daysSinceProduction are mutually exclusive",
+      path: ["viabilityOverride"],
+    },
+  );
+
+export type PitchRateQuery = z.infer<typeof pitchRateQuerySchema>;
+
 export type RecipeCreateBody = z.infer<typeof recipeCreateSchema>;
 export type RecipeReplaceBody = z.infer<typeof recipeReplaceSchema>;
 export type RecipePatchBody = z.infer<typeof recipePatchSchema>;
