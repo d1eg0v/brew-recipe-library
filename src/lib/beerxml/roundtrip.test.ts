@@ -89,6 +89,27 @@ describe("BeerXML round-trip", () => {
     expect(parsed.bjcpCategory).toBe(original.bjcpCategory);
   });
 
+  it("export → import preserves characters the serializer escapes", () => {
+    // The serializer escapes & < > " ' on the way out; the parser must decode
+    // them on the way back in, or every apostrophe and ampersand accumulates a
+    // literal `&amp;` / `&apos;` on each round-trip.
+    const original = fixtureRecipe({
+      title: `Bob & Dave's "Best" <Ale>`,
+      author: "Smith & Sons",
+      notes: "Malty & rich",
+      fermentables: [
+        { name: "Weyermann's Pilsner", type: "grain", amountKg: 4.5 },
+      ],
+    });
+    const parsed = parseBeerXml(serializeBeerXml(original));
+
+    expect(parsed.title).toBe(`Bob & Dave's "Best" <Ale>`);
+    expect(parsed.author).toBe("Smith & Sons");
+    expect(parsed.notes).toContain("Malty & rich");
+    const f = parsed.fermentables[0] as Record<string, unknown>;
+    expect(f.name).toBe("Weyermann's Pilsner");
+  });
+
   it("export → import preserves fermentables", () => {
     const original = fixtureRecipe();
     const parsed = parseBeerXml(serializeBeerXml(original));

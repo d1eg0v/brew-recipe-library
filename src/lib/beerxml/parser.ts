@@ -35,7 +35,14 @@ const PARSER_OPTIONS = {
   allowBooleanAttributes: true,
   ignoreDeclaration: true,
   ignorePiTags: true,
-  processEntities: false,
+  // The five predefined XML entities (&amp; &lt; &gt; &quot; &apos;) must be
+  // decoded, or a legally escaped title like "Bob &amp; Dave's" is persisted
+  // with the escape still in it. This is safe: custom entity expansion
+  // (billion laughs) and external entities both require a DTD, which
+  // `parseBeerXml` rejects before the parser runs — see the DOCTYPE guard
+  // below. Numeric character references (&#233;) are gated on the separate
+  // `htmlEntities` option and stay literal either way.
+  processEntities: true,
   textNodeName: "#text",
   isArray: (name: string, jpath: unknown) => {
     // Lists in BeerXML: a single element or a list of elements — treat every
