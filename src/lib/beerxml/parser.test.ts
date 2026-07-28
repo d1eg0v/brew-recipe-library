@@ -225,6 +225,69 @@ describe("parseBeerXml", () => {
     expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
   });
 
+  it("rejects an entity-expansion payload (billion laughs)", () => {
+    const xml = `<?xml version="1.0"?>
+<!DOCTYPE RECIPES [
+  <!ENTITY lol "lol">
+  <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+  <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
+  <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+]>
+<RECIPES>
+  <RECIPE>
+    <NAME>&lol3;</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
+  });
+
+  it("decodes predefined XML entities in text content", () => {
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>Bob &amp; Dave&apos;s &quot;Best&quot; Ale</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <BREWER>Renée &amp; Co.</BREWER>
+    <NOTES>Malty &amp; rich &lt;not bitter&gt;</NOTES>
+    <FERMENTABLES>
+      <FERMENTABLE>
+        <NAME>Weyermann&apos;s Pilsner</NAME>
+        <TYPE>Grain</TYPE>
+        <AMOUNT>4.5</AMOUNT>
+      </FERMENTABLE>
+    </FERMENTABLES>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe(`Bob & Dave's "Best" Ale`);
+    expect(out.notes).toBe("Malty & rich <not bitter>");
+    expect(out.author).toBe("Renée & Co.");
+    const f = out.fermentables[0] as Record<string, unknown>;
+    expect(f.name).toBe("Weyermann's Pilsner");
+  });
+
+  it("decodes entities exactly once (no recursive re-expansion)", () => {
+    // `&amp;amp;` is the correct escaping of the literal text "&amp;". A single
+    // decode pass must yield "&amp;", not "&".
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>Literal &amp;amp; Escape</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(parseBeerXml(xml).title).toBe("Literal &amp; Escape");
+  });
+
   it("rejects a missing <NAME>", () => {
     const xml = `<?xml version="1.0"?>
 <RECIPES>
