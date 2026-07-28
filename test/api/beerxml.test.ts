@@ -37,7 +37,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await db.teardown();
+  await db?.teardown();
 });
 
 function buildRequest(url: string, init?: { method?: string; body?: unknown; headers?: Record<string, string>; contentType?: string }) {
@@ -239,6 +239,31 @@ describe("POST /api/recipes/import", () => {
       }) as unknown as Parameters<typeof importRoute.POST>[0],
     );
     expect(res.status).toBe(400);
+  });
+
+  it("returns 413 when a raw XML body exceeds the byte limit", async () => {
+    const res = await importRoute.POST(
+      buildRequest("/api/recipes/import", {
+        method: "POST",
+        body: "x".repeat(importRoute.MAX_BEER_XML_BYTES + 1),
+        contentType: "application/xml",
+      }) as unknown as Parameters<typeof importRoute.POST>[0],
+    );
+    expect(res.status).toBe(413);
+  });
+
+  it("returns 413 when Content-Length declares an oversized payload", async () => {
+    const res = await importRoute.POST(
+      buildRequest("/api/recipes/import", {
+        method: "POST",
+        body: "<RECIPES/>",
+        contentType: "application/xml",
+        headers: {
+          "content-length": String(importRoute.MAX_BEER_XML_BYTES + 1),
+        },
+      }) as unknown as Parameters<typeof importRoute.POST>[0],
+    );
+    expect(res.status).toBe(413);
   });
 
   it("accepts multipart/form-data with a file field", async () => {

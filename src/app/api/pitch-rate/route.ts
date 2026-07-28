@@ -16,7 +16,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
-  badRequest,
   internalError,
   validationError,
 } from "@/lib/api/errors";

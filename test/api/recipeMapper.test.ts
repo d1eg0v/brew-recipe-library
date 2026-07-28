@@ -29,6 +29,7 @@ const sample: RecipeCreateBody = {
   ],
   processSteps: [],
   additions: [{ name: "Irish moss", amount: 1, unit: "tsp" }],
+  tags: [],
 };
 
 describe("recipeToCreateInput", () => {
@@ -80,7 +81,19 @@ describe("recipeToCreateInput", () => {
   });
 
   it("strips undefined scalar fields", () => {
-    const out = asRecord(recipeToCreateInput({ title: "x", batchSizeLiters: 1 }));
+    const out = asRecord(
+      recipeToCreateInput({
+        title: "x",
+        batchSizeLiters: 1,
+        fermentables: [],
+        hops: [],
+        yeasts: [],
+        mashSteps: [],
+        processSteps: [],
+        additions: [],
+        tags: [],
+      }),
+    );
     expect("targetAbv" in out).toBe(false);
   });
 });
@@ -134,7 +147,17 @@ describe("recipe mapper — tags (BRE-29)", () => {
 
   it("omits recipeTags when no tags are provided", () => {
     const out = asRecord(
-      recipeToCreateInput({ title: "x", batchSizeLiters: 1 }),
+      recipeToCreateInput({
+        title: "x",
+        batchSizeLiters: 1,
+        fermentables: [],
+        hops: [],
+        yeasts: [],
+        mashSteps: [],
+        processSteps: [],
+        additions: [],
+        tags: [],
+      }),
     );
     expect("recipeTags" in out).toBe(false);
   });

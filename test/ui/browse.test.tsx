@@ -57,7 +57,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await db.teardown();
+  await db?.teardown();
 });
 
 async function loadSeed() {
@@ -66,7 +66,7 @@ async function loadSeed() {
   return report.loaded;
 }
 
-function buildListFromDb(query: URLSearchParams): ListResponse {
+function buildListFromDb(query: URLSearchParams): Promise<ListResponse> {
   const limit = Math.min(
     Math.max(Number.parseInt(query.get("limit") ?? "50", 10) || 50, 1),
     200,
@@ -87,7 +87,6 @@ function buildListFromDb(query: URLSearchParams): ListResponse {
     ];
   }
 
-  // Synchronous-ish Prisma call (Prisma 7 returns a thenable).
   return db.prisma.recipe
     .findMany({
       where,

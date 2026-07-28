@@ -690,14 +690,6 @@ export const SALT_TYPES = [
 ] as const;
 export type SaltType = (typeof SALT_TYPES)[number];
 
-const saltAdditionSchema = z.object({
-  saltType: z.string().refine(
-    (v) => (SALT_TYPES as readonly string[]).includes(v),
-    { message: `must be one of: ${SALT_TYPES.join(", ")}` },
-  ),
-  grams: z.number().finite().gte(0),
-});
-
 export const waterChemistryQuerySchema = z.object({
   calcium: z.coerce.number().finite().gte(0).optional(),
   magnesium: z.coerce.number().finite().gte(0).optional(),

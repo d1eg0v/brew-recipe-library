@@ -145,6 +145,22 @@ export interface RecipeView {
   [k: string]: unknown;
 }
 
+export interface PresentedRecipeFields {
+  batchSizeGallons?: number;
+  tags: string[];
+  tagDetails: Array<{ id: string; name: string }>;
+  shareable: boolean;
+  shareUrl: string | null;
+  averageRating: number | null;
+}
+
+export type PresentedRecipe<T extends RecipeView> = Omit<
+  T,
+  "recipeTags" | "shareToken"
+> &
+  PresentedRecipeFields &
+  Record<string, unknown>;
+
 /**
  * Apply scale + unit conversion to a recipe (and any children) and return a
  * shallow copy. Returns the input unchanged when neither option is set.
@@ -152,7 +168,7 @@ export interface RecipeView {
 export function presentRecipe<T extends RecipeView>(
   recipe: T,
   options: PresentOptions = {},
-): T {
+): PresentedRecipe<T> {
   const units: UnitSystem = options.units ?? "metric";
   const factor =
     options.batchSize != null && options.batchSize > 0 && recipe.batchSizeLiters > 0
@@ -263,5 +279,5 @@ export function presentRecipe<T extends RecipeView>(
     next.averageRating = null;
   }
 
-  return next as T;
+  return next as PresentedRecipe<T>;
 }

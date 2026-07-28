@@ -35,7 +35,7 @@ const PARSER_OPTIONS = {
   allowBooleanAttributes: true,
   ignoreDeclaration: true,
   ignorePiTags: true,
-  processEntities: true,
+  processEntities: false,
   textNodeName: "#text",
   isArray: (name: string, jpath: unknown) => {
     // Lists in BeerXML: a single element or a list of elements — treat every
@@ -65,6 +65,11 @@ export class BeerXmlParseError extends Error {
 export function parseBeerXml(input: string): RecipeCreateBody {
   if (typeof input !== "string" || input.trim().length === 0) {
     throw new BeerXmlParseError("BeerXML input is empty");
+  }
+  if (/<!DOCTYPE\b/i.test(input)) {
+    throw new BeerXmlParseError(
+      "BeerXML DOCTYPE declarations are not supported",
+    );
   }
 
   let parsed: unknown;

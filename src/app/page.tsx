@@ -5,7 +5,6 @@ import CategoryBadge from "@/components/CategoryBadge";
 import SrmSwatch from "@/components/SrmSwatch";
 import TagChip from "@/components/TagChip";
 import BrowseFavoritesGrid from "@/components/recipe/BrowseFavoritesGrid";
-import FavoritesFilter from "@/components/recipe/FavoritesFilter";
 import RecipeCardFavorite from "@/components/recipe/RecipeCardFavorite";
 import {
   ArrowGlyph,

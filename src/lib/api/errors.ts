@@ -43,6 +43,10 @@ export function conflict(message: string): NextResponse {
   return jsonError(message, 409);
 }
 
+export function payloadTooLarge(message: string): NextResponse {
+  return jsonError(message, 413);
+}
+
 export function internalError(message = "Internal server error"): NextResponse {
   return jsonError(message, 500);
 }

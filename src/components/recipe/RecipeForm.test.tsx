@@ -58,6 +58,7 @@ function fixtureRecipe(): RecipeDetail {
     efficiencyPct: 75,
     targetOg: 1.056,
     targetFg: 1.012,
+    targetPh: null,
     targetAbv: 5.8,
     targetIbu: 45,
     targetSrm: 6.5,
@@ -99,6 +100,7 @@ function fixtureRecipe(): RecipeDetail {
         type: "ale",
         form: "dry",
         attenuationPct: 81,
+        abvTolerancePct: null,
         temperatureCMin: 15,
         temperatureCMax: 24,
         temperatureFMin: null,
@@ -123,10 +125,14 @@ function fixtureRecipe(): RecipeDetail {
     ],
     processSteps: [],
     additions: [],
+    tags: [],
+    tagDetails: [],
     shareable: false,
     shareUrl: null,
+    averageRating: null,
     createdAt: "2025-01-01T00:00:00.000Z",
     updatedAt: "2025-01-01T00:00:00.000Z",
+    style: null,
   };
 }
 

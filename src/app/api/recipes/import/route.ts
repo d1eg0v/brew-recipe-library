@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import {
   badRequest,
   internalError,
+  payloadTooLarge,
   validationError,
 } from "@/lib/api/errors";
 import { presentRecipe } from "@/lib/api/present";
@@ -25,6 +26,7 @@ import { parseBeerXml, BeerXmlParseError } from "@/lib/beerxml";
 import { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
+export const MAX_BEER_XML_BYTES = 1_048_576;
 
 const RECIPE_INCLUDE = {
   fermentables: { orderBy: { position: "asc" as const } },
@@ -78,15 +80,73 @@ type XmlReadResult =
   | { ok: true; value: string }
   | { ok: false; response: NextResponse };
 
+type LimitedBodyResult =
+  | { ok: true; value: Uint8Array }
+  | { ok: false; response: NextResponse };
+
+function tooLargeResponse(): NextResponse {
+  return payloadTooLarge(
+    `BeerXML payload must not exceed ${MAX_BEER_XML_BYTES} bytes`,
+  );
+}
+
+async function readLimitedBody(request: Request): Promise<LimitedBodyResult> {
+  const contentLength = request.headers.get("content-length");
+  if (contentLength != null) {
+    const declaredBytes = Number(contentLength);
+    if (Number.isFinite(declaredBytes) && declaredBytes > MAX_BEER_XML_BYTES) {
+      return { ok: false, response: tooLargeResponse() };
+    }
+  }
+
+  if (!request.body) {
+    return { ok: true, value: new Uint8Array() };
+  }
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_BEER_XML_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        return { ok: false, response: tooLargeResponse() };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return {
+      ok: false,
+      response: badRequest("Could not read BeerXML request body"),
+    };
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { ok: true, value: body };
+}
+
 async function readXmlBody(request: NextRequest): Promise<XmlReadResult> {
   const contentType = (request.headers.get("content-type") ?? "").toLowerCase();
+  const body = await readLimitedBody(request);
+  if (!body.ok) return body;
 
   if (
     contentType.includes("application/xml") ||
     contentType.includes("text/xml") ||
     contentType.includes("application/beerxml")
   ) {
-    const text = await request.text();
+    const text = new TextDecoder().decode(body.value);
     if (!text.trim()) {
       return { ok: false, response: badRequest("BeerXML body is empty") };
     }
@@ -94,7 +154,23 @@ async function readXmlBody(request: NextRequest): Promise<XmlReadResult> {
   }
 
   if (contentType.includes("multipart/form-data")) {
-    const form = await request.formData();
+    let form: FormData;
+    try {
+      const replay = new Request(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body: body.value.buffer.slice(
+          body.value.byteOffset,
+          body.value.byteOffset + body.value.byteLength,
+        ) as ArrayBuffer,
+      });
+      form = await replay.formData();
+    } catch {
+      return {
+        ok: false,
+        response: badRequest("Malformed multipart/form-data body"),
+      };
+    }
     const file = form.get("file");
     if (!(file instanceof File)) {
       return {
@@ -103,6 +179,9 @@ async function readXmlBody(request: NextRequest): Promise<XmlReadResult> {
           'multipart/form-data import must include a "file" field',
         ),
       };
+    }
+    if (file.size > MAX_BEER_XML_BYTES) {
+      return { ok: false, response: tooLargeResponse() };
     }
     const text = await file.text();
     if (!text.trim()) {
