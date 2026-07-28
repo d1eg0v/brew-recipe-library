@@ -29,6 +29,7 @@ function makeRecipe(overrides: Partial<RecipeDetail> = {}): RecipeDetail {
     efficiencyPct: 75,
     targetOg: 1.06,
     targetFg: 1.012,
+    targetPh: null,
     targetAbv: 6.3,
     targetIbu: 60,
     targetSrm: 6,
@@ -40,7 +41,7 @@ function makeRecipe(overrides: Partial<RecipeDetail> = {}): RecipeDetail {
       { id: "h2", name: "Citra", amountGrams: 25, alphaAcidPct: 12, timeMinutes: 5, use: "boil", form: "pellet", notes: null, position: 1 },
     ],
     yeasts: [
-      { id: "y1", name: "US-05", laboratory: "Fermentis", productId: "US-05", type: "ale", form: "dry", attenuationPct: 81, temperatureCMin: 18, temperatureCMax: 22, notes: null, position: 0 },
+      { id: "y1", name: "US-05", laboratory: "Fermentis", productId: "US-05", type: "ale", form: "dry", attenuationPct: 81, abvTolerancePct: null, temperatureCMin: 18, temperatureCMax: 22, notes: null, position: 0 },
     ],
     mashSteps: [
       { id: "m1", name: "Sacc rest", type: "infusion", stepTempC: 66, stepTimeMinutes: 60, infuseAmountLiters: null, notes: null, position: 0 },
@@ -52,10 +53,14 @@ function makeRecipe(overrides: Partial<RecipeDetail> = {}): RecipeDetail {
     additions: [
       { id: "a1", name: "Irish moss", amount: 1, unit: "tsp", purpose: "clarifier", timing: "at 15 min", notes: null, position: 0 },
     ],
+    tags: [],
+    tagDetails: [],
     shareable: false,
     shareUrl: null,
+    averageRating: null,
     createdAt: "2025-01-01T00:00:00Z",
     updatedAt: "2025-01-01T00:00:00Z",
+    style: null,
     ...overrides,
   };
 }
@@ -197,8 +202,8 @@ describe("buildBrewDayChecklist", () => {
   it("emits one pitch item per yeast", () => {
     const recipe = makeRecipe({
       yeasts: [
-        { id: "y1", name: "US-05", laboratory: "Fermentis", productId: "US-05", type: "ale", form: "dry", attenuationPct: 81, temperatureCMin: 18, temperatureCMax: 22, notes: null, position: 0 },
-        { id: "y2", name: "Belle Saison", laboratory: "Lallemand", productId: "Belle Saison", type: "ale", form: "dry", attenuationPct: 85, temperatureCMin: 20, temperatureCMax: 35, notes: null, position: 1 },
+        { id: "y1", name: "US-05", laboratory: "Fermentis", productId: "US-05", type: "ale", form: "dry", attenuationPct: 81, abvTolerancePct: null, temperatureCMin: 18, temperatureCMax: 22, notes: null, position: 0 },
+        { id: "y2", name: "Belle Saison", laboratory: "Lallemand", productId: "Belle Saison", type: "ale", form: "dry", attenuationPct: 85, abvTolerancePct: null, temperatureCMin: 20, temperatureCMax: 35, notes: null, position: 1 },
       ],
     });
     const items = buildBrewDayChecklist(recipe);

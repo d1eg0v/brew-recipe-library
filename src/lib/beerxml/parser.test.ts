@@ -210,6 +210,21 @@ describe("parseBeerXml", () => {
     expect(() => parseBeerXml("<RECIPES><RECIPE>")).toThrow(BeerXmlParseError);
   });
 
+  it("rejects DOCTYPE declarations before entity processing", () => {
+    const xml = `<?xml version="1.0"?>
+<!DOCTYPE RECIPES [<!ENTITY recipeName "Expanded name">]>
+<RECIPES>
+  <RECIPE>
+    <NAME>&recipeName;</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
+  });
+
   it("rejects a missing <NAME>", () => {
     const xml = `<?xml version="1.0"?>
 <RECIPES>

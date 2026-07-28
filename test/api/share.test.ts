@@ -41,7 +41,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await db.teardown();
+  await db?.teardown();
 });
 
 function buildRequest(url: string, init?: { method?: string }) {
@@ -141,6 +141,31 @@ describe("POST /api/recipes/[id]/share", () => {
     const secondBody = await readJson<ShareResponse>(second);
     expect(second.status).toBe(200);
     expect(secondBody.data.shareToken).toBe(firstBody.data.shareToken);
+  });
+
+  it("returns the same winning token to concurrent POST requests", async () => {
+    const id = await createRecipe();
+    const request = () =>
+      shareRoute.POST(
+        buildRequest(`/api/recipes/${id}/share`, {
+          method: "POST",
+        }) as unknown as Parameters<typeof shareRoute.POST>[0],
+        routeCtx(id),
+      );
+
+    const [first, second] = await Promise.all([request(), request()]);
+    const [firstBody, secondBody] = await Promise.all([
+      readJson<ShareResponse>(first),
+      readJson<ShareResponse>(second),
+    ]);
+
+    expect([first.status, second.status].sort()).toEqual([200, 201]);
+    expect(firstBody.data.shareToken).toBe(secondBody.data.shareToken);
+    const stored = await db.prisma.recipe.findUnique({
+      where: { id },
+      select: { shareToken: true },
+    });
+    expect(stored?.shareToken).toBe(firstBody.data.shareToken);
   });
 
   it("honours the Origin header when present", async () => {

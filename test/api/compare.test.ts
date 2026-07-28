@@ -43,7 +43,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await db.teardown();
+  await db?.teardown();
 });
 
 async function createRecipe(overrides: Record<string, unknown> = {}) {

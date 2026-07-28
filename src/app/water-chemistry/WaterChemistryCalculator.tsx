@@ -103,12 +103,15 @@ export default function WaterChemistryCalculator() {
     }
   }, [profiles.length]);
 
-  // Fetch on mount to get profiles
+  // Fetch on mount to get profiles. Defer the request to a timer so the effect
+  // schedules external work instead of synchronously cascading state updates.
   useEffect(() => {
-    if (profiles.length === 0) {
-      fetchResult(`volumeLiters=${DEFAULT_VOLUME}`);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (profiles.length > 0) return;
+    const handle = window.setTimeout(() => {
+      void fetchResult(`volumeLiters=${DEFAULT_VOLUME}`);
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [fetchResult, profiles.length]);
 
   // Debounce input-driven refetches
   useEffect(() => {

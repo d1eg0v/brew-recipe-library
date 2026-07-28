@@ -40,7 +40,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await db.teardown();
+  await db?.teardown();
 });
 
 function buildRequest(url: string, init?: { method?: string; body?: unknown }) {

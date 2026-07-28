@@ -36,7 +36,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await db.teardown();
+  await db?.teardown();
 });
 
 // The route handlers expect a NextRequest; the test only reads URL query

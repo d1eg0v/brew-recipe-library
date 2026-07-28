@@ -42,8 +42,10 @@ function makeRecipe(overrides: Partial<RecipeDetail> = {}): RecipeDetail {
     tagDetails: [],
     shareable: false,
     shareUrl: null,
+    averageRating: null,
     createdAt: "2025-01-01T00:00:00.000Z",
     updatedAt: "2025-01-01T00:00:00.000Z",
+    style: null,
     ...overrides,
   };
 }
@@ -70,4 +72,3 @@ describe("ShareLink", () => {
     expect(html).not.toContain("Enable sharing");
   });
 });
-

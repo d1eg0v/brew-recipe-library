@@ -9,7 +9,6 @@ import { FAVORITES_BOOT_SCRIPT } from "@/lib/favorites/bootScript";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme/bootScript";
 import { UNIT_BOOT_SCRIPT } from "@/lib/units/bootScript";
 import { HopMark } from "@/components/icons";
-import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

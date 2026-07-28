@@ -124,7 +124,8 @@ describe("presentRecipe", () => {
   it("removes imperial field on metric pass", () => {
     const imperial = presentRecipe(fixture, { units: "imperial" });
     const back = presentRecipe(imperial, { units: "metric" });
-    expect(asRec(back.fermentables![0]).amountLbs).toBeUndefined();
+    const fermentables = back.fermentables as Array<Record<string, unknown>>;
+    expect(asRec(fermentables[0]).amountLbs).toBeUndefined();
     expect(back.batchSizeGallons).toBeUndefined();
   });
 });
@@ -134,8 +135,8 @@ describe("presentRecipe — tags (BRE-29)", () => {
     const input = {
       batchSizeLiters: 20,
       recipeTags: [
-        { recipeId: "r1", tagId: "t2", tag: { id: "t2", name: "summer" } },
-        { recipeId: "r1", tagId: "t1", tag: { id: "t1", name: "session" } },
+        { recipeId: "r1", tagId: "t2", tag: { id: "t2", name: "summer", createdAt: new Date(0) } },
+        { recipeId: "r1", tagId: "t1", tag: { id: "t1", name: "session", createdAt: new Date(0) } },
       ],
     };
     const out = presentRecipe(input) as unknown as { tags: string[]; tagDetails: Array<{ id: string; name: string }> };
@@ -154,7 +155,7 @@ describe("presentRecipe — tags (BRE-29)", () => {
     const out = presentRecipe({
       batchSizeLiters: 20,
       recipeTags: [
-        { recipeId: "r1", tagId: "t1", tag: { id: "t1", name: "session" } },
+        { recipeId: "r1", tagId: "t1", tag: { id: "t1", name: "session", createdAt: new Date(0) } },
       ],
     });
     expect((out as Record<string, unknown>).recipeTags).toBeUndefined();

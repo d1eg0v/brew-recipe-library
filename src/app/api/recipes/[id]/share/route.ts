@@ -28,25 +28,52 @@ function resolveOrigin(request: NextRequest): string {
   return "http://localhost:3000";
 }
 
-/** A short helper that produces a fresh unique share token. A `unique`
- *  constraint on `Recipe.shareToken` makes collisions impossible in practice
- *  (128-bit token space), but DB engines raise on conflict anyway. We retry
- *  a few times so a transiently-locked / racing concurrent writer cannot
- *  fail the request. */
-async function issueUniqueShareToken(id: string, attempts = 5): Promise<string> {
+interface ShareTokenResult {
+  token: string;
+  created: boolean;
+}
+
+/**
+ * Return the existing token or atomically claim the null slot with a new one.
+ * The conditional update is what makes concurrent POSTs idempotent: only one
+ * writer can change `null` to a token, and every loser re-reads that winner.
+ */
+async function getOrIssueShareToken(
+  id: string,
+  attempts = 5,
+): Promise<ShareTokenResult | null> {
+  const existing = await prisma.recipe.findUnique({
+    where: { id },
+    select: { shareToken: true },
+  });
+  if (!existing) return null;
+  if (existing.shareToken) {
+    return { token: existing.shareToken, created: false };
+  }
+
   for (let i = 0; i < attempts; i++) {
     const token = generateShareToken();
     try {
-      await prisma.recipe.update({
-        where: { id },
+      const claimed = await prisma.recipe.updateMany({
+        where: { id, shareToken: null },
         data: { shareToken: token },
+      });
+      if (claimed.count === 1) {
+        return { token, created: true };
+      }
+
+      const winner = await prisma.recipe.findUnique({
+        where: { id },
         select: { shareToken: true },
       });
-      return token;
+      if (!winner) return null;
+      if (winner.shareToken) {
+        return { token: winner.shareToken, created: false };
+      }
     } catch (err) {
       const code = (err as { code?: string }).code;
-      // P2002 = unique constraint violation; race with a concurrent POST that
-      // generated the same token. Retry with a fresh value.
+      // P2002 = an improbable token collision with another recipe. Retry with
+      // fresh entropy; concurrent requests for this recipe use the winner path.
       if (code !== "P2002") throw err;
     }
   }
@@ -79,20 +106,12 @@ export async function POST(
 ) {
   const { id } = await context.params;
   try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id },
-      select: { shareToken: true },
-    });
-    if (!recipe) return notFound();
-
-    // Idempotent: if a token already exists, echo it back rather than minting
-    // a new one. The UI can repeatedly click "Share" without rotating URLs.
-    const token =
-      recipe.shareToken ?? (await issueUniqueShareToken(id));
+    const result = await getOrIssueShareToken(id);
+    if (!result) return notFound();
 
     return NextResponse.json(
-      { data: presentShareStatus(token, resolveOrigin(request)) },
-      { status: recipe.shareToken ? 200 : 201 },
+      { data: presentShareStatus(result.token, resolveOrigin(request)) },
+      { status: result.created ? 201 : 200 },
     );
   } catch (err) {
     console.error("POST /api/recipes/[id]/share failed:", err);
