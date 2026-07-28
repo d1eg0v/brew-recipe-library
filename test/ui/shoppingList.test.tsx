@@ -462,14 +462,9 @@ describe("/recipes/[id] ingredient links (BRE-28)", () => {
       // No link produced for an empty fermentable name; a dash placeholder
       // shows in the Fermentables row's Name column instead.
       expect(html).not.toContain("href=\"/?ingredient=\"");
-      // Confirm the dash placeholder shows in the Fermentables table row.
-      const fermentablesIdx = html.indexOf(">Fermentables <");
-      const dashIdx = html.indexOf(
-        "<span class=\"text-[var(--muted-foreground)]\">—</span>",
-        fermentablesIdx,
+      expect(html).toContain(
+        '<td class="font-medium"><span class="text-[var(--muted-foreground)]">—</span></td>',
       );
-      expect(fermentablesIdx).toBeGreaterThanOrEqual(0);
-      expect(dashIdx).toBeGreaterThan(fermentablesIdx);
     } finally {
       if (original) {
         global.fetch = original;
