@@ -371,6 +371,26 @@ describe("parseBeerXml", () => {
     expect(parseBeerXml(xml).title).toBe("Literal &amp; Escape");
   });
 
+  it("scans pathological input in linear time", () => {
+    // The import endpoint accepts up to 1 MiB. Repeated unterminated markers
+    // used to make the DOCTYPE scan rescan the rest of the document for a
+    // terminator that never arrives — quadratic, and over a minute for this
+    // input. The bound here is deliberately loose: a linear scan finishes in
+    // milliseconds, so only a return to quadratic behaviour can trip it.
+    const MiB = 1024 * 1024;
+    for (const filler of ["<!--", "<![CDATA["]) {
+      const payload = filler.repeat(Math.floor(MiB / filler.length));
+      const started = Date.now();
+      expect(() => parseBeerXml(payload)).toThrow(BeerXmlParseError);
+      expect(Date.now() - started).toBeLessThan(5_000);
+
+      // A declaration hidden behind the unterminated markers is still caught.
+      expect(() =>
+        parseBeerXml(`${payload}<!DOCTYPE RECIPES [<!ENTITY e "x">]>`),
+      ).toThrow(/DOCTYPE/);
+    }
+  }, 30_000);
+
   it("keeps names that the value parser coerces to non-strings", () => {
     // `parseTagValue` turns "2024" into a number and "true" into a boolean.
     // Before this was handled the recipe was rejected outright and numeric

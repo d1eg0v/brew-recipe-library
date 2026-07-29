@@ -40,8 +40,7 @@ const PARSER_OPTIONS = {
   // with the escape still in it. This is safe: custom entity expansion
   // (billion laughs) and external entities both require a DTD, which
   // `parseBeerXml` rejects before the parser runs — see the DOCTYPE guard
-  // below. Numeric character references (&#233;) are gated on the separate
-  // `htmlEntities` option and stay literal either way.
+  // below.
   processEntities: true,
   textNodeName: "#text",
   isArray: (name: string, jpath: unknown) => {
@@ -85,22 +84,42 @@ const DOCTYPE_AT_START = /^<!DOCTYPE\b/i;
  * from being rejected as an attack, and it narrows nothing: every position the
  * parser would honour is still scanned. An unterminated comment or CDATA is
  * not skipped, so a malformed document fails closed.
+ *
+ * The scan runs in linear time on any input. Once a terminator search fails,
+ * no later one can succeed — the cursor only moves forward — so the result is
+ * remembered. Without that, a body of repeated `<![CDATA[` with no `]]>` makes
+ * every marker rescan the remainder of the document, which is quadratic: the
+ * import endpoint accepts a megabyte, and a megabyte of unterminated `<!--`
+ * took over a minute to scan.
  */
 function hasDocTypeDeclaration(input: string): boolean {
   let cursor = 0;
+  let commentEndExhausted = false;
+  let cdataEndExhausted = false;
+
   while (cursor < input.length) {
     const marker = input.indexOf("<!", cursor);
     if (marker === -1) return false;
 
     if (input.startsWith("<!--", marker)) {
-      const end = input.indexOf("-->", marker + 4);
-      // Unterminated: do not skip, so a later declaration is still caught.
-      cursor = end === -1 ? marker + 4 : end + 3;
+      const end = commentEndExhausted ? -1 : input.indexOf("-->", marker + 4);
+      if (end === -1) {
+        // Unterminated: do not skip, so a later declaration is still caught.
+        commentEndExhausted = true;
+        cursor = marker + 4;
+      } else {
+        cursor = end + 3;
+      }
       continue;
     }
     if (input.startsWith("<![CDATA[", marker)) {
-      const end = input.indexOf("]]>", marker + 9);
-      cursor = end === -1 ? marker + 9 : end + 3;
+      const end = cdataEndExhausted ? -1 : input.indexOf("]]>", marker + 9);
+      if (end === -1) {
+        cdataEndExhausted = true;
+        cursor = marker + 9;
+      } else {
+        cursor = end + 3;
+      }
       continue;
     }
     if (DOCTYPE_AT_START.test(input.slice(marker, marker + 10))) return true;
