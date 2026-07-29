@@ -371,6 +371,43 @@ describe("parseBeerXml", () => {
     expect(parseBeerXml(xml).title).toBe("Literal &amp; Escape");
   });
 
+  it("keeps names that the value parser coerces to non-strings", () => {
+    // `parseTagValue` turns "2024" into a number and "true" into a boolean.
+    // Before this was handled the recipe was rejected outright and numeric
+    // ingredient names were silently dropped from the import.
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>2024</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES>
+      <FERMENTABLE><NAME>2024</NAME><TYPE>Grain</TYPE><AMOUNT>4.5</AMOUNT></FERMENTABLE>
+    </FERMENTABLES>
+    <HOPS>
+      <HOP><NAME>90</NAME><AMOUNT>0.05</AMOUNT><TIME>60</TIME></HOP>
+    </HOPS>
+    <YEASTS>
+      <YEAST><NAME>true</NAME></YEAST>
+    </YEASTS>
+    <MASH>
+      <MASH_STEPS>
+        <MASH_STEP><NAME>66</NAME><STEP_TEMP>66</STEP_TEMP><STEP_TIME>60</STEP_TIME></MASH_STEP>
+      </MASH_STEPS>
+    </MASH>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("2024");
+    expect(out.fermentables).toHaveLength(1);
+    expect((out.fermentables[0] as Record<string, unknown>).name).toBe("2024");
+    expect(out.hops).toHaveLength(1);
+    expect((out.hops[0] as Record<string, unknown>).name).toBe("90");
+    expect(out.yeasts).toHaveLength(1);
+    expect((out.yeasts[0] as Record<string, unknown>).name).toBe("true");
+    expect(out.mashSteps).toHaveLength(1);
+    expect((out.mashSteps[0] as Record<string, unknown>).name).toBe("66");
+  });
+
   it("rejects a missing <NAME>", () => {
     const xml = `<?xml version="1.0"?>
 <RECIPES>

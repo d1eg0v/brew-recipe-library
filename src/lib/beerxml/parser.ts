@@ -133,7 +133,7 @@ export function parseBeerXml(input: string): RecipeCreateBody {
       "BeerXML document is missing a <RECIPE> element",
     );
   }
-  if (!recipe.NAME || typeof recipe.NAME !== "string") {
+  if (!asName(recipe.NAME)) {
     throw new BeerXmlParseError(
       "BeerXML <RECIPE> is missing the required <NAME> element",
     );
@@ -169,6 +169,26 @@ function asString(value: unknown): string | undefined {
   return String(value);
 }
 
+/**
+ * Recover the text form of a BeerXML name.
+ *
+ * `parseTagValue: true` coerces element text that looks like a literal, so a
+ * recipe or ingredient legitimately called "2024" arrives as the number 2024
+ * and one called "true" as the boolean `true`. Callers that tested
+ * `typeof value === "string"` therefore rejected the whole recipe, or silently
+ * dropped the ingredient. Accept every primitive the parser can produce.
+ *
+ * Returns `undefined` only for values that carry no name at all, so an empty
+ * name still reaches schema validation and surfaces as an error rather than
+ * disappearing.
+ */
+function asName(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : undefined;
+  if (typeof value === "boolean") return String(value);
+  return undefined;
+}
+
 function childList<T>(value: T | T[] | undefined | null): T[] {
   if (value == null) return [];
   return Array.isArray(value) ? value : [value];
@@ -197,14 +217,14 @@ function buildFermentables(
 ) {
   const items = childList(list?.FERMENTABLE);
   return items
-    .filter((f) => f && typeof f === "object" && typeof f.NAME === "string")
+    .filter((f) => f && typeof f === "object" && asName(f.NAME) !== undefined)
     .map((f, idx) => {
       const amount = asNumber(f.AMOUNT);
       const yieldPct = asNumber(f.YIELD);
       const color = asNumber(f.COLOR);
       const ppg = yieldPct != null ? ppgFromYield(yieldPct) : undefined;
       const out: Record<string, unknown> = {
-        name: f.NAME,
+        name: asName(f.NAME),
         type: mapFermentableType(asString(f.TYPE)),
         position: idx,
       };
@@ -222,7 +242,7 @@ function buildHops(
 ) {
   const items = childList(list?.HOP);
   return items
-    .filter((h) => h && typeof h === "object" && typeof h.NAME === "string")
+    .filter((h) => h && typeof h === "object" && asName(h.NAME) !== undefined)
     .map((h, idx) => {
       const amount = asNumber(h.AMOUNT) ?? 0;
       const time = asNumber(h.TIME) ?? 0;
@@ -230,7 +250,7 @@ function buildHops(
       const use = mapHopUse(asString(h.USE));
       const form = mapHopForm(asString(h.FORM));
       const out: Record<string, unknown> = {
-        name: h.NAME,
+        name: asName(h.NAME),
         amountGrams: roundTo(Math.max(amount, 0), 4),
         timeMinutes: clamp(time, 0, 1e6),
         position: idx,
@@ -249,7 +269,7 @@ function buildYeasts(
 ) {
   const items = childList(list?.YEAST);
   return items
-    .filter((y) => y && typeof y === "object" && typeof y.NAME === "string")
+    .filter((y) => y && typeof y === "object" && asName(y.NAME) !== undefined)
     .map((y, idx) => {
       const att = asNumber(y.ATTENUATION);
       const minT = asNumber(y.MIN_TEMPERATURE);
@@ -260,7 +280,7 @@ function buildYeasts(
       const pid = asString(y.PRODUCT_ID);
       const notes = asString(y.NOTES);
       const out: Record<string, unknown> = {
-        name: y.NAME,
+        name: asName(y.NAME),
         position: idx,
       };
       if (type) out.type = type;
@@ -286,7 +306,7 @@ function buildMashSteps(
 ) {
   const items = childList(block?.MASH_STEPS?.MASH_STEP);
   return items
-    .filter((m) => m && typeof m === "object" && typeof m.NAME === "string")
+    .filter((m) => m && typeof m === "object" && asName(m.NAME) !== undefined)
     .map((m, idx) => {
       const temp = asNumber(m.STEP_TEMP) ?? 0;
       const time = asNumber(m.STEP_TIME) ?? 0;
@@ -294,7 +314,7 @@ function buildMashSteps(
       const type = mapMashStepType(asString(m.TYPE));
       const notes = asString(m.NOTES);
       const out: Record<string, unknown> = {
-        name: m.NAME,
+        name: asName(m.NAME),
         stepTempC: temp,
         stepTimeMinutes: clamp(time, 0, 1e6),
         position: idx,
@@ -330,7 +350,7 @@ function buildRecipeBody(recipe: BeerXmlRecipe): RecipeCreateBody {
   const tasteNotes = asString(recipe.TASTE_NOTES) ?? "";
 
   const out: Record<string, unknown> = {
-    title: recipe.NAME,
+    title: asName(recipe.NAME),
     batchSizeLiters: roundTo(batchSize, 3),
     category: recipeTypeToCategory(asString(recipe.TYPE)),
     fermentables: buildFermentables(recipe.FERMENTABLES),
