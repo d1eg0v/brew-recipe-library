@@ -82,11 +82,13 @@ export async function GET(
     // BRE-43: thread the request origin so the presenter can include a
     // `shareUrl` when the recipe is shareable. The raw `shareToken` is
     // stripped by the presenter — only the dedicated share endpoints expose it.
-    const headerOrigin = request.headers.get("origin");
+    //
+    // The client-supplied `Origin` header is not consulted: it describes the
+    // caller's page, not this server, so trusting it let any client choose the
+    // host in a share URL we emit. Configuration wins, then the origin the
+    // request was actually addressed to.
     const origin =
-      headerOrigin ??
-      process.env.NEXT_PUBLIC_BASE_URL ??
-      `${url.protocol}//${url.host}`;
+      process.env.NEXT_PUBLIC_BASE_URL ?? `${url.protocol}//${url.host}`;
 
     // BRE-44: look up the BJCP style row by `recipe.bjcpCategory` and attach
     // a per-metric comparison block. A null category or unknown code yields

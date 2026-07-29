@@ -660,6 +660,26 @@ describe("GET /api/recipes/[id]", () => {
     expect(body.data.id).toBe(id);
   });
 
+  it("ignores a client-supplied Origin header when building shareUrl", async () => {
+    const { id } = await createFixture();
+    await db.prisma.recipe.update({
+      where: { id },
+      data: { shareToken: "tokenForOriginCheck" },
+    });
+    const req = new Request(new URL(`/api/recipes/${id}`, "http://localhost"), {
+      headers: { origin: "https://attacker.example" },
+    });
+    const res = await recipeIdRoute.GET(
+      req as unknown as Parameters<typeof recipeIdRoute.GET>[0],
+      routeCtx(id),
+    );
+    expect(res.status).toBe(200);
+    const body = await readJson<{ data: { shareUrl: string | null } }>(res);
+    expect(body.data.shareUrl).toBe(
+      "http://localhost/share/tokenForOriginCheck",
+    );
+  });
+
   it("scales the recipe to a new batch size", async () => {
     const { id } = await createFixture();
     const res = await recipeIdRoute.GET(
