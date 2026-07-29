@@ -16,16 +16,22 @@ import { generateShareToken } from "@/lib/share/shareToken";
 
 export const dynamic = "force-dynamic";
 
-/** Resolve the absolute origin the request came in on. Falls back to
- *  `NEXT_PUBLIC_BASE_URL` or `http://localhost:3000` so dev still produces a
- *  usable URL. We deliberately do not trust the `Host` header in production
- *  — let the reverse proxy / env decide. */
+/** Resolve the absolute origin to build share URLs from.
+ *
+ *  `NEXT_PUBLIC_BASE_URL` is authoritative — behind a reverse proxy it is the
+ *  only value this server actually controls. Without it we fall back to the
+ *  origin the request was addressed to, which still describes this
+ *  deployment.
+ *
+ *  The `Origin` header is deliberately not consulted. It is set by the caller
+ *  and describes *their* page, not this server, so honouring it let any
+ *  client dictate the absolute URL the API hands back — a share link pointing
+ *  at an attacker-chosen host, emitted by us and rendered as ours. Set
+ *  `NEXT_PUBLIC_BASE_URL` in any deployment that terminates TLS upstream. */
 function resolveOrigin(request: NextRequest): string {
-  const headerOrigin = request.headers.get("origin");
-  if (headerOrigin) return headerOrigin.replace(/\/+$/g, "");
   const envBase = process.env.NEXT_PUBLIC_BASE_URL;
   if (envBase) return envBase.replace(/\/+$/g, "");
-  return "http://localhost:3000";
+  return new URL(request.url).origin;
 }
 
 interface ShareTokenResult {

@@ -45,7 +45,7 @@ afterAll(async () => {
 });
 
 function buildRequest(url: string, init?: { method?: string }) {
-  const u = new URL(url, "http://localhost");
+  const u = new URL(url, "http://localhost:3000");
   return new Request(u, { method: init?.method ?? "GET" });
 }
 
@@ -168,13 +168,15 @@ describe("POST /api/recipes/[id]/share", () => {
     expect(stored?.shareToken).toBe(firstBody.data.shareToken);
   });
 
-  it("honours the Origin header when present", async () => {
+  it("ignores a client-supplied Origin header", async () => {
+    // The header describes the caller's page, not this server. Honouring it
+    // let any client choose the host in a share URL the API emits as its own.
     const id = await createRecipe();
     const req = new Request(
-      new URL(`/api/recipes/${id}/share`, "http://localhost"),
+      new URL(`/api/recipes/${id}/share`, "http://localhost:3000"),
       {
         method: "POST",
-        headers: { origin: "https://brew.example.com" },
+        headers: { origin: "https://attacker.example" },
       },
     );
     const res = await shareRoute.POST(
@@ -183,8 +185,33 @@ describe("POST /api/recipes/[id]/share", () => {
     );
     const body = await readJson<ShareResponse>(res);
     expect(body.data.shareUrl).toBe(
-      `https://brew.example.com/share/${body.data.shareToken}`,
+      `http://localhost:3000/share/${body.data.shareToken}`,
     );
+    expect(body.data.shareUrl).not.toContain("attacker.example");
+  });
+
+  it("prefers NEXT_PUBLIC_BASE_URL over the request origin", async () => {
+    const previous = process.env.NEXT_PUBLIC_BASE_URL;
+    process.env.NEXT_PUBLIC_BASE_URL = "https://brew.example.com/";
+    try {
+      const id = await createRecipe();
+      const req = new Request(
+        new URL(`/api/recipes/${id}/share`, "http://localhost:3000"),
+        { method: "POST", headers: { origin: "https://attacker.example" } },
+      );
+      const res = await shareRoute.POST(
+        req as unknown as Parameters<typeof shareRoute.POST>[0],
+        routeCtx(id),
+      );
+      const body = await readJson<ShareResponse>(res);
+      // Configured base wins, and its trailing slash is normalised away.
+      expect(body.data.shareUrl).toBe(
+        `https://brew.example.com/share/${body.data.shareToken}`,
+      );
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
+      else process.env.NEXT_PUBLIC_BASE_URL = previous;
+    }
   });
 
   it("mints distinct tokens for distinct recipes", async () => {
