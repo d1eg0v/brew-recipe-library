@@ -68,12 +68,53 @@ export class BeerXmlParseError extends Error {
   }
 }
 
+const DOCTYPE_AT_START = /^<!DOCTYPE\b/i;
+
+/**
+ * True when the document carries a DTD the parser would act on.
+ *
+ * A DTD is the entry point for entity-expansion and external-entity attacks,
+ * so it is rejected before `parser.parse()` runs. The scan deliberately covers
+ * the whole document rather than just the prolog: `fast-xml-parser` honours a
+ * `<!DOCTYPE>` wherever it appears, including inside the root element, so
+ * `<RECIPES><!DOCTYPE x [<!ENTITY e "...">]>` really does define `e`.
+ *
+ * Comments and CDATA sections are the exception. The parser treats both as
+ * inert — a `<!DOCTYPE` inside one is text, never a declaration — so those
+ * regions are skipped. That is what stops a recipe whose notes quote a DOCTYPE
+ * from being rejected as an attack, and it narrows nothing: every position the
+ * parser would honour is still scanned. An unterminated comment or CDATA is
+ * not skipped, so a malformed document fails closed.
+ */
+function hasDocTypeDeclaration(input: string): boolean {
+  let cursor = 0;
+  while (cursor < input.length) {
+    const marker = input.indexOf("<!", cursor);
+    if (marker === -1) return false;
+
+    if (input.startsWith("<!--", marker)) {
+      const end = input.indexOf("-->", marker + 4);
+      // Unterminated: do not skip, so a later declaration is still caught.
+      cursor = end === -1 ? marker + 4 : end + 3;
+      continue;
+    }
+    if (input.startsWith("<![CDATA[", marker)) {
+      const end = input.indexOf("]]>", marker + 9);
+      cursor = end === -1 ? marker + 9 : end + 3;
+      continue;
+    }
+    if (DOCTYPE_AT_START.test(input.slice(marker, marker + 10))) return true;
+    cursor = marker + 2;
+  }
+  return false;
+}
+
 /** Parse a BeerXML string into our internal recipe create payload. */
 export function parseBeerXml(input: string): RecipeCreateBody {
   if (typeof input !== "string" || input.trim().length === 0) {
     throw new BeerXmlParseError("BeerXML input is empty");
   }
-  if (/<!DOCTYPE\b/i.test(input)) {
+  if (hasDocTypeDeclaration(input)) {
     throw new BeerXmlParseError(
       "BeerXML DOCTYPE declarations are not supported",
     );

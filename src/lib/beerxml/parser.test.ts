@@ -245,6 +245,89 @@ describe("parseBeerXml", () => {
     expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
   });
 
+  it("rejects a DOCTYPE placed inside the root element", () => {
+    // fast-xml-parser honours a DOCTYPE wherever it appears, not just in the
+    // prolog: without the guard this document resolves <NAME> to "Injected".
+    // The guard must therefore scan past the root element start tag.
+    const xml = `<?xml version="1.0"?>
+<RECIPES><!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE>
+    <NAME>&injected;</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
+  });
+
+  it("accepts a document quoting a DOCTYPE inside CDATA", () => {
+    // Legitimate content, not an attack: CDATA is inert to the parser, so the
+    // text is never read as a declaration.
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>Import Notes Ale</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <NOTES><![CDATA[Our exporter emits <!DOCTYPE RECIPES> in the prolog.]]></NOTES>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("Import Notes Ale");
+    expect(out.notes).toBe(
+      "Our exporter emits <!DOCTYPE RECIPES> in the prolog.",
+    );
+  });
+
+  it("accepts a document quoting a DOCTYPE inside a comment", () => {
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <!-- upstream files sometimes start with <!DOCTYPE RECIPES> -->
+  <RECIPE>
+    <NAME>Commented Ale</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(parseBeerXml(xml).title).toBe("Commented Ale");
+  });
+
+  it("still rejects a DOCTYPE that follows an inert region", () => {
+    // Skipping CDATA must not become a way to smuggle a real declaration in
+    // after it. Both orderings are rejected.
+    const afterCdata = `<?xml version="1.0"?>
+<RECIPES>
+  <NOTES><![CDATA[ <!-- ]]></NOTES>
+  <!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE><NAME>&injected;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(afterCdata)).toThrow(/DOCTYPE/);
+
+    const afterComment = `<?xml version="1.0"?>
+<RECIPES>
+  <!-- <![CDATA[ -->
+  <!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE><NAME>&injected;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(afterComment)).toThrow(/DOCTYPE/);
+  });
+
+  it("fails closed on a DOCTYPE after an unterminated comment", () => {
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <!-- never closed
+  <!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE><NAME>&injected;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
+  });
+
   it("decodes predefined XML entities in text content", () => {
     const xml = `<?xml version="1.0"?>
 <RECIPES>
