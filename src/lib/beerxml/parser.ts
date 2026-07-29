@@ -29,7 +29,13 @@ import type {
 const PARSER_OPTIONS = {
   ignoreAttributes: true,
   removeNSPrefix: true,
-  parseTagValue: true,
+  // Keep element text exactly as written. Coercing it destroys string data
+  // that BeerXML carries legitimately: a yeast `<PRODUCT_ID>0123</PRODUCT_ID>`
+  // became "123", `<NAME>007</NAME>` became "7", `<NAME>1e3</NAME>` became
+  // "1000" and `<NAME>0x1A</NAME>` became "26". Nothing needs the coercion —
+  // every numeric field is read through `asNumber`, which parses the text
+  // itself, so `<BATCH_SIZE>20</BATCH_SIZE>` still yields the number 20.
+  parseTagValue: false,
   parseAttributeValue: false,
   trimValues: true,
   allowBooleanAttributes: true,
@@ -198,13 +204,13 @@ function asString(value: unknown): string | undefined {
 }
 
 /**
- * Recover the text form of a BeerXML name.
+ * Read a BeerXML name as text.
  *
- * `parseTagValue: true` coerces element text that looks like a literal, so a
- * recipe or ingredient legitimately called "2024" arrives as the number 2024
- * and one called "true" as the boolean `true`. Callers that tested
- * `typeof value === "string"` therefore rejected the whole recipe, or silently
- * dropped the ingredient. Accept every primitive the parser can produce.
+ * With `parseTagValue: false` every element value already arrives as a string,
+ * so this is normally a plain read. It stays tolerant of the other primitives
+ * on purpose: a bare `typeof value === "string"` test is what made a recipe
+ * named "2024" fail to import and an ingredient named "2024" vanish from the
+ * result, and that failure returns the moment value coercion does.
  *
  * Returns `undefined` only for values that carry no name at all, so an empty
  * name still reaches schema validation and surfaces as an error rather than

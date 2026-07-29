@@ -437,6 +437,55 @@ describe("parseBeerXml", () => {
     expect(out.notes).toBe("Also &#233; stays text");
   });
 
+  it("preserves text that looks numeric, exactly as written", () => {
+    // Value coercion rewrote legitimate string data: "007" became "7", "1e3"
+    // became "1000", "0x1A" became "26" and "1.50" became "1.5". Names are the
+    // obvious casualty, but a yeast PRODUCT_ID is where leading zeros are
+    // routine, and free text was rewritten too.
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>007</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <BREWER>1e3</BREWER>
+    <NOTES>0x1A</NOTES>
+    <FERMENTABLES>
+      <FERMENTABLE><NAME>1.50</NAME><TYPE>Grain</TYPE><AMOUNT>4.5</AMOUNT></FERMENTABLE>
+    </FERMENTABLES>
+    <HOPS/>
+    <YEASTS>
+      <YEAST><NAME>Wyeast</NAME><PRODUCT_ID>0123</PRODUCT_ID></YEAST>
+    </YEASTS>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("007");
+    expect(out.author).toBe("1e3");
+    expect(out.notes).toBe("0x1A");
+    expect((out.fermentables[0] as Record<string, unknown>).name).toBe("1.50");
+    expect((out.yeasts[0] as Record<string, unknown>).productId).toBe("0123");
+
+    // Numeric fields are unaffected — `asNumber` parses the text itself.
+    expect(out.batchSizeLiters).toBe(20);
+    expect((out.fermentables[0] as Record<string, unknown>).amountKg).toBe(4.5);
+  });
+
+  it("preserves a leading zero produced by a numeric character reference", () => {
+    // `&#48;` is "0". Decoding it must not then feed the result through value
+    // coercion, or "0123" collapses to 123.
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>&#48;123</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(parseBeerXml(xml).title).toBe("0123");
+  });
+
   it("keeps names that the value parser coerces to non-strings", () => {
     // `parseTagValue` turns "2024" into a number and "true" into a boolean.
     // Before this was handled the recipe was rejected outright and numeric
