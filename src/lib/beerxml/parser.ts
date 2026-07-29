@@ -42,6 +42,15 @@ const PARSER_OPTIONS = {
   // `parseBeerXml` rejects before the parser runs — see the DOCTYPE guard
   // below.
   processEntities: true,
+  // `processEntities` covers only those five names. Numeric character
+  // references (&#233;, &#xE9;) are gated separately, and XML defines them
+  // without any DTD, so a conformant exporter may emit them for any character
+  // it cannot write directly. Leaving them literal persisted "Ren&#233;e" as
+  // the recipe author's name. Enabling this also accepts the HTML named
+  // entities (&nbsp;, &copy;), which suits a parser that is deliberately
+  // tolerant of real-world exports. Decoding stays single-pass either way:
+  // "&amp;lt;" still yields the text "&lt;", never "<".
+  htmlEntities: true,
   textNodeName: "#text",
   isArray: (name: string, jpath: unknown) => {
     // Lists in BeerXML: a single element or a list of elements — treat every

@@ -391,6 +391,52 @@ describe("parseBeerXml", () => {
     }
   }, 30_000);
 
+  it("decodes numeric character references", () => {
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>Ren&#233;e&#x2019;s Saison</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <BREWER>Ren&#xE9;e</BREWER>
+    <NOTES>Caf&#233; malt &#38; honey</NOTES>
+    <FERMENTABLES>
+      <FERMENTABLE>
+        <NAME>Cara&#769;mel 60</NAME>
+        <TYPE>Grain</TYPE>
+        <AMOUNT>1.0</AMOUNT>
+      </FERMENTABLE>
+    </FERMENTABLES>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("Renée’s Saison");
+    expect(out.author).toBe("Renée");
+    expect(out.notes).toBe("Café malt & honey");
+    const f = out.fermentables[0] as Record<string, unknown>;
+    expect(f.name).toBe("Carámel 60");
+  });
+
+  it("decodes numeric references exactly once", () => {
+    // "&#38;" is the numeric form of "&". Decoding it must not then re-decode
+    // the "amp;" that follows it, or "&#38;amp;" would collapse to "&".
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>Literal &#38;amp; Escape</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <NOTES>Also &amp;#233; stays text</NOTES>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("Literal &amp; Escape");
+    expect(out.notes).toBe("Also &#233; stays text");
+  });
+
   it("keeps names that the value parser coerces to non-strings", () => {
     // `parseTagValue` turns "2024" into a number and "true" into a boolean.
     // Before this was handled the recipe was rejected outright and numeric
