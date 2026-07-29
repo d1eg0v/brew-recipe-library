@@ -4,21 +4,26 @@
 // because we receive real-world files from BeerSmith/Brewfather/etc. that may
 // omit or rename fields. The parser coerces these to the strict `RecipeCreateBody`
 // shape; the serializer builds them from a typed Recipe record.
+//
+// Numeric fields are typed `number | string` because the parser runs with
+// `parseTagValue: false` — element text is never coerced, so these arrive as
+// strings and are converted by `asNumber`. Declaring them `number` alone would
+// describe a shape the parser never actually produces.
 
 export interface BeerXmlRecipe {
   NAME: string;
   VERSION?: number | string;
   TYPE?: string;
   BREWER?: string;
-  BATCH_SIZE?: number;
-  BOIL_SIZE?: number;
-  BOIL_TIME?: number;
-  EFFICIENCY?: number;
-  OG?: number;
-  FG?: number;
-  IBU?: number;
-  COLOR?: number; // SRM
-  ABV?: number;
+  BATCH_SIZE?: number | string;
+  BOIL_SIZE?: number | string;
+  BOIL_TIME?: number | string;
+  EFFICIENCY?: number | string;
+  OG?: number | string;
+  FG?: number | string;
+  IBU?: number | string;
+  COLOR?: number | string; // SRM
+  ABV?: number | string;
   STYLE?: {
     NAME?: string;
     CATEGORY?: string; // e.g. "21A"
@@ -37,17 +42,17 @@ export interface BeerXmlRecipe {
 export interface BeerXmlFermentable {
   NAME: string;
   TYPE?: string;
-  AMOUNT?: number; // kilograms
-  YIELD?: number; // percent
-  COLOR?: number; // degrees Lovibond
+  AMOUNT?: number | string; // kilograms
+  YIELD?: number | string; // percent
+  COLOR?: number | string; // degrees Lovibond
   NOTES?: string;
 }
 
 export interface BeerXmlHop {
   NAME: string;
-  AMOUNT?: number; // grams
-  ALPHA?: number; // %
-  TIME?: number; // minutes
+  AMOUNT?: number | string; // grams
+  ALPHA?: number | string; // %
+  TIME?: number | string; // minutes
   USE?: string;
   FORM?: string;
   NOTES?: string;
@@ -57,9 +62,9 @@ export interface BeerXmlYeast {
   NAME: string;
   TYPE?: string;
   FORM?: string;
-  ATTENUATION?: number;
-  MIN_TEMPERATURE?: number;
-  MAX_TEMPERATURE?: number;
+  ATTENUATION?: number | string;
+  MIN_TEMPERATURE?: number | string;
+  MAX_TEMPERATURE?: number | string;
   LABORATORY?: string;
   PRODUCT_ID?: string;
   NOTES?: string;
@@ -68,8 +73,8 @@ export interface BeerXmlYeast {
 export interface BeerXmlMashStep {
   NAME: string;
   TYPE?: string;
-  STEP_TEMP?: number;
-  STEP_TIME?: number;
-  INFUSE_AMOUNT?: number;
+  STEP_TEMP?: number | string;
+  STEP_TIME?: number | string;
+  INFUSE_AMOUNT?: number | string;
   NOTES?: string;
 }

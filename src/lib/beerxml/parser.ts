@@ -29,7 +29,13 @@ import type {
 const PARSER_OPTIONS = {
   ignoreAttributes: true,
   removeNSPrefix: true,
-  parseTagValue: true,
+  // Keep element text exactly as written. Coercing it destroys string data
+  // that BeerXML carries legitimately: a yeast `<PRODUCT_ID>0123</PRODUCT_ID>`
+  // became "123", `<NAME>007</NAME>` became "7", `<NAME>1e3</NAME>` became
+  // "1000" and `<NAME>0x1A</NAME>` became "26". Nothing needs the coercion —
+  // every numeric field is read through `asNumber`, which parses the text
+  // itself, so `<BATCH_SIZE>20</BATCH_SIZE>` still yields the number 20.
+  parseTagValue: false,
   parseAttributeValue: false,
   trimValues: true,
   allowBooleanAttributes: true,
@@ -40,9 +46,17 @@ const PARSER_OPTIONS = {
   // with the escape still in it. This is safe: custom entity expansion
   // (billion laughs) and external entities both require a DTD, which
   // `parseBeerXml` rejects before the parser runs — see the DOCTYPE guard
-  // below. Numeric character references (&#233;) are gated on the separate
-  // `htmlEntities` option and stay literal either way.
+  // below.
   processEntities: true,
+  // `processEntities` covers only those five names. Numeric character
+  // references (&#233;, &#xE9;) are gated separately, and XML defines them
+  // without any DTD, so a conformant exporter may emit them for any character
+  // it cannot write directly. Leaving them literal persisted "Ren&#233;e" as
+  // the recipe author's name. Enabling this also accepts the HTML named
+  // entities (&nbsp;, &copy;), which suits a parser that is deliberately
+  // tolerant of real-world exports. Decoding stays single-pass either way:
+  // "&amp;lt;" still yields the text "&lt;", never "<".
+  htmlEntities: true,
   textNodeName: "#text",
   isArray: (name: string, jpath: unknown) => {
     // Lists in BeerXML: a single element or a list of elements — treat every
@@ -68,12 +82,38 @@ export class BeerXmlParseError extends Error {
   }
 }
 
+/**
+ * Any `<!DOCTYPE` anywhere in the document, matched on raw text.
+ *
+ * A DTD is the entry point for entity-expansion and external-entity attacks,
+ * so it is rejected before `parser.parse()` runs. The scan is deliberately
+ * unconditional, and the two obvious refinements are both unsafe:
+ *
+ * - Scoping to the prolog does not work. `fast-xml-parser` honours a DOCTYPE
+ *   inside the root element, so `<RECIPES><!DOCTYPE x [<!ENTITY e "...">]>`
+ *   really does define `e`.
+ * - Skipping comments and CDATA does not work either. Deciding that a region
+ *   is inert requires tokenising exactly as the parser does, and a marker is
+ *   not enough: `<RECIPES x="<![CDATA[">` puts the opener inside an attribute,
+ *   where the parser treats it as attribute text while the `]]>` that appears
+ *   after a live DOCTYPE closes the skip. Both orderings resolve the injected
+ *   entity.
+ *
+ * The cost is a false positive: a document that quotes `<!DOCTYPE` inside a
+ * comment or CDATA section is rejected even though the parser would treat it
+ * as text. That is accepted deliberately. Over-rejecting an unusual document
+ * is recoverable; a scanner that disagrees with the parser about what is inert
+ * is a bypass, and matching the parser's lexer is not something this guard can
+ * do reliably.
+ */
+const DOCTYPE_ANYWHERE = /<!DOCTYPE\b/i;
+
 /** Parse a BeerXML string into our internal recipe create payload. */
 export function parseBeerXml(input: string): RecipeCreateBody {
   if (typeof input !== "string" || input.trim().length === 0) {
     throw new BeerXmlParseError("BeerXML input is empty");
   }
-  if (/<!DOCTYPE\b/i.test(input)) {
+  if (DOCTYPE_ANYWHERE.test(input)) {
     throw new BeerXmlParseError(
       "BeerXML DOCTYPE declarations are not supported",
     );
@@ -92,7 +132,7 @@ export function parseBeerXml(input: string): RecipeCreateBody {
       "BeerXML document is missing a <RECIPE> element",
     );
   }
-  if (!recipe.NAME || typeof recipe.NAME !== "string") {
+  if (!asName(recipe.NAME)) {
     throw new BeerXmlParseError(
       "BeerXML <RECIPE> is missing the required <NAME> element",
     );
@@ -128,6 +168,26 @@ function asString(value: unknown): string | undefined {
   return String(value);
 }
 
+/**
+ * Read a BeerXML name as text.
+ *
+ * With `parseTagValue: false` every element value already arrives as a string,
+ * so this is normally a plain read. It stays tolerant of the other primitives
+ * on purpose: a bare `typeof value === "string"` test is what made a recipe
+ * named "2024" fail to import and an ingredient named "2024" vanish from the
+ * result, and that failure returns the moment value coercion does.
+ *
+ * Returns `undefined` only for values that carry no name at all, so an empty
+ * name still reaches schema validation and surfaces as an error rather than
+ * disappearing.
+ */
+function asName(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : undefined;
+  if (typeof value === "boolean") return String(value);
+  return undefined;
+}
+
 function childList<T>(value: T | T[] | undefined | null): T[] {
   if (value == null) return [];
   return Array.isArray(value) ? value : [value];
@@ -156,14 +216,14 @@ function buildFermentables(
 ) {
   const items = childList(list?.FERMENTABLE);
   return items
-    .filter((f) => f && typeof f === "object" && typeof f.NAME === "string")
+    .filter((f) => f && typeof f === "object" && asName(f.NAME) !== undefined)
     .map((f, idx) => {
       const amount = asNumber(f.AMOUNT);
       const yieldPct = asNumber(f.YIELD);
       const color = asNumber(f.COLOR);
       const ppg = yieldPct != null ? ppgFromYield(yieldPct) : undefined;
       const out: Record<string, unknown> = {
-        name: f.NAME,
+        name: asName(f.NAME),
         type: mapFermentableType(asString(f.TYPE)),
         position: idx,
       };
@@ -181,7 +241,7 @@ function buildHops(
 ) {
   const items = childList(list?.HOP);
   return items
-    .filter((h) => h && typeof h === "object" && typeof h.NAME === "string")
+    .filter((h) => h && typeof h === "object" && asName(h.NAME) !== undefined)
     .map((h, idx) => {
       const amount = asNumber(h.AMOUNT) ?? 0;
       const time = asNumber(h.TIME) ?? 0;
@@ -189,7 +249,7 @@ function buildHops(
       const use = mapHopUse(asString(h.USE));
       const form = mapHopForm(asString(h.FORM));
       const out: Record<string, unknown> = {
-        name: h.NAME,
+        name: asName(h.NAME),
         amountGrams: roundTo(Math.max(amount, 0), 4),
         timeMinutes: clamp(time, 0, 1e6),
         position: idx,
@@ -208,7 +268,7 @@ function buildYeasts(
 ) {
   const items = childList(list?.YEAST);
   return items
-    .filter((y) => y && typeof y === "object" && typeof y.NAME === "string")
+    .filter((y) => y && typeof y === "object" && asName(y.NAME) !== undefined)
     .map((y, idx) => {
       const att = asNumber(y.ATTENUATION);
       const minT = asNumber(y.MIN_TEMPERATURE);
@@ -219,7 +279,7 @@ function buildYeasts(
       const pid = asString(y.PRODUCT_ID);
       const notes = asString(y.NOTES);
       const out: Record<string, unknown> = {
-        name: y.NAME,
+        name: asName(y.NAME),
         position: idx,
       };
       if (type) out.type = type;
@@ -245,7 +305,7 @@ function buildMashSteps(
 ) {
   const items = childList(block?.MASH_STEPS?.MASH_STEP);
   return items
-    .filter((m) => m && typeof m === "object" && typeof m.NAME === "string")
+    .filter((m) => m && typeof m === "object" && asName(m.NAME) !== undefined)
     .map((m, idx) => {
       const temp = asNumber(m.STEP_TEMP) ?? 0;
       const time = asNumber(m.STEP_TIME) ?? 0;
@@ -253,7 +313,7 @@ function buildMashSteps(
       const type = mapMashStepType(asString(m.TYPE));
       const notes = asString(m.NOTES);
       const out: Record<string, unknown> = {
-        name: m.NAME,
+        name: asName(m.NAME),
         stepTempC: temp,
         stepTimeMinutes: clamp(time, 0, 1e6),
         position: idx,
@@ -289,7 +349,7 @@ function buildRecipeBody(recipe: BeerXmlRecipe): RecipeCreateBody {
   const tasteNotes = asString(recipe.TASTE_NOTES) ?? "";
 
   const out: Record<string, unknown> = {
-    title: recipe.NAME,
+    title: asName(recipe.NAME),
     batchSizeLiters: roundTo(batchSize, 3),
     category: recipeTypeToCategory(asString(recipe.TYPE)),
     fermentables: buildFermentables(recipe.FERMENTABLES),

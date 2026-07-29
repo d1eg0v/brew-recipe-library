@@ -245,6 +245,67 @@ describe("parseBeerXml", () => {
     expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
   });
 
+  it("rejects a DOCTYPE placed inside the root element", () => {
+    // fast-xml-parser honours a DOCTYPE wherever it appears, not just in the
+    // prolog: without the guard this document resolves <NAME> to "Injected".
+    // The guard must therefore scan past the root element start tag.
+    const xml = `<?xml version="1.0"?>
+<RECIPES><!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE>
+    <NAME>&injected;</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
+  });
+
+  it("rejects a DOCTYPE hidden behind an attribute-borne marker", () => {
+    // The guard once skipped comment and CDATA regions to avoid a false
+    // positive. A marker inside an attribute value defeats that: the parser
+    // reads `<![CDATA[` here as attribute text, so the DOCTYPE that follows is
+    // live, while a scanner skipping to the `]]>` jumps straight over it. Both
+    // payloads resolved <NAME> to "Injected" before the guard went back to
+    // matching raw text.
+    const viaCdata = `<RECIPES x="<![CDATA["><!DOCTYPE RECIPES [<!ENTITY e "Injected">]>]]><RECIPE><NAME>&e;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE></RECIPES>`;
+    expect(() => parseBeerXml(viaCdata)).toThrow(/DOCTYPE/);
+
+    const viaComment = `<RECIPES x="<!--"><!DOCTYPE RECIPES [<!ENTITY e "Injected">]>--><RECIPE><NAME>&e;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE></RECIPES>`;
+    expect(() => parseBeerXml(viaComment)).toThrow(/DOCTYPE/);
+  });
+
+  it("rejects a DOCTYPE that follows a comment or CDATA section", () => {
+    // Skipping CDATA must not become a way to smuggle a real declaration in
+    // after it. Both orderings are rejected.
+    const afterCdata = `<?xml version="1.0"?>
+<RECIPES>
+  <NOTES><![CDATA[ <!-- ]]></NOTES>
+  <!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE><NAME>&injected;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(afterCdata)).toThrow(/DOCTYPE/);
+
+    const afterComment = `<?xml version="1.0"?>
+<RECIPES>
+  <!-- <![CDATA[ -->
+  <!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE><NAME>&injected;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(afterComment)).toThrow(/DOCTYPE/);
+  });
+
+  it("fails closed on a DOCTYPE after an unterminated comment", () => {
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <!-- never closed
+  <!DOCTYPE RECIPES [<!ENTITY injected "Injected">]>
+  <RECIPE><NAME>&injected;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE>
+</RECIPES>`;
+    expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
+  });
+
   it("decodes predefined XML entities in text content", () => {
     const xml = `<?xml version="1.0"?>
 <RECIPES>
@@ -286,6 +347,158 @@ describe("parseBeerXml", () => {
   </RECIPE>
 </RECIPES>`;
     expect(parseBeerXml(xml).title).toBe("Literal &amp; Escape");
+  });
+
+  it("scans pathological input in linear time", () => {
+    // The import endpoint accepts up to 1 MiB. Repeated unterminated markers
+    // used to make the DOCTYPE scan rescan the rest of the document for a
+    // terminator that never arrives — quadratic, and over a minute for this
+    // input. The bound here is deliberately loose: a linear scan finishes in
+    // milliseconds, so only a return to quadratic behaviour can trip it.
+    const MiB = 1024 * 1024;
+    for (const filler of ["<!--", "<![CDATA["]) {
+      const payload = filler.repeat(Math.floor(MiB / filler.length));
+      const started = Date.now();
+      expect(() => parseBeerXml(payload)).toThrow(BeerXmlParseError);
+      expect(Date.now() - started).toBeLessThan(5_000);
+
+      // A declaration hidden behind the unterminated markers is still caught.
+      expect(() =>
+        parseBeerXml(`${payload}<!DOCTYPE RECIPES [<!ENTITY e "x">]>`),
+      ).toThrow(/DOCTYPE/);
+    }
+  }, 30_000);
+
+  it("decodes numeric character references", () => {
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>Ren&#233;e&#x2019;s Saison</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <BREWER>Ren&#xE9;e</BREWER>
+    <NOTES>Caf&#233; malt &#38; honey</NOTES>
+    <FERMENTABLES>
+      <FERMENTABLE>
+        <NAME>Cara&#769;mel 60</NAME>
+        <TYPE>Grain</TYPE>
+        <AMOUNT>1.0</AMOUNT>
+      </FERMENTABLE>
+    </FERMENTABLES>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("Renée’s Saison");
+    expect(out.author).toBe("Renée");
+    expect(out.notes).toBe("Café malt & honey");
+    const f = out.fermentables[0] as Record<string, unknown>;
+    expect(f.name).toBe("Carámel 60");
+  });
+
+  it("decodes numeric references exactly once", () => {
+    // "&#38;" is the numeric form of "&". Decoding it must not then re-decode
+    // the "amp;" that follows it, or "&#38;amp;" would collapse to "&".
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>Literal &#38;amp; Escape</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <NOTES>Also &amp;#233; stays text</NOTES>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("Literal &amp; Escape");
+    expect(out.notes).toBe("Also &#233; stays text");
+  });
+
+  it("preserves text that looks numeric, exactly as written", () => {
+    // Value coercion rewrote legitimate string data: "007" became "7", "1e3"
+    // became "1000", "0x1A" became "26" and "1.50" became "1.5". Names are the
+    // obvious casualty, but a yeast PRODUCT_ID is where leading zeros are
+    // routine, and free text was rewritten too.
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>007</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <BREWER>1e3</BREWER>
+    <NOTES>0x1A</NOTES>
+    <FERMENTABLES>
+      <FERMENTABLE><NAME>1.50</NAME><TYPE>Grain</TYPE><AMOUNT>4.5</AMOUNT></FERMENTABLE>
+    </FERMENTABLES>
+    <HOPS/>
+    <YEASTS>
+      <YEAST><NAME>Wyeast</NAME><PRODUCT_ID>0123</PRODUCT_ID></YEAST>
+    </YEASTS>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("007");
+    expect(out.author).toBe("1e3");
+    expect(out.notes).toBe("0x1A");
+    expect((out.fermentables[0] as Record<string, unknown>).name).toBe("1.50");
+    expect((out.yeasts[0] as Record<string, unknown>).productId).toBe("0123");
+
+    // Numeric fields are unaffected — `asNumber` parses the text itself.
+    expect(out.batchSizeLiters).toBe(20);
+    expect((out.fermentables[0] as Record<string, unknown>).amountKg).toBe(4.5);
+  });
+
+  it("preserves a leading zero produced by a numeric character reference", () => {
+    // `&#48;` is "0". Decoding it must not then feed the result through value
+    // coercion, or "0123" collapses to 123.
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>&#48;123</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES/>
+    <HOPS/>
+    <YEASTS/>
+  </RECIPE>
+</RECIPES>`;
+    expect(parseBeerXml(xml).title).toBe("0123");
+  });
+
+  it("keeps names that the value parser coerces to non-strings", () => {
+    // `parseTagValue` turns "2024" into a number and "true" into a boolean.
+    // Before this was handled the recipe was rejected outright and numeric
+    // ingredient names were silently dropped from the import.
+    const xml = `<?xml version="1.0"?>
+<RECIPES>
+  <RECIPE>
+    <NAME>2024</NAME>
+    <BATCH_SIZE>20</BATCH_SIZE>
+    <FERMENTABLES>
+      <FERMENTABLE><NAME>2024</NAME><TYPE>Grain</TYPE><AMOUNT>4.5</AMOUNT></FERMENTABLE>
+    </FERMENTABLES>
+    <HOPS>
+      <HOP><NAME>90</NAME><AMOUNT>0.05</AMOUNT><TIME>60</TIME></HOP>
+    </HOPS>
+    <YEASTS>
+      <YEAST><NAME>true</NAME></YEAST>
+    </YEASTS>
+    <MASH>
+      <MASH_STEPS>
+        <MASH_STEP><NAME>66</NAME><STEP_TEMP>66</STEP_TEMP><STEP_TIME>60</STEP_TIME></MASH_STEP>
+      </MASH_STEPS>
+    </MASH>
+  </RECIPE>
+</RECIPES>`;
+    const out = parseBeerXml(xml);
+    expect(out.title).toBe("2024");
+    expect(out.fermentables).toHaveLength(1);
+    expect((out.fermentables[0] as Record<string, unknown>).name).toBe("2024");
+    expect(out.hops).toHaveLength(1);
+    expect((out.hops[0] as Record<string, unknown>).name).toBe("90");
+    expect(out.yeasts).toHaveLength(1);
+    expect((out.yeasts[0] as Record<string, unknown>).name).toBe("true");
+    expect(out.mashSteps).toHaveLength(1);
+    expect((out.mashSteps[0] as Record<string, unknown>).name).toBe("66");
   });
 
   it("rejects a missing <NAME>", () => {
