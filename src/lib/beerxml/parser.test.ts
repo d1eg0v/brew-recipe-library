@@ -262,43 +262,21 @@ describe("parseBeerXml", () => {
     expect(() => parseBeerXml(xml)).toThrow(/DOCTYPE/);
   });
 
-  it("accepts a document quoting a DOCTYPE inside CDATA", () => {
-    // Legitimate content, not an attack: CDATA is inert to the parser, so the
-    // text is never read as a declaration.
-    const xml = `<?xml version="1.0"?>
-<RECIPES>
-  <RECIPE>
-    <NAME>Import Notes Ale</NAME>
-    <BATCH_SIZE>20</BATCH_SIZE>
-    <NOTES><![CDATA[Our exporter emits <!DOCTYPE RECIPES> in the prolog.]]></NOTES>
-    <FERMENTABLES/>
-    <HOPS/>
-    <YEASTS/>
-  </RECIPE>
-</RECIPES>`;
-    const out = parseBeerXml(xml);
-    expect(out.title).toBe("Import Notes Ale");
-    expect(out.notes).toBe(
-      "Our exporter emits <!DOCTYPE RECIPES> in the prolog.",
-    );
+  it("rejects a DOCTYPE hidden behind an attribute-borne marker", () => {
+    // The guard once skipped comment and CDATA regions to avoid a false
+    // positive. A marker inside an attribute value defeats that: the parser
+    // reads `<![CDATA[` here as attribute text, so the DOCTYPE that follows is
+    // live, while a scanner skipping to the `]]>` jumps straight over it. Both
+    // payloads resolved <NAME> to "Injected" before the guard went back to
+    // matching raw text.
+    const viaCdata = `<RECIPES x="<![CDATA["><!DOCTYPE RECIPES [<!ENTITY e "Injected">]>]]><RECIPE><NAME>&e;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE></RECIPES>`;
+    expect(() => parseBeerXml(viaCdata)).toThrow(/DOCTYPE/);
+
+    const viaComment = `<RECIPES x="<!--"><!DOCTYPE RECIPES [<!ENTITY e "Injected">]>--><RECIPE><NAME>&e;</NAME><BATCH_SIZE>20</BATCH_SIZE></RECIPE></RECIPES>`;
+    expect(() => parseBeerXml(viaComment)).toThrow(/DOCTYPE/);
   });
 
-  it("accepts a document quoting a DOCTYPE inside a comment", () => {
-    const xml = `<?xml version="1.0"?>
-<RECIPES>
-  <!-- upstream files sometimes start with <!DOCTYPE RECIPES> -->
-  <RECIPE>
-    <NAME>Commented Ale</NAME>
-    <BATCH_SIZE>20</BATCH_SIZE>
-    <FERMENTABLES/>
-    <HOPS/>
-    <YEASTS/>
-  </RECIPE>
-</RECIPES>`;
-    expect(parseBeerXml(xml).title).toBe("Commented Ale");
-  });
-
-  it("still rejects a DOCTYPE that follows an inert region", () => {
+  it("rejects a DOCTYPE that follows a comment or CDATA section", () => {
     // Skipping CDATA must not become a way to smuggle a real declaration in
     // after it. Both orderings are rejected.
     const afterCdata = `<?xml version="1.0"?>

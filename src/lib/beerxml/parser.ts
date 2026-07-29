@@ -82,73 +82,38 @@ export class BeerXmlParseError extends Error {
   }
 }
 
-const DOCTYPE_AT_START = /^<!DOCTYPE\b/i;
-
 /**
- * True when the document carries a DTD the parser would act on.
+ * Any `<!DOCTYPE` anywhere in the document, matched on raw text.
  *
  * A DTD is the entry point for entity-expansion and external-entity attacks,
- * so it is rejected before `parser.parse()` runs. The scan deliberately covers
- * the whole document rather than just the prolog: `fast-xml-parser` honours a
- * `<!DOCTYPE>` wherever it appears, including inside the root element, so
- * `<RECIPES><!DOCTYPE x [<!ENTITY e "...">]>` really does define `e`.
+ * so it is rejected before `parser.parse()` runs. The scan is deliberately
+ * unconditional, and the two obvious refinements are both unsafe:
  *
- * Comments and CDATA sections are the exception. The parser treats both as
- * inert — a `<!DOCTYPE` inside one is text, never a declaration — so those
- * regions are skipped. That is what stops a recipe whose notes quote a DOCTYPE
- * from being rejected as an attack, and it narrows nothing: every position the
- * parser would honour is still scanned. An unterminated comment or CDATA is
- * not skipped, so a malformed document fails closed.
+ * - Scoping to the prolog does not work. `fast-xml-parser` honours a DOCTYPE
+ *   inside the root element, so `<RECIPES><!DOCTYPE x [<!ENTITY e "...">]>`
+ *   really does define `e`.
+ * - Skipping comments and CDATA does not work either. Deciding that a region
+ *   is inert requires tokenising exactly as the parser does, and a marker is
+ *   not enough: `<RECIPES x="<![CDATA[">` puts the opener inside an attribute,
+ *   where the parser treats it as attribute text while the `]]>` that appears
+ *   after a live DOCTYPE closes the skip. Both orderings resolve the injected
+ *   entity.
  *
- * The scan runs in linear time on any input. Once a terminator search fails,
- * no later one can succeed — the cursor only moves forward — so the result is
- * remembered. Without that, a body of repeated `<![CDATA[` with no `]]>` makes
- * every marker rescan the remainder of the document, which is quadratic: the
- * import endpoint accepts a megabyte, and a megabyte of unterminated `<!--`
- * took over a minute to scan.
+ * The cost is a false positive: a document that quotes `<!DOCTYPE` inside a
+ * comment or CDATA section is rejected even though the parser would treat it
+ * as text. That is accepted deliberately. Over-rejecting an unusual document
+ * is recoverable; a scanner that disagrees with the parser about what is inert
+ * is a bypass, and matching the parser's lexer is not something this guard can
+ * do reliably.
  */
-function hasDocTypeDeclaration(input: string): boolean {
-  let cursor = 0;
-  let commentEndExhausted = false;
-  let cdataEndExhausted = false;
-
-  while (cursor < input.length) {
-    const marker = input.indexOf("<!", cursor);
-    if (marker === -1) return false;
-
-    if (input.startsWith("<!--", marker)) {
-      const end = commentEndExhausted ? -1 : input.indexOf("-->", marker + 4);
-      if (end === -1) {
-        // Unterminated: do not skip, so a later declaration is still caught.
-        commentEndExhausted = true;
-        cursor = marker + 4;
-      } else {
-        cursor = end + 3;
-      }
-      continue;
-    }
-    if (input.startsWith("<![CDATA[", marker)) {
-      const end = cdataEndExhausted ? -1 : input.indexOf("]]>", marker + 9);
-      if (end === -1) {
-        cdataEndExhausted = true;
-        cursor = marker + 9;
-      } else {
-        cursor = end + 3;
-      }
-      continue;
-    }
-    if (DOCTYPE_AT_START.test(input.slice(marker, marker + 10))) return true;
-    cursor = marker + 2;
-  }
-  return false;
-}
+const DOCTYPE_ANYWHERE = /<!DOCTYPE\b/i;
 
 /** Parse a BeerXML string into our internal recipe create payload. */
 export function parseBeerXml(input: string): RecipeCreateBody {
   if (typeof input !== "string" || input.trim().length === 0) {
     throw new BeerXmlParseError("BeerXML input is empty");
   }
-  if (hasDocTypeDeclaration(input)) {
+  if (DOCTYPE_ANYWHERE.test(input)) {
     throw new BeerXmlParseError(
       "BeerXML DOCTYPE declarations are not supported",
     );
