@@ -15,16 +15,19 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
 
       - name: Lint
         run: npm run lint
@@ -37,3 +40,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Advisory only. `validate` is a required status check, and the three
+      # high-severity advisories open today are transitive through `next`
+      # itself with no non-breaking remedy — `npm audit fix --force` resolves
+      # them by installing next@9.3.3. Failing the job on them would block
+      # every merge in the repository. This step surfaces the report on every
+      # run; promoting it to a gate is worth doing once the tree is clean.
+      - name: Audit production dependencies (advisory)
+        continue-on-error: true
+        run: npm audit --omit=dev
